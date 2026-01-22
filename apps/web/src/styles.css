@@ -1,0 +1,41 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+.layout {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+}
+
+.panel {
+  border-right: 1px solid #e5e7eb;
+  padding: 12px;
+  overflow: auto;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.panel h1 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.node {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.node button {
+  margin-top: 8px;
+}
+

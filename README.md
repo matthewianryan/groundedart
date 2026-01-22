@@ -21,7 +21,16 @@ The long-term intent is a trustable public map of local art that:
 - Domain/data model: `docs/DATA_MODEL.md`
 - Privacy + security posture: `docs/PRIVACY_SECURITY.md`
 - Repo layout + boundaries: `docs/REPO_STRUCTURE.md`
-- Roadmap and tasks: `docs/TASKS.md`
+- Roadmap: `docs/ROADMAP.md`
+- Current milestone tasks: `docs/TASKS.md`
 
 ## Repo status
-This repository currently contains documentation + a proposed file architecture. Implementation scaffolding will land once key product decisions are locked (MVP scope, backend choice, storage, and moderation posture).
+This repository contains initial scaffolding for:
+- `apps/api` (FastAPI + Postgres/PostGIS): anonymous device sessions, node discovery, check-in tokens, capture creation, and dev-only local media uploads.
+- `apps/web` (Vite + React): map-first browsing + check-in/capture flow wired to the API.
+
+Quick start:
+- `docker compose -f infra/docker-compose.yml up -d db`
+- `source .venv311/bin/activate && pip install -e "apps/api[dev]" && (cd apps/api && alembic upgrade head) && python apps/api/scripts/seed_nodes.py`
+- `uvicorn groundedart_api.main:app --reload --port 8000`
+- `cd apps/web && npm install && npm run dev`

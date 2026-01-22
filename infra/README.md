@@ -9,3 +9,8 @@ Examples of what belongs here:
 
 Product logic should not live in `infra`.
 
+## Local development
+
+Start Postgres + PostGIS:
+- `docker compose -f infra/docker-compose.yml up -d db`
+

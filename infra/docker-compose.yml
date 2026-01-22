@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: groundedart
+      POSTGRES_USER: groundedart
+      POSTGRES_PASSWORD: groundedart
+    ports:
+      - "5432:5432"
+    volumes:
+      - groundedart_pgdata:/var/lib/postgresql/data
+
+volumes:
+  groundedart_pgdata:
+

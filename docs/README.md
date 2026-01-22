@@ -10,8 +10,9 @@ Users start with a sparse map of starter nodes. By physically visiting real-worl
 2. `docs/ARCHITECTURE.md` — system intent, trust model, core flows
 3. `docs/DATA_MODEL.md` — shared vocabulary and entity relationships
 4. `docs/PRIVACY_SECURITY.md` — constraints and anti-abuse posture
-5. `docs/TASKS.md` — MVP breakdown and milestones
-6. `docs/REPO_STRUCTURE.md` — directory layout and boundaries
+5. `docs/ROADMAP.md` — MVP breakdown and milestones
+6. `docs/TASKS.md` — active milestone task checklist
+7. `docs/REPO_STRUCTURE.md` — directory layout and boundaries
 
 ## Success rubrics
 ### Product

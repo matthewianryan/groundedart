@@ -1,0 +1,13 @@
+[
+  {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "name": "Starter Mural Wall",
+    "description": "Example starter node for local development.",
+    "category": "mural",
+    "lat": -33.9249,
+    "lng": 18.4241,
+    "radius_m": 50,
+    "min_rank": 0
+  }
+]
+

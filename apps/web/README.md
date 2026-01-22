@@ -1,14 +1,16 @@
 # `apps/web`
 
-Client app (web/PWA).
+Client app (Vite + React).
 
-Responsibilities:
-- Map-first discovery UX and node detail views
-- Device location reads (with permission handling) and check-in UX
-- Camera capture flow and resilient uploads (retries/resume, compression)
-- Display of verification state, rank gating, and attribution requirements
+## Local development
 
-Non-responsibilities:
-- Authoritative geofence decisions (must live in `apps/api`)
-- Permanent storage credentials or privileged media access
+Prereqs:
+- Node.js 18+
+
+From `apps/web`:
+- `npm install`
+- `cp .env.example .env` (optional)
+- `npm run dev`
+
+The web app expects the API at `VITE_API_ORIGIN` (default `http://localhost:8000`).
 
