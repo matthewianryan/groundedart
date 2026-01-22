@@ -33,6 +33,8 @@ export function MapRoute() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedNodeId) ?? null, [nodes, selectedNodeId]);
   const [status, setStatus] = useState<string>("Starting…");
+  const [nodesStatus, setNodesStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [nodesError, setNodesError] = useState<string | null>(null);
   const [checkinToken, setCheckinToken] = useState<string | null>(null);
   const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -76,14 +78,20 @@ export function MapRoute() {
       nodeFetchAbortRef.current?.abort();
       const controller = new AbortController();
       nodeFetchAbortRef.current = controller;
+      setNodesStatus("loading");
+      setNodesError(null);
 
       listNodes(lastBboxRef.current, { signal: controller.signal })
         .then((res) => {
           setNodes(res.nodes);
           setSelectedNodeId((prev) => (prev && !res.nodes.some((n) => n.id === prev) ? null : prev));
+          setNodesStatus("ready");
         })
         .catch((e) => {
           if (e instanceof DOMException && e.name === "AbortError") return;
+          const message = e instanceof Error ? e.message : String(e);
+          setNodesStatus("error");
+          setNodesError(message);
           setStatus(`Nodes error: ${String(e)}`);
         });
     }, NODE_FETCH_DEBOUNCE_MS);
@@ -101,9 +109,14 @@ export function MapRoute() {
     setDirectionsResult(null);
   }, [selectedNodeId]);
 
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-  }, []);
+  const handleMapLoad = useCallback(
+    (map: google.maps.Map) => {
+      mapRef.current = map;
+      const bounds = map.getBounds();
+      scheduleNodesRefresh(bounds ? bboxString(bounds) : undefined);
+    },
+    [scheduleNodesRefresh]
+  );
 
   const handleMapUnmount = useCallback(() => {
     mapRef.current = null;
@@ -214,8 +227,34 @@ export function MapRoute() {
         <div className="muted">{status}</div>
 
         <div className="node">
-          <div className="muted">Nodes in view: {nodes.length}</div>
-          <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)}>Refresh</button>
+          <div className="node-header">
+            <div>
+              <div className="muted">Nodes in view</div>
+              <div>
+                {nodesStatus === "loading"
+                  ? "Loading nodes…"
+                  : nodesStatus === "error"
+                  ? "Unable to load"
+                  : nodes.length}
+              </div>
+            </div>
+            <div className="node-actions">
+              <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)} disabled={nodesStatus === "loading"}>
+                {nodesStatus === "error" ? "Retry" : "Refresh"}
+              </button>
+            </div>
+          </div>
+          {nodesStatus === "loading" ? <div className="muted">Fetching the latest nodes…</div> : null}
+          {nodesStatus === "ready" && nodes.length === 0 ? (
+            <div className="muted">No nodes in this viewport yet.</div>
+          ) : null}
+          {nodesStatus === "error" ? (
+            <div className="alert">
+              <div>Could not load nodes.</div>
+              <div className="muted">{nodesError ?? "Unknown error"}</div>
+              <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)}>Try again</button>
+            </div>
+          ) : null}
         </div>
 
         {selectedNode ? (
@@ -251,7 +290,7 @@ export function MapRoute() {
         )}
       </div>
 
-      <div style={{ height: "100%", width: "100%" }}>
+      <div className="map-area">
         {!googleMapsApiKey ? (
           <div className="muted" style={{ padding: 12 }}>
             Set VITE_GOOGLE_MAPS_API_KEY in apps/web/.env to load the map.

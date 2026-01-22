@@ -38,8 +38,8 @@ Do **Map substrate (Google Maps)** first. A reliable base map + viewport plumbin
 - [x] Add an API smoke test that seeds nodes and exercises `GET /v1/nodes` with a `bbox` filter.
 
 ### Data (seed)
-- [ ] Expand `data/seed/nodes.json` to a small, realistic starter set (10–30 nodes).
-- [ ] Document the source/licensing assumptions for seed entries in `data/seed/README.md`.
+- [x] Expand `data/seed/nodes.json` to a small, realistic starter set (10–30 nodes).
+- [x] Document the source/licensing assumptions for seed entries in `data/seed/README.md`.
 
 ### UX polish (demo-critical)
 - [ ] Handle loading/error states for node fetching (clear messages, retry).
