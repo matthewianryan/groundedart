@@ -44,3 +44,6 @@ To avoid becoming a “scrape-and-repost” machine:
 - default visibility should be conservative until verified,
 - support takedown/reporting and creator claims as first-class flows.
 
+## Visual Design Practices
+- Color Pallette: Cream, Dark Charcoal text and Pomegranate Red highlights
+- Minimalistic UI. Only features absolutely essential to the app should be visible.

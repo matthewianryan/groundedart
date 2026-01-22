@@ -29,8 +29,12 @@ This repository contains initial scaffolding for:
 - `apps/api` (FastAPI + Postgres/PostGIS): anonymous device sessions, node discovery, check-in tokens, capture creation, and dev-only local media uploads.
 - `apps/web` (Vite + React): map-first browsing + check-in/capture flow wired to the API.
 
+## Google Maps Platform (required)
+- Enable Maps JavaScript API, Directions API, Places API, and Geocoding API on a Google Cloud project.
+- Create an API key restricted to HTTP referrers for local dev (`http://localhost:5173/*`) and add it to `apps/web/.env` as `VITE_GOOGLE_MAPS_API_KEY`.
+
 Quick start:
 - `docker compose -f infra/docker-compose.yml up -d db`
 - `source .venv311/bin/activate && pip install -e "apps/api[dev]" && (cd apps/api && alembic upgrade head) && python apps/api/scripts/seed_nodes.py`
 - `uvicorn groundedart_api.main:app --reload --port 8000`
-- `cd apps/web && npm install && npm run dev`
+- `cd apps/web && npm install && cp .env.example .env && npm run dev` (set `VITE_GOOGLE_MAPS_API_KEY` for the map/Directions/Places/Geocoding APIs)

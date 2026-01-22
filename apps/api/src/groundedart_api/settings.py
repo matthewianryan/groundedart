@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from functools import lru_cache
 from typing import Annotated
 
@@ -7,9 +8,23 @@ from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _get_repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / ".git").exists():
+            return parent
+    try:
+        return current.parents[4]
+    except IndexError:
+        return current.parent
+
+
+ENV_FILE = _get_repo_root() / ".env"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_FILE,
         env_file_encoding="utf-8",
         env_parse_delimiter=",",
         extra="ignore",
