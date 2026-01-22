@@ -1,25 +1,28 @@
-## About
+# Docs index
 
-Grounded Art is a location-based art discovery web app. Users see starter nodes on a map. When they physically enter a node’s geofence, they can submit a photo verification of the artwork. Verified submissions increase reputation and tier, unlocking more nodes and features. Posting publicly requires artist credit fields and may optionally require an on-chain tip receipt later.
+## What Grounded Art is
+Grounded Art is a location-based art discovery app built around *proof-of-presence*.
 
-Grounded art is intended to be an application that helps users find art, interact with and support artists, and in time create communities. The core experience for users is that they first see a sparse map of a couple popular spots to begin their journey. Once there, when they take pictures of art they enjoy, they unlock further functionalities within the app, like being able to see more nodes, more images of art at locations, able to filter and get tailored recommendations. We check this with geofencing verification. They "level up" by visiting real art galleries, crediting artists in their posts, and optionally making small crypto wallet donations to artists. Their photos taken of art are weighed up against a matrix that defines the best resolution image, with least glare, least obstructions, best overall image quality, and uses that as the display image, until a better one comes along. 
+Users start with a sparse map of starter nodes. By physically visiting real-world art and submitting verified captures (with attribution), they gain curator rank and unlock richer discovery and contribution features. Over time the product can route value back to artists (tips/receipts) while preserving low-friction onboarding and privacy.
 
-## Core pillars
+## Read next (recommended order)
+1. `docs/PRODUCT.md` — north star, core mechanic, constraints
+2. `docs/ARCHITECTURE.md` — system intent, trust model, core flows
+3. `docs/DATA_MODEL.md` — shared vocabulary and entity relationships
+4. `docs/PRIVACY_SECURITY.md` — constraints and anti-abuse posture
+5. `docs/TASKS.md` — MVP breakdown and milestones
+6. `docs/REPO_STRUCTURE.md` — directory layout and boundaries
 
-- Verified capture: prove you were on-site and took the photo.
-- Attribution + consent: bind captures to an artist/artwork record with clear rights defaults.
-- Discovery: map-first UX (feed later) surfacing nearby art + verified content.
-- Value loop: route value to artists (tips, unlocks, licenses) without heavy friction.
-- Trust + anti-abuse: layered verification + reputation without mandatory identity.
-
-## Rubrics
-
+## Success rubrics
 ### Product
-- Polished intuitive interface requiring no explanation, seamless user flows, professional-grade design, excellent accessibility, production-ready product experience.
+- Map-first UX that needs no explanation (fast, accessible, low-data).
+- Clear “why can/can’t I post?” states (verification + gating feel fair).
 
 ### Technical
-- Production-ready code with clean architecture, fully deployed on testnet/mainnet, all core features functional, no critical bugs, handles edge cases, excellent performance.
+- Geo + verification enforced server-side, not only client-side.
+- Media pipeline is resilient on mobile networks (retries/resume, compression).
+- Observability makes demo failures diagnosable.
 
 ### Business
-- Addresses critical well-defined African problem, solution perfectly tailored to local context (cost, connectivity, literacy), clear validated target users, immediately deployable, smart integration with existing infrastructure (M-Pesa, mobile networks), strong commercial potential.
-
+- Works in local African constraints (cost, connectivity, literacy).
+- Artist value loop is credible (attribution defaults, consent, low-friction tipping).
