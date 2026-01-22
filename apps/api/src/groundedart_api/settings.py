@@ -4,7 +4,7 @@ from pathlib import Path
 from functools import lru_cache
 from typing import Annotated
 
-from pydantic import AnyHttpUrl
+from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     max_location_accuracy_m: int = 50
 
     media_dir: str = "./.local_media"
+
+    @field_validator("api_cors_origins", mode="before")
+    @classmethod
+    def _split_cors_origins(cls, value: list[AnyHttpUrl] | str) -> list[AnyHttpUrl] | str:
+        if isinstance(value, str):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
 
 
 @lru_cache(maxsize=1)

@@ -74,3 +74,6 @@ class CapturePublic(BaseModel):
 class CreateCaptureResponse(BaseModel):
     capture: CapturePublic
 
+
+class CapturesResponse(BaseModel):
+    captures: list[CapturePublic]

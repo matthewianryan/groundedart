@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import datetime as dt
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from geoalchemy2 import Geography
 from sqlalchemy import cast, func, select
 
+from groundedart_api.api.routers.captures import capture_to_public
 from groundedart_api.api.schemas import (
+    CapturesResponse,
     CheckinChallengeResponse,
     CheckinRequest,
     CheckinResponse,
@@ -16,26 +19,17 @@ from groundedart_api.api.schemas import (
 )
 from groundedart_api.auth.deps import CurrentUser, OptionalUser
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import CheckinChallenge, CheckinToken, CuratorProfile, Node, utcnow
+from groundedart_api.db.models import Capture, CheckinChallenge, CheckinToken, CuratorProfile, Node, utcnow
 from groundedart_api.db.session import DbSessionDep
+from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
 from groundedart_api.settings import Settings, get_settings
 
 router = APIRouter(prefix="/v1", tags=["nodes"])
 
 
-@router.get("/nodes", response_model=NodesResponse)
-async def list_nodes(
-    db: DbSessionDep,
-    user: OptionalUser,
-    bbox: str | None = Query(default=None, description="minLng,minLat,maxLng,maxLat"),
-) -> NodesResponse:
-    rank = 0
-    if user is not None:
-        profile = await db.scalar(select(CuratorProfile).where(CuratorProfile.user_id == user.id))
-        rank = profile.rank if profile else 0
-
-    query = select(
+def _node_select_with_coords():
+    return select(
         Node.id,
         Node.name,
         Node.description,
@@ -44,7 +38,39 @@ async def list_nodes(
         Node.min_rank,
         func.ST_Y(Node.location).label("lat"),
         func.ST_X(Node.location).label("lng"),
-    ).where(Node.min_rank <= rank)
+    )
+
+
+async def _get_user_rank(db: DbSessionDep, user: OptionalUser) -> int:
+    if user is None:
+        return 0
+
+    profile = await db.scalar(select(CuratorProfile).where(CuratorProfile.user_id == user.id))
+    return profile.rank if profile else 0
+
+
+def _row_to_node_public(row: Any) -> NodePublic:
+    return NodePublic(
+        id=row.id,
+        name=row.name,
+        description=row.description,
+        category=row.category,
+        lat=float(row.lat),
+        lng=float(row.lng),
+        radius_m=row.radius_m,
+        min_rank=row.min_rank,
+    )
+
+
+@router.get("/nodes", response_model=NodesResponse)
+async def list_nodes(
+    db: DbSessionDep,
+    user: OptionalUser,
+    bbox: str | None = Query(default=None, description="minLng,minLat,maxLng,maxLat"),
+) -> NodesResponse:
+    rank = await _get_user_rank(db, user)
+
+    query = _node_select_with_coords().where(Node.min_rank <= rank)
     if bbox:
         try:
             min_lng, min_lat, max_lng, max_lat = (float(x) for x in bbox.split(","))
@@ -58,21 +84,44 @@ async def list_nodes(
         query = query.where(func.ST_Intersects(Node.location, envelope))
 
     rows = (await db.execute(query.limit(500))).all()
-    return NodesResponse(
-        nodes=[
-            NodePublic(
-                id=row.id,
-                name=row.name,
-                description=row.description,
-                category=row.category,
-                lat=float(row.lat),
-                lng=float(row.lng),
-                radius_m=row.radius_m,
-                min_rank=row.min_rank,
-            )
-            for row in rows
-        ]
-    )
+    return NodesResponse(nodes=[_row_to_node_public(row) for row in rows])
+
+
+@router.get("/nodes/{node_id}", response_model=NodePublic)
+async def get_node(
+    node_id: uuid.UUID,
+    db: DbSessionDep,
+    user: OptionalUser,
+) -> NodePublic:
+    rank = await _get_user_rank(db, user)
+    query = _node_select_with_coords().where(Node.id == node_id, Node.min_rank <= rank)
+    row = (await db.execute(query)).one_or_none()
+    if row is None:
+        raise AppError(code="node_not_found", message="Node not found", status_code=404)
+    return _row_to_node_public(row)
+
+
+@router.get("/nodes/{node_id}/captures", response_model=CapturesResponse)
+async def list_node_captures(
+    node_id: uuid.UUID,
+    db: DbSessionDep,
+    user: OptionalUser,
+    state: CaptureState = Query(default=CaptureState.verified),
+) -> CapturesResponse:
+    rank = await _get_user_rank(db, user)
+    node_query = _node_select_with_coords().where(Node.id == node_id, Node.min_rank <= rank)
+    node_row = (await db.execute(node_query)).one_or_none()
+    if node_row is None:
+        raise AppError(code="node_not_found", message="Node not found", status_code=404)
+
+    captures = (
+        await db.scalars(
+            select(Capture)
+            .where(Capture.node_id == node_id, Capture.state == state.value)
+            .order_by(Capture.created_at.desc())
+        )
+    ).all()
+    return CapturesResponse(captures=[capture_to_public(capture) for capture in captures])
 
 
 @router.post("/nodes/{node_id}/checkins/challenge", response_model=CheckinChallengeResponse)

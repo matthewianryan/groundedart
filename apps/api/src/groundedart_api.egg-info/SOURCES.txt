@@ -31,4 +31,5 @@ src/groundedart_api/domain/capture_state.py
 src/groundedart_api/domain/errors.py
 src/groundedart_api/storage/__init__.py
 src/groundedart_api/storage/local.py
+tests/test_api_smoke.py
 tests/test_capture_state.py

@@ -17,7 +17,7 @@ from groundedart_api.storage.local import LocalMediaStorage
 router = APIRouter(prefix="/v1", tags=["captures"])
 
 
-def _capture_to_public(capture: Capture, base_media_url: str = "/media") -> CapturePublic:
+def capture_to_public(capture: Capture, base_media_url: str = "/media") -> CapturePublic:
     image_url = f"{base_media_url}/{capture.image_path}" if capture.image_path else None
     return CapturePublic(
         id=capture.id,
@@ -67,7 +67,7 @@ async def create_capture(
     db.add(capture)
     await db.commit()
     await db.refresh(capture)
-    return CreateCaptureResponse(capture=_capture_to_public(capture))
+    return CreateCaptureResponse(capture=capture_to_public(capture))
 
 
 @router.post("/captures/{capture_id}/image", response_model=CapturePublic)
@@ -90,4 +90,4 @@ async def upload_capture_image(
     capture.image_mime = stored.mime
     await db.commit()
     await db.refresh(capture)
-    return _capture_to_public(capture)
+    return capture_to_public(capture)

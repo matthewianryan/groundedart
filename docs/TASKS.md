@@ -33,9 +33,9 @@ Do **Map substrate (Google Maps)** first. A reliable base map + viewport plumbin
 
 ### API (read paths for discovery)
 - [x] Ensure the API can be run locally against PostGIS via `infra/docker-compose.yml` (document commands and env in `apps/api/README.md`).
-- [ ] Add `GET /v1/nodes/{node_id}` to support the node detail view (match the shape of `NodePublic` in `apps/api/src/groundedart_api/api/schemas.py`).
-- [ ] Add `GET /v1/nodes/{node_id}/captures?state=verified` (or equivalent) returning a small, stable payload for the detail page.
-- [ ] Add an API smoke test that seeds nodes and exercises `GET /v1/nodes` with a `bbox` filter.
+- [x] Add `GET /v1/nodes/{node_id}` to support the node detail view (match the shape of `NodePublic` in `apps/api/src/groundedart_api/api/schemas.py`).
+- [x] Add `GET /v1/nodes/{node_id}/captures?state=verified` (or equivalent) returning a small, stable payload for the detail page.
+- [x] Add an API smoke test that seeds nodes and exercises `GET /v1/nodes` with a `bbox` filter.
 
 ### Data (seed)
 - [ ] Expand `data/seed/nodes.json` to a small, realistic starter set (10–30 nodes).
