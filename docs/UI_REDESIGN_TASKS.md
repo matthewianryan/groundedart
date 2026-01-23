@@ -151,22 +151,22 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
 ## Phase 4: Capture Route Redesign
 
 ### Task 4.1: Redesign Capture Header
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/CaptureRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Header matches design system
-  - [ ] Typography correct
-  - [ ] Smooth animations
+  - [x] Header matches design system
+  - [x] Typography correct
+  - [x] Smooth animations
 
 ### Task 4.2: Update CaptureFlow Component
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/features/captures/CaptureFlow.tsx`
 - **Acceptance Criteria:**
-  - [ ] All buttons use tactile styling
-  - [ ] Cards match design system
-  - [ ] Smooth state transitions
-  - [ ] Error states styled
-  - [ ] Progress indicators animated
+  - [x] All buttons use tactile styling
+  - [x] Cards match design system
+  - [x] Smooth state transitions
+  - [x] Error states styled
+  - [x] Progress indicators animated
 
 ---
 
@@ -235,9 +235,9 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
 ## Progress Summary
 
 - **Total Tasks:** 21
-- **Completed:** 10
+- **Completed:** 12
 - **In Progress:** 0
-- **Pending:** 11
+- **Pending:** 9
 
 ## Status Legend
 - ⏳ Pending

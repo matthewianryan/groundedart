@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import { isApiError } from "../api/http";
 import { CaptureFlow } from "../features/captures/CaptureFlow";
 import { getCapture } from "../features/captures/api";
@@ -7,6 +8,8 @@ import { loadActiveCaptureDraft } from "../features/captures/captureDraftStore";
 import type { CaptureAsset, CaptureIntent } from "../features/captures/captureFlowState";
 import { getNode } from "../features/nodes/api";
 import type { NodePublic } from "../features/nodes/types";
+import { Button, Card, Alert } from "../components/ui";
+import { fadeInUp, defaultTransition } from "../utils/animations";
 
 type CaptureRouteState = {
   node?: NodePublic;
@@ -104,17 +107,52 @@ export function CaptureRoute() {
 
   return (
     <div className="detail-layout">
-      <div className="panel detail">
-        <h1>Capture</h1>
-        <div className="muted">Node: {nodeLabel}</div>
-        {blockingError ? (
-          <div className="alert" style={{ marginTop: 12 }}>
-            <div>Unable to load capture</div>
-            <div className="muted">{loadError}</div>
-            <div style={{ marginTop: 8 }}>
-              <button onClick={() => navigate("/map")}>Back to map</button>
+      <motion.div
+        initial="initial"
+        animate="animate"
+        variants={fadeInUp}
+        transition={defaultTransition}
+        className="panel detail"
+      >
+        <Card variant="light" padding="lg" className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-tight text-grounded-charcoal dark:text-grounded-parchment mb-2">
+                Capture
+              </h1>
+              <div className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide">
+                Node: {nodeLabel}
+              </div>
             </div>
+            <Button
+              variant="light"
+              size="sm"
+              onClick={() => navigate("/map")}
+              className="flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back
+            </Button>
           </div>
+        </Card>
+
+        {blockingError ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={defaultTransition}
+          >
+            <Alert variant="error" title="Unable to load capture">
+              <div className="mb-4">
+                <p className="text-sm">{loadError}</p>
+              </div>
+              <Button variant="copper" size="sm" onClick={() => navigate("/map")}>
+                Back to map
+              </Button>
+            </Alert>
+          </motion.div>
         ) : nodeId ? (
           <CaptureFlow
             nodeId={nodeId}
@@ -128,19 +166,37 @@ export function CaptureRoute() {
             onCancel={() => navigate("/map")}
           />
         ) : isLoading ? (
-          <div className="muted" style={{ marginTop: 12 }}>
-            Loading capture…
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={defaultTransition}
+          >
+            <Card variant="light" padding="md">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-grounded-copper border-t-transparent rounded-full animate-spin" />
+                <div className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide">
+                  Loading capture…
+                </div>
+              </div>
+            </Card>
+          </motion.div>
         ) : showMissingContext ? (
-          <div className="alert" style={{ marginTop: 12 }}>
-            <div>Missing node context</div>
-            <div className="muted">Return to the map and start capture again.</div>
-            <div style={{ marginTop: 8 }}>
-              <button onClick={() => navigate("/map")}>Back to map</button>
-            </div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={defaultTransition}
+          >
+            <Alert variant="warning" title="Missing node context">
+              <div className="mb-4">
+                <p className="text-sm">Return to the map and start capture again.</p>
+              </div>
+              <Button variant="copper" size="sm" onClick={() => navigate("/map")}>
+                Back to map
+              </Button>
+            </Alert>
+          </motion.div>
         ) : null}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { isApiError } from "../../api/http";
 import { formatNextUnlockLine, formatUnlockRequirement } from "../me/copy";
 import { getMe } from "../me/api";
@@ -12,6 +13,8 @@ import {
   preprocessCaptureImage
 } from "./imagePreprocess";
 import { useUploadQueue } from "./useUploadQueue";
+import { Button, Card, Alert, Input, Select } from "../../components/ui";
+import { fadeInUp, scaleIn, staggerContainer, staggerItem, defaultTransition } from "../../utils/animations";
 
 type CaptureFlowProps = {
   nodeId: string;
@@ -482,211 +485,397 @@ export function CaptureFlow({
     : "Intent: none yet";
 
   return (
-    <div className="capture-flow">
-      <div className="capture-header">
-        <div>
-          <div className="muted">Capture flow state</div>
-          <div>{describeState()}</div>
-        </div>
-        <div className="muted">{nodeName ? `Node: ${nodeName}` : `Node: ${nodeId}`}</div>
-      </div>
-
-      <div className="muted" style={{ marginTop: 8 }}>
-        {intentSummary}
-      </div>
-
+    <motion.div
+      initial="initial"
+      animate="animate"
+      variants={staggerContainer}
+      className="capture-flow"
+    >
       {draftWarning ? (
-        <div className="alert" style={{ marginTop: 12 }}>
-          <div>Local fallback unavailable</div>
-          <div className="muted">{draftWarning}</div>
-          <div className="muted">Keep this tab open until the capture is created.</div>
-        </div>
+        <motion.div variants={staggerItem} className="mb-6">
+          <Alert variant="warning" title="Local fallback unavailable">
+            <p className="text-sm mb-2">{draftWarning}</p>
+            <p className="text-sm">Keep this tab open until the capture is created.</p>
+          </Alert>
+        </motion.div>
       ) : null}
 
-      {status === "capturing" ? (
-        <div style={{ marginTop: 12 }}>
-          <div className="muted">Use your camera to capture the node.</div>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={handleTriggerCamera} disabled={!checkinToken && !captureId}>
-              Take photo
-            </button>
-            {onCancel ? <button onClick={handleCancelAction}>Cancel</button> : null}
-          </div>
-          {!checkinToken && !captureId ? (
-            <div className="alert" style={{ marginTop: 8 }}>
-              <div>Check-in required</div>
-              <div className="muted">Return to the map to check in before capturing.</div>
-            </div>
-          ) : null}
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-          />
-        </div>
-      ) : null}
+      <AnimatePresence mode="wait">
+        {status === "capturing" ? (
+          <motion.div
+            key="capturing"
+            variants={staggerItem}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Card variant="light" padding="lg">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-2">
+                  Ready to Capture
+                </h2>
+                <p className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide">
+                  Use your camera to capture the node.
+                </p>
+              </div>
+              {!checkinToken && !captureId ? (
+                <Alert variant="warning" title="Check-in required" className="mb-6">
+                  <p className="text-sm">Return to the map to check in before capturing.</p>
+                </Alert>
+              ) : null}
+              <div className="flex gap-4 flex-wrap">
+                <Button
+                  variant="copper"
+                  size="lg"
+                  onClick={handleTriggerCamera}
+                  disabled={!checkinToken && !captureId}
+                  className="flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Take Photo
+                </Button>
+                {onCancel ? (
+                  <Button variant="light" size="lg" onClick={handleCancelAction}>
+                    Cancel
+                  </Button>
+                ) : null}
+              </div>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+            </Card>
+          </motion.div>
+        ) : null}
 
-      {status === "preview" && asset ? (
-        <div style={{ marginTop: 12 }}>
-          {previewUrl ? <img src={previewUrl} alt="Capture preview" className="capture-preview" /> : null}
-          <div className="muted" style={{ marginTop: 8 }}>
-            {asset.size ? `${Math.round(asset.size / 1024)} KB` : null}
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <div className="muted">Attribution (required for publish)</div>
-            <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-              <label>
-                <div className="muted">Artist name</div>
-                <input
+        {status === "preview" && asset ? (
+          <motion.div
+            key="preview"
+            variants={staggerItem}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="space-y-6"
+          >
+            <Card variant="light" padding="lg">
+              <h2 className="text-xl font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-4">
+                Review Your Photo
+              </h2>
+              {previewUrl ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={defaultTransition}
+                  className="mb-4"
+                >
+                  <img
+                    src={previewUrl}
+                    alt="Capture preview"
+                    className="w-full rounded-lg shadow-organic-light dark:shadow-organic-dark"
+                  />
+                </motion.div>
+              ) : null}
+              {asset.size ? (
+                <p className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide mb-6">
+                  {Math.round(asset.size / 1024)} KB
+                </p>
+              ) : null}
+            </Card>
+
+            <Card variant="light" padding="lg">
+              <h3 className="text-lg font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-4">
+                Attribution
+                <span className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60 ml-2">
+                  (required for publish)
+                </span>
+              </h3>
+              <div className="space-y-4">
+                <Input
+                  label="Artist Name"
                   type="text"
                   value={attributionArtistName}
                   onChange={(event) => setAttributionArtistName(event.target.value)}
                   placeholder="Artist name"
                 />
-              </label>
-              <label>
-                <div className="muted">Artwork title</div>
-                <input
+                <Input
+                  label="Artwork Title"
                   type="text"
                   value={attributionArtworkTitle}
                   onChange={(event) => setAttributionArtworkTitle(event.target.value)}
                   placeholder="Artwork title"
                 />
-              </label>
-              <label>
-                <div className="muted">Attribution source</div>
-                <input
+                <Input
+                  label="Attribution Source"
                   type="text"
                   value={attributionSource}
                   onChange={(event) => setAttributionSource(event.target.value)}
                   placeholder="On-site signage, artist website, gallery placard"
                 />
-              </label>
-              <label>
-                <div className="muted">Source URL (optional)</div>
-                <input
+                <Input
+                  label="Source URL (optional)"
                   type="url"
                   value={attributionSourceUrl}
                   onChange={(event) => setAttributionSourceUrl(event.target.value)}
                   placeholder="https://"
                 />
-              </label>
-            </div>
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <div className="muted">Rights & consent (required for publish)</div>
-            <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-              <label>
-                <div className="muted">Rights basis</div>
-                <select
+              </div>
+            </Card>
+
+            <Card variant="light" padding="lg">
+              <h3 className="text-lg font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-4">
+                Rights & Consent
+                <span className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60 ml-2">
+                  (required for publish)
+                </span>
+              </h3>
+              <div className="space-y-4">
+                <Select
+                  label="Rights Basis"
                   value={rightsBasis}
                   onChange={(event) => setRightsBasis(event.target.value as CaptureRightsBasis | "")}
-                >
-                  <option value="">Select a basis</option>
-                  <option value="i_took_photo">I took the photo</option>
-                  <option value="permission_granted">Permission granted</option>
-                  <option value="public_domain">Public domain</option>
-                </select>
-              </label>
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  options={[
+                    { value: "", label: "Select a basis" },
+                    { value: "i_took_photo", label: "I took the photo" },
+                    { value: "permission_granted", label: "Permission granted" },
+                    { value: "public_domain", label: "Public domain" },
+                  ]}
+                />
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={rightsAttestation}
+                    onChange={(event) => setRightsAttestation(event.target.checked)}
+                    className="w-5 h-5 rounded border-grounded-charcoal/20 dark:border-grounded-parchment/20 text-grounded-copper focus:ring-grounded-copper focus:ring-2"
+                  />
+                  <span className="text-sm text-grounded-charcoal dark:text-grounded-parchment group-hover:text-grounded-copper transition-colors">
+                    I attest I have the rights to share this capture publicly.
+                  </span>
+                </label>
+              </div>
+            </Card>
+
+            <Card variant="light" padding="lg">
+              <h3 className="text-lg font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-4">
+                Publish Request
+              </h3>
+              <label className="flex items-center gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
-                  checked={rightsAttestation}
-                  onChange={(event) => setRightsAttestation(event.target.checked)}
+                  checked={publishRequested}
+                  onChange={(event) => setPublishRequested(event.target.checked)}
+                  className="w-5 h-5 rounded border-grounded-charcoal/20 dark:border-grounded-parchment/20 text-grounded-copper focus:ring-grounded-copper focus:ring-2"
                 />
-                <span>I attest I have the rights to share this capture publicly.</span>
+                <span className="text-sm text-grounded-charcoal dark:text-grounded-parchment group-hover:text-grounded-copper transition-colors">
+                  Publish automatically once verified (requires attribution + rights).
+                </span>
               </label>
+            </Card>
+
+            <div className="flex gap-4 flex-wrap">
+              <Button
+                variant="copper"
+                size="lg"
+                onClick={handleUploadFromPreview}
+                disabled={(!checkinToken && !captureId) || submitLock.current}
+                isLoading={submitLock.current}
+                className="flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Submit
+              </Button>
+              <Button variant="light" size="lg" onClick={handleRetake}>
+                Retake
+              </Button>
+              {onCancel ? (
+                <Button variant="light" size="lg" onClick={handleCancelAction}>
+                  Cancel
+                </Button>
+              ) : null}
             </div>
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <div className="muted">Publish request</div>
-            <label style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-              <input
-                type="checkbox"
-                checked={publishRequested}
-                onChange={(event) => setPublishRequested(event.target.checked)}
-              />
-              <span>Publish automatically once verified (requires attribution + rights).</span>
-            </label>
-          </div>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={handleUploadFromPreview} disabled={(!checkinToken && !captureId) || submitLock.current}>
-              Submit
-            </button>
-            <button onClick={handleRetake}>Retake</button>
-            {onCancel ? <button onClick={handleCancelAction}>Cancel</button> : null}
-          </div>
-        </div>
-      ) : null}
+          </motion.div>
+        ) : null}
 
-      {status === "processing" ? (
-        <div style={{ marginTop: 12 }}>
-          <div>Processing your photo…</div>
-          <div className="muted">We resize and strip metadata before upload.</div>
-        </div>
-      ) : null}
+        {status === "processing" ? (
+          <motion.div
+            key="processing"
+            variants={staggerItem}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Card variant="light" padding="lg">
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 border-[3px] border-grounded-copper border-t-transparent rounded-full animate-spin" />
+                <div>
+                  <h3 className="text-lg font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-1">
+                    Processing Your Photo
+                  </h3>
+                  <p className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide">
+                    We resize and strip metadata before upload.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        ) : null}
 
-      {status === "submitting" ? (
-        <div style={{ marginTop: 12 }}>
-          <div>Creating capture record…</div>
-          <div className="muted">Keep this tab open while we submit.</div>
-        </div>
-      ) : null}
+        {status === "submitting" ? (
+          <motion.div
+            key="submitting"
+            variants={staggerItem}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Card variant="light" padding="lg">
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 border-[3px] border-grounded-copper border-t-transparent rounded-full animate-spin" />
+                <div>
+                  <h3 className="text-lg font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-1">
+                    Creating Capture Record
+                  </h3>
+                  <p className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide">
+                    Keep this tab open while we submit.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        ) : null}
 
-      {status === "uploading" ? (
-        <div style={{ marginTop: 12 }}>
-          <div>
-            {queuedItem?.status === "pending"
-              ? "Queued for upload…"
-              : queuedItem?.status === "uploading"
-                ? "Uploading your photo…"
-                : "Preparing upload…"}
-          </div>
-          {queuedItem?.status === "pending" && queuedItem.nextAttemptAt ? (
-            <div className="muted">Next retry: {new Date(queuedItem.nextAttemptAt).toLocaleTimeString()}</div>
-          ) : queuedItem?.progress?.total ? (
-            <div className="muted">
-              {Math.min(100, Math.round((queuedItem.progress.loaded / queuedItem.progress.total) * 100))}% uploaded
-            </div>
-          ) : (
-            <div className="muted">Uploads can take longer on weak networks.</div>
-          )}
-          {!navigator.onLine ? <div className="muted">Offline — upload will resume when you reconnect.</div> : null}
-        </div>
-      ) : null}
+        {status === "uploading" ? (
+          <motion.div
+            key="uploading"
+            variants={staggerItem}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Card variant="light" padding="lg">
+              <div className="mb-4">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-8 h-8 border-3 border-grounded-copper border-t-transparent rounded-full animate-spin" />
+                  <h3 className="text-lg font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment">
+                    {queuedItem?.status === "pending"
+                      ? "Queued for Upload"
+                      : queuedItem?.status === "uploading"
+                        ? "Uploading Your Photo"
+                        : "Preparing Upload"}
+                  </h3>
+                </div>
+                {queuedItem?.progress?.total ? (
+                  <div className="mb-3">
+                    <div className="w-full bg-grounded-charcoal/10 dark:bg-grounded-parchment/10 rounded-full h-2 mb-2">
+                      <motion.div
+                        className="bg-grounded-copper h-2 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${Math.min(100, Math.round((queuedItem.progress.loaded / queuedItem.progress.total) * 100))}%`,
+                        }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                    <p className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide">
+                      {Math.min(100, Math.round((queuedItem.progress.loaded / queuedItem.progress.total) * 100))}% uploaded
+                    </p>
+                  </div>
+                ) : queuedItem?.status === "pending" && queuedItem.nextAttemptAt ? (
+                  <p className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide mb-2">
+                    Next retry: {new Date(queuedItem.nextAttemptAt).toLocaleTimeString()}
+                  </p>
+                ) : (
+                  <p className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70 uppercase tracking-wide mb-2">
+                    Uploads can take longer on weak networks.
+                  </p>
+                )}
+                {!navigator.onLine ? (
+                  <Alert variant="warning" className="mt-3">
+                    <p className="text-sm">Offline — upload will resume when you reconnect.</p>
+                  </Alert>
+                ) : null}
+              </div>
+            </Card>
+          </motion.div>
+        ) : null}
 
-      {status === "success" ? (
-        <div className="alert" style={{ marginTop: 12 }}>
-          <div>Upload complete</div>
-          <div className="muted">Capture {captureId ? `${captureId.slice(0, 8)}…` : "ready"} is pending review.</div>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {onDone ? (
-              <button onClick={() => onDone(captureId ?? "")} disabled={!captureId}>
-                Done
-              </button>
-            ) : null}
-            {onCancel ? <button onClick={handleCancelAction}>Back to map</button> : null}
-          </div>
-        </div>
-      ) : null}
+        {status === "success" ? (
+          <motion.div
+            key="success"
+            variants={staggerItem}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Alert variant="success" title="Upload Complete">
+              <div className="mb-4">
+                <p className="text-sm">
+                  Capture {captureId ? `${captureId.slice(0, 8)}…` : "ready"} is pending review.
+                </p>
+              </div>
+              <div className="flex gap-4 flex-wrap">
+                {onDone ? (
+                  <Button variant="copper" size="md" onClick={() => onDone(captureId ?? "")} disabled={!captureId}>
+                    Done
+                  </Button>
+                ) : null}
+                {onCancel ? (
+                  <Button variant="light" size="md" onClick={handleCancelAction}>
+                    Back to Map
+                  </Button>
+                ) : null}
+              </div>
+            </Alert>
+          </motion.div>
+        ) : null}
 
-      {status === "failure" && failure ? (
-        <div className="alert" style={{ marginTop: 12 }}>
-          <div>{failure.title}</div>
-          {failure.detail ? <div className="muted">{failure.detail}</div> : null}
-          {failure.nextStep ? <div className="muted">{failure.nextStep}</div> : null}
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={handleRetry} disabled={!checkinToken && !captureId}>
-              Retry
-            </button>
-            <button onClick={handleRetake}>Retake</button>
-            {onCancel ? <button onClick={handleCancelAction}>Cancel</button> : null}
-          </div>
-        </div>
-      ) : null}
-    </div>
+        {status === "failure" && failure ? (
+          <motion.div
+            key="failure"
+            variants={staggerItem}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Alert variant="error" title={failure.title}>
+              <div className="mb-4 space-y-2">
+                {failure.detail ? <p className="text-sm">{failure.detail}</p> : null}
+                {failure.nextStep ? (
+                  <p className="text-sm text-grounded-charcoal/70 dark:text-grounded-parchment/70">
+                    {failure.nextStep}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex gap-4 flex-wrap">
+                <Button
+                  variant="copper"
+                  size="md"
+                  onClick={handleRetry}
+                  disabled={!checkinToken && !captureId}
+                >
+                  Retry
+                </Button>
+                <Button variant="light" size="md" onClick={handleRetake}>
+                  Retake
+                </Button>
+                {onCancel ? (
+                  <Button variant="light" size="md" onClick={handleCancelAction}>
+                    Cancel
+                  </Button>
+                ) : null}
+              </div>
+            </Alert>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </motion.div>
   );
 }
