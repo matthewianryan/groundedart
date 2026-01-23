@@ -133,6 +133,24 @@ class CuratorRankCache(Base):
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
+class Artist(Base):
+    __tablename__ = "artists"
+    __table_args__ = (
+        CheckConstraint(
+            "solana_recipient_pubkey ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$'",
+            name="ck_artists_solana_pubkey",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    display_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    solana_recipient_pubkey: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    nodes_defaulting: Mapped[list[Node]] = relationship(back_populates="default_artist")
+
+
 class Node(Base):
     __tablename__ = "nodes"
     __table_args__ = (CheckConstraint("radius_m >= 25", name="ck_nodes_radius_m_min_25"),)
@@ -147,11 +165,16 @@ class Node(Base):
     )
     radius_m: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
     min_rank: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    default_artist_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artists.id"), nullable=True
+    )
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True),
         default=utcnow,
         nullable=False,
     )
+
+    default_artist: Mapped[Artist | None] = relationship(back_populates="nodes_defaulting")
 
 
 class CheckinChallenge(Base):
