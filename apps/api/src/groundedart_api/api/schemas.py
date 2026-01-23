@@ -72,6 +72,10 @@ class NodePublic(BaseModel):
     lng: float
     radius_m: int = Field(ge=25)
     min_rank: int
+    image_url: str | None = None
+    image_attribution: str | None = None
+    image_source_url: str | None = None
+    image_license: str | None = None
 
 
 class NodesResponse(BaseModel):

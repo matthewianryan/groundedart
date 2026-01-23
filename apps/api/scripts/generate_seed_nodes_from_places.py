@@ -18,17 +18,21 @@ PLACES_KEY_ENV = "VITE_GOOGLE_MAPS_API_KEY"
 UUID_NAMESPACE = uuid.UUID("1f9e1b2b-3ed4-4c0b-8d21-9d6c0d2c8c1e")
 
 WATERFRONT_CENTER = (-33.9075, 18.4231)
+WETHINKCODE_CENTER = (-33.9272245, 18.4554980)
+RANK_DISTANCE_CENTERS = [WATERFRONT_CENTER, WETHINKCODE_CENTER]
 RANK0_NAMES = {
     "Zeitz Museum of Contemporary Art Africa",
     "V&A Waterfront Public Art Route",
     "Battery Park Skate & Art Walls",
     "Watershed Art Market",
+    "WeThinkCode_",
 }
 
 CAPETOWN_CENTERS = [
     ("Waterfront", -33.9075, 18.4231),
     ("CBD", -33.9249, 18.4241),
     ("Woodstock", -33.9297, 18.4479),
+    ("WeThinkCode", -33.9272245, 18.4554980),
     ("Gardens", -33.9371, 18.4149),
     ("Sea Point", -33.9193, 18.3862),
     ("Green Point", -33.9106, 18.4099),
@@ -61,6 +65,56 @@ SEARCH_QUERIES = [
 ]
 
 MANUAL_NODES = [
+    {
+        "id": "e730a001-11ac-425e-b5f8-104323a19df3",
+        "name": "WeThinkCode_",
+        "description": "Coding academy and hackathon venue in Woodstock.",
+        "category": "art_school",
+        "lat": -33.9272245,
+        "lng": 18.455498,
+        "radius_m": 90,
+        "min_rank": 0,
+    },
+    {
+        "id": "0d961df5-7e0d-40e5-9ef0-ac68d59e4d9b",
+        "name": "Old Biscuit Mill",
+        "description": "Design market and artisan shops in Woodstock.",
+        "category": "art_shop",
+        "lat": -33.9274527,
+        "lng": 18.457579,
+        "radius_m": 70,
+        "min_rank": 1,
+    },
+    {
+        "id": "910bd3d9-39d1-4afc-8dd7-5c31ccb75ac1",
+        "name": "The Neighbourgoods Market",
+        "description": "Weekly market with local makers at the Old Biscuit Mill.",
+        "category": "art_shop",
+        "lat": -33.927451,
+        "lng": 18.4581374,
+        "radius_m": 70,
+        "min_rank": 1,
+    },
+    {
+        "id": "ee4a2a36-179c-4551-b152-b95d7c80c6f7",
+        "name": "The Woodstock Exchange",
+        "description": "Design hub with studios and boutiques on Albert Road.",
+        "category": "art_shop",
+        "lat": -33.9268834,
+        "lng": 18.445957,
+        "radius_m": 70,
+        "min_rank": 1,
+    },
+    {
+        "id": "8cbde9ff-eb0e-4817-82a6-6330528956d6",
+        "name": "The Palms Decor and Lifestyle Centre",
+        "description": "Lifestyle and design stores on Sir Lowry Road.",
+        "category": "art_shop",
+        "lat": -33.9269606,
+        "lng": 18.4400815,
+        "radius_m": 70,
+        "min_rank": 1,
+    },
     {
         "id": "b752b4c2-6da5-4bba-bdc1-5687db128123",
         "name": "Zeitz Museum of Contemporary Art Africa",
@@ -98,6 +152,8 @@ MANUAL_NODES = [
         "radius_m": 70,
     },
 ]
+
+MANUAL_NAMES = {node["name"] for node in MANUAL_NODES}
 
 
 def _normalize_ascii(text: str) -> str:
@@ -149,7 +205,9 @@ def _radius_for_category(category: str) -> int:
 def _min_rank_for_place(name: str, lat: float, lng: float) -> int:
     if name in RANK0_NAMES:
         return 0
-    distance_km = _haversine_km(WATERFRONT_CENTER[0], WATERFRONT_CENTER[1], lat, lng)
+    distance_km = min(
+        _haversine_km(center[0], center[1], lat, lng) for center in RANK_DISTANCE_CENTERS
+    )
     if distance_km <= 3.0:
         return 1
     return 2
@@ -163,9 +221,12 @@ def _places_text_search(
     lat: float,
     lng: float,
     radius_m: int,
+    max_pages: int | None = None,
+    page_sleep_s: float = 2.0,
 ) -> list[dict[str, object]]:
     results: list[dict[str, object]] = []
     params = {"query": query, "location": f"{lat},{lng}", "radius": radius_m, "key": api_key}
+    page = 0
     while True:
         response = client.get(PLACES_TEXTSEARCH_URL, params=params, timeout=30)
         response.raise_for_status()
@@ -181,7 +242,10 @@ def _places_text_search(
         next_token = payload.get("next_page_token")
         if not next_token:
             break
-        time.sleep(2)
+        page += 1
+        if max_pages is not None and page >= max_pages:
+            break
+        time.sleep(page_sleep_s)
         params = {"pagetoken": next_token, "key": api_key}
     return results
 
@@ -205,6 +269,36 @@ def main() -> None:
         help="Output JSON path for nodes.",
     )
     parser.add_argument("--radius", type=int, default=DEFAULT_RADIUS_M, help="Search radius in meters.")
+    parser.add_argument(
+        "--max-centers",
+        type=int,
+        default=None,
+        help="Limit number of center points to query.",
+    )
+    parser.add_argument(
+        "--max-queries",
+        type=int,
+        default=None,
+        help="Limit number of search queries per center.",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Limit number of pages per Places query.",
+    )
+    parser.add_argument(
+        "--page-sleep",
+        type=float,
+        default=2.0,
+        help="Seconds to wait between Places pages.",
+    )
+    parser.add_argument(
+        "--max-nodes",
+        type=int,
+        default=None,
+        help="Stop after collecting this many nodes.",
+    )
     args = parser.parse_args()
 
     api_key = os.environ.get(PLACES_KEY_ENV, "").strip()
@@ -221,23 +315,41 @@ def main() -> None:
         existing_by_key[key] = node
 
     places: dict[str, dict[str, object]] = {}
+    centers = CAPETOWN_CENTERS[: args.max_centers] if args.max_centers else CAPETOWN_CENTERS
+    queries = SEARCH_QUERIES[: args.max_queries] if args.max_queries else SEARCH_QUERIES
+
+    reached_max_places = False
     with httpx.Client() as client:
-        for _, lat, lng in CAPETOWN_CENTERS:
-            for query in SEARCH_QUERIES:
+        for _, lat, lng in centers:
+            for query in queries:
                 for place in _places_text_search(
-                    client, api_key=api_key, query=query, lat=lat, lng=lng, radius_m=args.radius
+                    client,
+                    api_key=api_key,
+                    query=query,
+                    lat=lat,
+                    lng=lng,
+                    radius_m=args.radius,
+                    max_pages=args.max_pages,
+                    page_sleep_s=args.page_sleep,
                 ):
                     place_id = place.get("place_id")
                     if not place_id:
                         continue
                     places[str(place_id)] = place
+                    if args.max_nodes and len(places) >= args.max_nodes:
+                        reached_max_places = True
+                        break
+                if reached_max_places:
+                    break
+            if reached_max_places:
+                break
 
     nodes: list[dict[str, object]] = []
     seen_keys: set[str] = set()
 
     for manual in MANUAL_NODES:
         node = dict(manual)
-        node["min_rank"] = 0
+        node["min_rank"] = int(node.get("min_rank", 0))
         nodes.append(node)
         seen_keys.add(_dedupe_key(node["name"], float(node["lat"]), float(node["lng"])))
 
@@ -250,7 +362,7 @@ def main() -> None:
         if not name or lat is None or lng is None:
             continue
         key = _dedupe_key(name, float(lat), float(lng))
-        if key in seen_keys:
+        if key in seen_keys or name in MANUAL_NAMES:
             continue
 
         existing = existing_by_key.get(key)
@@ -277,6 +389,8 @@ def main() -> None:
         }
         nodes.append(node)
         seen_keys.add(key)
+        if args.max_nodes and len(nodes) >= args.max_nodes:
+            break
 
     nodes.sort(key=lambda item: (int(item["min_rank"]), str(item["name"])))
     args.output.write_text(json.dumps(nodes, indent=2), encoding="utf-8")

@@ -18,6 +18,10 @@ cd apps/api
 pytest
 ```
 
+Notes:
+- Tests use a separate database to avoid wiping dev data. Set `DATABASE_URL_TEST` (or `TEST_DATABASE_URL`) to a PostGIS DB.
+- If not set, tests derive `<DATABASE_URL>_test` and create it automatically.
+
 ## Architecture notes for testability
 
 No immediate architectural changes are required for API testing: the FastAPI app, DB session factory, and ASGI client are already testable.

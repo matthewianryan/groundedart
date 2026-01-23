@@ -60,8 +60,12 @@ def _with_retry_after(
     return details
 
 
-def capture_to_public(capture: Capture, base_media_url: str = "/media") -> CapturePublic:
-    image_url = f"{base_media_url}/{capture.image_path}" if capture.image_path else None
+def capture_to_public(capture: Capture, *, base_media_url: str) -> CapturePublic:
+    image_url = None
+    if capture.image_path:
+        base = base_media_url.rstrip("/")
+        image_path = capture.image_path.lstrip("/")
+        image_url = f"{base}/{image_path}"
     return CapturePublic(
         id=capture.id,
         node_id=capture.node_id,
@@ -209,7 +213,9 @@ async def create_capture(
     )
     await db.commit()
     await db.refresh(capture)
-    return CreateCaptureResponse(capture=capture_to_public(capture))
+    return CreateCaptureResponse(
+        capture=capture_to_public(capture, base_media_url=settings.media_public_base_url)
+    )
 
 
 @router.get("/captures/{capture_id}", response_model=CapturePublic)
@@ -217,13 +223,14 @@ async def get_capture(
     capture_id: uuid.UUID,
     db: DbSessionDep,
     user: CurrentUser,
+    settings: Settings = Depends(get_settings),
 ) -> CapturePublic:
     capture = await db.get(Capture, capture_id)
     if capture is None:
         raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
     if capture.user_id != user.id:
         raise AppError(code="forbidden", message="Forbidden", status_code=403)
-    return capture_to_public(capture)
+    return capture_to_public(capture, base_media_url=settings.media_public_base_url)
 
 
 @router.patch("/captures/{capture_id}", response_model=CapturePublic)
@@ -232,6 +239,7 @@ async def update_capture(
     body: UpdateCaptureRequest,
     db: DbSessionDep,
     user: CurrentUser,
+    settings: Settings = Depends(get_settings),
     now: UtcNow = Depends(get_utcnow),
 ) -> CapturePublic:
     capture = await db.get(Capture, capture_id)
@@ -256,7 +264,7 @@ async def update_capture(
 
     await db.commit()
     await db.refresh(capture)
-    return capture_to_public(capture)
+    return capture_to_public(capture, base_media_url=settings.media_public_base_url)
 
 
 @router.post("/captures/{capture_id}/reports", response_model=CreateReportResponse)
@@ -334,6 +342,7 @@ async def publish_capture(
     capture_id: uuid.UUID,
     db: DbSessionDep,
     user: CurrentUser,
+    settings: Settings = Depends(get_settings),
 ) -> CapturePublic:
     capture = await db.get(Capture, capture_id)
     if capture is None:
@@ -377,7 +386,7 @@ async def publish_capture(
         )
     await db.commit()
     await db.refresh(capture)
-    return capture_to_public(capture)
+    return capture_to_public(capture, base_media_url=settings.media_public_base_url)
 
 
 @router.post("/captures/{capture_id}/image", response_model=CapturePublic)
@@ -457,4 +466,4 @@ async def upload_capture_image(
                 node_id=capture.node_id,
                 user_id=capture.user_id,
             )
-        return capture_to_public(capture)
+        return capture_to_public(capture, base_media_url=settings.media_public_base_url)

@@ -5,6 +5,7 @@ import { buildTipTransaction } from "./transaction";
 import { confirmTip, createTipIntent, getNodeTips } from "./api";
 import type { NodeTipsResponse, TipReceiptStatus } from "./types";
 import { createTipFlowState, performTipFlow, tipFlowReducer, type TipFlowState } from "./tipFlowState";
+import { validateDevnet } from "./devnetGuard";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
@@ -50,6 +51,49 @@ export function TipFlow({ nodeId }: TipFlowProps) {
       tipFlowReducer(prev, { type: wallet.connected ? "wallet_connected" : "wallet_disconnected" })
     );
   }, [wallet.connected]);
+
+  useEffect(() => {
+    if (!wallet.connected) return;
+    let cancelled = false;
+    validateDevnet(connection)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.ok) {
+          setState((prev) =>
+            tipFlowReducer(prev, {
+              type: "failed",
+              error: {
+                title: "Devnet required",
+                detail:
+                  "This demo is Solana devnet-only. Switch your wallet to Devnet and set VITE_SOLANA_RPC_URL/SOLANA_RPC_URL to a devnet endpoint."
+              }
+            })
+          );
+          return;
+        }
+
+        setState((prev) => {
+          if (prev.status !== "failure" || prev.error?.title !== "Devnet required") return prev;
+          return { ...prev, status: "ready", error: null };
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState((prev) =>
+          tipFlowReducer(prev, {
+            type: "failed",
+            error: {
+              title: "Solana RPC unavailable",
+              detail:
+                "Unable to reach the configured Solana RPC. Check VITE_SOLANA_RPC_URL (web) and SOLANA_RPC_URL (API)."
+            }
+          })
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [wallet.connected, connection]);
 
   useEffect(() => {
     if (!nodeId) return;

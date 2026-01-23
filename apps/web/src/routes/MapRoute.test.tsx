@@ -256,4 +256,110 @@ describe("MapRoute", () => {
     await waitFor(() => expect(screen.getByText("Not inside the zone")).toBeInTheDocument());
     expect(screen.getByText(/zone radius/)).toBeInTheDocument();
   });
+
+  it("formats geolocation errors when requesting directions", async () => {
+    listNodes.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "node_1",
+          visibility: "visible",
+          name: "Test node",
+          category: "Mural",
+          description: "",
+          lat: 1,
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
+        }
+      ]
+    });
+
+    const user = await renderMap();
+
+    Object.defineProperty(navigator, "geolocation", {
+      value: {
+        getCurrentPosition: vi.fn((_success: PositionCallback, error: PositionErrorCallback) =>
+          error({ code: 1, message: "User denied Geolocation" } as GeolocationPositionError)
+        )
+      },
+      configurable: true
+    });
+
+    await user.click(screen.getByRole("button", { name: "Check in" }));
+    await waitFor(() => expect(screen.getByText("Location permission denied")).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Get directions" }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Directions error: Location permission denied/i)).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/\[object GeolocationPositionError\]/)).not.toBeInTheDocument();
+  });
+
+  it("falls back to a low-accuracy fix for directions when high accuracy fails", async () => {
+    listNodes.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "node_1",
+          visibility: "visible",
+          name: "Test node",
+          category: "Mural",
+          description: "",
+          lat: 1,
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
+        }
+      ]
+    });
+
+    const user = await renderMap();
+
+    const getCurrentPosition = vi
+      .fn()
+      .mockImplementationOnce((_success: PositionCallback, error: PositionErrorCallback) =>
+        error({ code: 2, message: "Position unavailable" } as GeolocationPositionError)
+      )
+      .mockImplementationOnce((success: PositionCallback) =>
+        success({
+          coords: { latitude: 1, longitude: 2, accuracy: 9 },
+          timestamp: Date.now()
+        } as GeolocationPosition)
+      );
+
+    Object.defineProperty(navigator, "geolocation", {
+      value: { getCurrentPosition },
+      configurable: true
+    });
+
+    await user.click(screen.getByRole("button", { name: "Directions" }));
+
+    await waitFor(() => expect(getCurrentPosition).toHaveBeenCalledTimes(2));
+    expect(getCurrentPosition.mock.calls[0]?.[2]).toMatchObject({ enableHighAccuracy: true });
+    expect(getCurrentPosition.mock.calls[1]?.[2]).toMatchObject({ enableHighAccuracy: false });
+    await waitFor(() => expect(screen.getByTestId("directions-service")).toBeInTheDocument());
+  });
+
+  it("offers a Google Maps link even before a GPS fix", async () => {
+    listNodes.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "node_1",
+          visibility: "visible",
+          name: "Test node",
+          category: "Mural",
+          description: "",
+          lat: 1,
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
+        }
+      ]
+    });
+
+    await renderMap();
+
+    const link = screen.getByRole("link", { name: "Open in Google Maps" });
+    expect(link.getAttribute("href")).toContain("destination=1%2C2");
+  });
 });

@@ -67,8 +67,9 @@ async def create_anonymous_session(
         key=settings.session_cookie_name,
         value=token,
         httponly=True,
-        samesite="lax",
-        secure=False,
+        samesite=settings.session_cookie_samesite,
+        secure=settings.session_cookie_secure,
+        domain=settings.session_cookie_domain,
         max_age=settings.session_ttl_seconds,
         path="/",
     )

@@ -1,5 +1,7 @@
 import { isApiError } from "../../api/http";
+import { adminTransitionCapture } from "../admin/api";
 import { uploadCaptureImage, type UploadCaptureImageOptions } from "./api";
+import { dispatchCaptureUploadedEvent, dispatchCaptureVerifiedEvent } from "./uploadEvents";
 import {
   deleteUploadIntent,
   listUploadIntents,
@@ -30,8 +32,59 @@ const MAX_AUTO_ATTEMPTS = 6;
 const INITIAL_BACKOFF_MS = 750;
 const MAX_BACKOFF_MS = 30_000;
 
+const DEMO_ENABLED_STORAGE_KEY = "groundedart.demo.enabled";
+const DEMO_ADMIN_TOKEN_STORAGE_KEY = "groundedart.demo.adminToken";
+const DEMO_AUTO_VERIFY_STORAGE_KEY = "groundedart.demo.autoVerify";
+const DEMO_MODE_ENV = import.meta.env.VITE_DEMO_MODE as string | undefined;
+const DEMO_AUTO_VERIFY_ENV = import.meta.env.VITE_DEMO_AUTO_VERIFY as string | undefined;
+
 function nowIso() {
   return new Date().toISOString();
+}
+
+function readStorageValue(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function isDemoEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  const query = new URLSearchParams(window.location.search);
+  if (query.has("demo")) return true;
+  if (DEMO_MODE_ENV === "true") return true;
+  return readStorageValue(DEMO_ENABLED_STORAGE_KEY) === "true";
+}
+
+function getDemoAdminToken(): string | null {
+  const fromEnv = import.meta.env.VITE_ADMIN_API_TOKEN as string | undefined;
+  if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+  const stored = readStorageValue(DEMO_ADMIN_TOKEN_STORAGE_KEY);
+  return stored?.trim() ? stored.trim() : null;
+}
+
+function shouldAutoVerify(): boolean {
+  if (DEMO_AUTO_VERIFY_ENV === "false") return false;
+  if (DEMO_AUTO_VERIFY_ENV === "true") return true;
+  return readStorageValue(DEMO_AUTO_VERIFY_STORAGE_KEY) !== "false";
+}
+
+async function maybeAutoVerifyCapture(captureId: string): Promise<void> {
+  if (!isDemoEnabled()) return;
+  if (!shouldAutoVerify()) return;
+  const token = getDemoAdminToken();
+  if (!token) return;
+  try {
+    await adminTransitionCapture(captureId, token, {
+      target_state: "verified",
+      details: { demo_auto_verify: true }
+    });
+    dispatchCaptureVerifiedEvent(captureId);
+  } catch {
+    // Ignore auto-verify failures; the demo can still proceed with manual moderation.
+  }
 }
 
 function parseIsoMs(value?: string): number | null {
@@ -271,6 +324,8 @@ export class UploadQueue {
       await uploadCaptureImage(item.captureId, file, options);
       this.items.delete(item.captureId);
       await deleteUploadIntent(item.captureId);
+      dispatchCaptureUploadedEvent(item.captureId);
+      void maybeAutoVerifyCapture(item.captureId);
       this.emit();
     } catch (err) {
       const classified = classifyUploadError(err);

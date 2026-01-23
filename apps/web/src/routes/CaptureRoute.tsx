@@ -127,7 +127,7 @@ export function CaptureRoute() {
             <Button
               variant="light"
               size="sm"
-              onClick={() => navigate("/map")}
+              onClick={() => navigate(`/map${location.search}`)}
               className="flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +148,7 @@ export function CaptureRoute() {
               <div className="mb-4">
                 <p className="text-sm">{loadError}</p>
               </div>
-              <Button variant="copper" size="sm" onClick={() => navigate("/map")}>
+              <Button variant="copper" size="sm" onClick={() => navigate(`/map${location.search}`)}>
                 Back to map
               </Button>
             </Alert>
@@ -161,9 +161,9 @@ export function CaptureRoute() {
             captureId={captureId ?? null}
             initialAsset={initialAsset}
             initialIntent={initialIntent}
-            onCaptureCreated={(id) => navigate(`/capture/${id}`, { replace: true })}
-            onDone={() => navigate("/map")}
-            onCancel={() => navigate("/map")}
+            onCaptureCreated={(id) => navigate(`/capture/${id}${location.search}`, { replace: true })}
+            onDone={() => navigate(`/map${location.search}`)}
+            onCancel={() => navigate(`/map${location.search}`)}
           />
         ) : isLoading ? (
           <motion.div
@@ -190,7 +190,7 @@ export function CaptureRoute() {
               <div className="mb-4">
                 <p className="text-sm">Return to the map and start capture again.</p>
               </div>
-              <Button variant="copper" size="sm" onClick={() => navigate("/map")}>
+              <Button variant="copper" size="sm" onClick={() => navigate(`/map${location.search}`)}>
                 Back to map
               </Button>
             </Alert>

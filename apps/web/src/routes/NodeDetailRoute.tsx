@@ -183,6 +183,44 @@ export function NodeDetailRoute() {
               </motion.div>
             ) : (
               <>
+                {/* Node Image */}
+                {node.visibility === "visible" && node.image_url ? (
+                  <motion.div variants={staggerItem}>
+                    <Card variant="light" padding="none" className="overflow-hidden mb-6">
+                      <div className="relative w-full aspect-video overflow-hidden bg-grounded-charcoal/5 dark:bg-grounded-parchment/5">
+                        <motion.img
+                          src={node.image_url}
+                          alt={node.name}
+                          loading="lazy"
+                          initial={{ opacity: 0, scale: 1.05 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={defaultTransition}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {node.image_attribution ? (
+                        <div className="p-4 border-t border-grounded-charcoal/10 dark:border-grounded-parchment/10">
+                          <p className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60 uppercase tracking-wide">
+                            Image credit:{" "}
+                            {node.image_source_url ? (
+                              <a
+                                href={node.image_source_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-grounded-copper hover:text-grounded-clay dark:text-grounded-copper dark:hover:text-grounded-clay transition-colors"
+                              >
+                                {node.image_attribution}
+                              </a>
+                            ) : (
+                              <span>{node.image_attribution}</span>
+                            )}
+                          </p>
+                        </div>
+                      ) : null}
+                    </Card>
+                  </motion.div>
+                ) : null}
+
                 {/* Node Information Card */}
                 <motion.div variants={staggerItem}>
                   <Card variant="light" padding="lg">

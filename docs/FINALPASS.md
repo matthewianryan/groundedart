@@ -1,213 +1,217 @@
-# Final Pass (Hackathon Submission)
+# FINALPASS — Final Implementations (Repo Snapshot)
 
-This is the last-mile checklist to ensure the Grounded Art demo is **usable by real users** with **no dead ends**, **no broken flows**, and **no “wired later” UI**.
+This file documents what is **actually implemented** in this repository today (web, API, DB, infra), why it exists, and how the pieces fit together. It’s intended to be a “don’t accidentally break this” reference and a handoff document for demo/ops.
 
-Scope: the currently implemented core loop in this repo:
-**Map → node selection → on-site check-in → capture + upload → admin verification → (optional) auto-publish → view + report.**
+Core loop implemented end-to-end:
+**Map → node selection → on-site check-in (geofence) → capture creation → image upload (resilient) → admin verification → notification → (optional) auto-publish → public viewing → user reporting → admin resolution/hide.**
 
----
-
-## 0) Stop-Ship (non‑negotiables)
-
-- [ ] A first-time user can load the web app and see a map (not a blank screen).
-- [ ] Anonymous session is established automatically (cookie set) and API requests work.
-- [ ] Nodes render on the map + “Nodes in view” list updates without errors.
-- [ ] A user can select a node and open **Node detail**.
-- [ ] **Check in** succeeds when inside geofence and returns a token.
-- [ ] **Take photo → Submit** creates a capture and uploads an image successfully.
-- [ ] Uploads survive **offline + reload** (pending uploads list persists and can be retried).
-- [ ] Admin can verify a pending capture and the user sees a **notification**.
-- [ ] If “Publish automatically once verified” is checked **and** attribution/rights are provided, the verified capture becomes **public** and appears in **Node detail**.
-- [ ] Reporting works end-to-end: user reports → admin resolves → capture is hidden and no longer appears publicly.
-- [ ] There are **no visible UI paths** for unfinished features (tips, login/identity, feeds, etc).
-
-If any item above fails: stop and fix before demo/submission.
+Tips are also implemented (Solana devnet) behind a web feature flag.
 
 ---
 
-## 1) Environment & Secrets (must be correct)
+## What’s implemented (by area)
 
-### Required local values (`.env` at repo root)
-- [ ] `VITE_GOOGLE_MAPS_API_KEY` set and valid.
-- [ ] `VITE_API_ORIGIN` points at the running API (default `http://localhost:8000`).
-- [ ] `API_CORS_ORIGINS` includes the web origin (default `http://localhost:5173`).
-- [ ] `DATABASE_URL` points at the running Postgres/PostGIS.
-- [ ] `TOKEN_HASH_SECRET` is set (non-empty); do not ship the default in a deployed demo.
-- [ ] `ADMIN_API_TOKEN` is set (non-empty); keep it private.
+### Web app (`apps/web`)
+Why: deliver a map-first UX with proof-of-presence and resilient uploading on mobile networks.
 
-### Google Maps Platform key checks
-- [ ] Billing enabled for the project.
-- [ ] APIs enabled: Maps JavaScript API, Directions API, Places API, Geocoding API.
-- [ ] Key restrictions include your demo origins:
-  - Local: `http://localhost:5173/*`
-  - Deployed: your real web domain(s)
+What it does:
+- Establishes an anonymous device session (`/v1/sessions/anonymous`) and uses `credentials: "include"` for cookie auth on API calls.
+- Map-first browsing using Google Maps JS (`@react-google-maps/api`):
+  - Viewport-based node fetching (`/v1/nodes?bbox=...`) and marker rendering.
+  - Node selection panel, with a “Nodes in view” list.
+  - Directions rendering from current location to the node.
+  - Multiple map styling presets (persisted to `localStorage`).
+- Proof-of-presence check-in:
+  - Challenge (`/v1/nodes/{node_id}/checkins/challenge`) then verify (`/v1/nodes/{node_id}/checkins`).
+  - UI handles accuracy failures, outside-geofence failures, and rate limiting (with retry timing when provided).
+- Capture flow (`/capture/:captureId?`) with resilience:
+  - Client-side image preprocessing/compression (JPG/PNG/WebP) before upload.
+  - Capture record creation (`/v1/captures`) with attribution + rights attestation fields and a “publish when verified” intent.
+  - Upload queue persisted to IndexedDB with retry/backoff and a “Pending uploads” panel (shown when non-empty):
+    - Survives offline + reload, supports manual retry/remove, and resumes automatically when online.
+  - Draft persistence for the “photo taken but not submitted yet” case (separate IndexedDB store) to avoid dead ends on reload.
+- Rank + notifications UI:
+  - Rank display (`/v1/me`) including “next unlock” copy.
+  - Notifications list (`/v1/me/notifications`) and mark-read (`/v1/me/notifications/{id}/read`).
+  - Demo-only rank simulation controls via `?demo=1` (UI-only; does not change server rank).
+- Node detail (`/nodes/:nodeId`):
+  - Shows locked-vs-visible node state (based on server response).
+  - Lists verified captures with attribution/source display (`/v1/nodes/{node_id}/captures`).
+  - Allows logged-in users to report a capture (`/v1/captures/{capture_id}/reports`).
+  - Optional tip UI (Solana Wallet Adapter) when `VITE_TIPS_ENABLED=true`.
 
-### Cookie + CORS deployment reality check (critical)
-The app uses a **cookie session** (`ga_session`) with `SameSite=Lax`.
-- [ ] The web app domain and API domain are **same-site** (e.g. `app.example.com` and `api.example.com`).
-- [ ] `API_CORS_ORIGINS` matches the web origin exactly (scheme + host + port).
-- [ ] In the browser, confirm the cookie is being sent on API calls (`credentials: include`).
+### API (`apps/api`)
+Why: enforce geo + trust constraints server-side (not client-side), keep contracts stable, and provide minimal admin moderation controls for the demo.
 
-If your API and web are on unrelated domains, the session cookie will not behave as expected; do not “hope it works”.
+What it does:
+- Anonymous device sessions via HttpOnly cookie (`ga_session` by default):
+  - `POST /v1/sessions/anonymous` creates/looks up a `device_id → user_id` mapping, mints a session token, stores only its hash, and sets the cookie.
+- Node discovery + rank gating:
+  - `GET /v1/nodes` supports optional `bbox=minLng,minLat,maxLng,maxLat`; returns only nodes where `min_rank <= user_rank`.
+  - `GET /v1/nodes/{node_id}` returns either a visible `NodePublic` or a `NodeLocked` payload (no 403 “mystery lock”).
+  - `GET /v1/nodes/{node_id}/captures` returns verified captures for visible nodes; for non-admin callers it filters to captures that are truly publicly visible (verified + public + required rights/attribution fields present).
+- Proof-of-presence (check-in) with replay protection and abuse logging:
+  - Challenge issuance (`POST /v1/nodes/{node_id}/checkins/challenge`) with per-user/node rate limiting.
+  - Geofence verify (`POST /v1/nodes/{node_id}/checkins`) using PostGIS geography distance (`ST_DWithin`):
+    - Enforces accuracy (`MAX_LOCATION_ACCURACY_M`), expires challenges, marks challenge as used, and issues a short-lived one-time check-in token.
+    - Records abuse events for invalid challenge and outside-geofence attempts.
+- Captures, state machine, and audit:
+  - `POST /v1/captures` creates a `draft` capture only when provided a valid, unexpired, unused check-in token that matches the user and node (server-side enforcement).
+  - `POST /v1/captures/{capture_id}/image` uploads the capture image (multipart) to development local storage and promotes `draft → pending_verification` with an audited state transition.
+  - Capture state machine is explicit (`draft → pending_verification → verified/rejected/hidden`, and hides from multiple states) with reason codes and a `capture_events` audit log.
+  - `PATCH /v1/captures/{capture_id}` allows updating attribution/rights fields (owner-only).
+  - `POST /v1/captures/{capture_id}/publish` allows owner to make a verified capture public, but only if required attribution + rights fields exist.
+- Verification, rank, and notifications:
+  - Admin-only moderation endpoints (`X-Admin-Token`) under `/v1/admin`:
+    - `GET /v1/admin/captures/pending`
+    - `POST /v1/admin/captures/{capture_id}/transition` to `verified`/`rejected`/`hidden`
+  - On `pending_verification → verified`, the API:
+    - Records a user notification (“verified”, and “verified & published” when auto-published).
+    - Appends a deterministic, idempotent rank event (`rank_events`) and refreshes materialized rank caches.
+    - Auto-publishes if `publish_requested=true` and the capture has required rights/attribution fields.
+- Reporting + takedown:
+  - `POST /v1/captures/{capture_id}/reports` creates a report (rate limited per user per window).
+  - Admin report review + resolution:
+    - `GET /v1/admin/reports`
+    - `POST /v1/admin/reports/{report_id}/resolve` can optionally hide/takedown the capture as part of resolution.
+- Tips (Solana devnet receipts):
+  - Data model: `artists` + `nodes.default_artist_id`, `tip_intents`, `tip_receipts`.
+  - `POST /v1/tips/intents` creates a server-issued intent (amount + recipient derived from node default artist) and returns memo text that contains the `tip_intent_id`.
+  - Contract notes:
+    - Devnet-only: both API verification and web wallet RPC must point at **Solana devnet**.
+    - Seeded `solana_recipient_pubkey` values are demo placeholders (addresses only) and do not confer control of funds.
+    - Intent creation alone is not a payment; a wallet must sign and send an on-chain transfer + memo, then the API verifies the tx signature.
+  - `POST /v1/tips/confirm` verifies a submitted Solana tx signature against:
+    - presence of the intent id in a Memo instruction, and
+    - a system transfer matching recipient + lamports amount,
+    - then stores a receipt with confirmation status.
+  - `GET /v1/nodes/{node_id}/tips` reports DB-backed totals and recent receipts (no chain scanning).
+  - A reconciler updates receipt finality over time (see “Infra” and “Scripts”).
+- Observability:
+  - `X-Request-ID` support: incoming header accepted (if valid) or generated; returned on every HTTP response.
+  - Structured access logs (JSON by default) include request id and duration.
+  - `GET /metrics` exposes Prometheus metrics for operations, transitions, and upload bytes.
+  - Optional OpenTelemetry tracing via env (`GA_OTEL_ENABLED` or `OTEL_EXPORTER_OTLP_ENDPOINT`).
 
----
+### Database (Postgres + PostGIS)
+Why: make the server authoritative for geo enforcement and keep a consistent audit/history trail.
 
-## 2) “From Scratch” Bring-up (fresh machine sanity)
+What it does (core tables):
+- Identity/session: `users`, `devices` (device_id mapping), `sessions` (hash-only tokens).
+- Geo content: `nodes` (PostGIS `POINT` + `radius_m` + `min_rank`), `artists` and `nodes.default_artist_id` for tip recipients.
+- Proof-of-presence: `checkin_challenges`, `checkin_tokens` (hash-only, one-time).
+- Captures + moderation: `captures` (state, visibility, attribution/rights fields, publish_requested), `capture_events` (audit log), `content_reports`.
+- Trust/anti-abuse: `abuse_events` (rate limits, invalid challenge, outside geofence, etc.).
+- Rank system:
+  - `rank_events` is the append-only event log with deterministic ids (idempotency).
+  - `curator_rank_daily` + `curator_rank_cache` materialize points and caps (per-node-per-day uniqueness + per-day cap).
+- Tips:
+  - `tip_intents` records the server-issued plan (amount/recipient/expiry).
+  - `tip_receipts` stores verified tx receipts and later reconciliation status upgrades.
 
-### One-command local bring-up
-- [ ] `cp .env.example .env` and set `VITE_GOOGLE_MAPS_API_KEY` (restart web after changes)
-- [ ] `docker compose -f infra/docker-compose.yml up --build -d`
-- [ ] Web at `http://localhost:5173`
-- [ ] API at `http://localhost:8000`
-- [ ] `GET http://localhost:8000/health` returns `{"status":"ok"}`
+### Domain schemas (`packages/domain/schemas`)
+Why: keep a canonical “shared vocabulary” for later codegen across client/server.
 
-### Seed data present (nodes)
-- [ ] Seed the demo nodes dataset (one-time per fresh DB volume):
-  - Local Python: `source .venv311/bin/activate && python apps/api/scripts/seed_nodes.py`
-  - Or via Docker: `docker compose -f infra/docker-compose.yml exec -T api python scripts/seed_nodes.py`
-- [ ] Map shows seeded nodes near Cape Town once the map loads (default map center is Cape Town).
+What it does:
+- Stores JSON schemas for key response/request shapes and enums (nodes, captures, reports, tips, rank, notifications, error codes).
+- These are not currently code-generated into the API or web; they are an alignment tool.
 
----
+### Infra (`infra/docker-compose.yml` and root `docker-compose.yml`)
+Why: provide a reproducible local dev/demo environment (DB + API + web + optional reconciler).
 
-## 3) Automated Checks (must pass)
-
-### API (Python)
-- [ ] `source .venv311/bin/activate`
-- [ ] `pip install -e "apps/api[dev]"`
-- [ ] `cd apps/api && ruff check .`
-- [ ] `cd apps/api && pytest`
-
-### Web (Vite/React)
-- [ ] `cd apps/web && npm ci` (or `npm install` if you’re iterating)
-- [ ] `cd apps/web && npm test`
-- [ ] `cd apps/web && npm run build`
-
----
-
-## 4) API Smoke (quick contract checks)
-
-Use these to debug without the web UI.
-
-### Health
-- [ ] `curl -s http://localhost:8000/health`
-
-### Anonymous session (cookie set)
-- [ ] `curl -i -s -X POST http://localhost:8000/v1/sessions/anonymous -H 'Content-Type: application/json' -d '{"device_id":"00000000-0000-0000-0000-000000000000"}' | rg -ni 'set-cookie|ga_session|user_id'`
-
-### Nodes list (bbox around Cape Town CBD)
-- [ ] `curl -s 'http://localhost:8000/v1/nodes?bbox=18.40,-33.94,18.44,-33.90' | rg -n 'nodes|name'`
-
-### Admin: list pending captures
-- [ ] `curl -s -H "X-Admin-Token: $ADMIN_API_TOKEN" 'http://localhost:8000/v1/admin/captures/pending?limit=10'`
-
----
-
-## 5) Web Demo Flows (manual QA)
-
-Run these in a clean browser profile (no cached service workers/extensions), ideally Chrome + one mobile browser.
-
-### A) Map-first browsing
-- [ ] Map loads and stays interactive (no infinite “Loading Google Maps…”).
-- [ ] “Nodes in view” count matches visible markers in the viewport.
-- [ ] Selecting a marker updates the right panel with node name/category/description.
-- [ ] **Open detail** navigates to `/nodes/:nodeId` and shows node metadata.
-
-### B) Directions
-- [ ] Clicking **Directions** draws a route from current location to the node.
-- [ ] If location permission is denied, the UI fails clearly (no silent hang).
-
-### C) Check-in (proof-of-presence)
-- [ ] Clicking **Check in** requests location permission.
-- [ ] With a location inside the radius, check-in succeeds and a token appears.
-- [ ] Outside the radius: user sees a clear “outside geofence” failure and retry works.
-- [ ] Low accuracy (above `MAX_LOCATION_ACCURACY_M`): user sees the accuracy error and next-step guidance.
-
-Tip for rehearsal (remote demo): spoof location in Chrome:
-DevTools → More tools → Sensors → Location → set lat/lng inside the node radius.
-
-Suggested seeded node for spoofing:
-- Zeitz Museum of Contemporary Art Africa: `lat=-33.9075`, `lng=18.4231`, `radius=120m` (`data/seed/nodes.json`)
-
-### D) Capture + upload (happy path)
-- [ ] Click **Take photo** (requires a check-in token).
-- [ ] Capture preview shows (image preprocess completes).
-- [ ] Fill attribution fields + select rights basis + check rights attestation.
-- [ ] Check “Publish automatically once verified…”.
-- [ ] Click **Submit**:
-  - capture is created (no “Missing check-in token”).
-  - upload progresses and finishes (“Upload complete”).
-  - user returns to map; pending uploads are empty.
-
-### E) Upload resilience (offline + reload)
-- [ ] Start a capture and submit it.
-- [ ] While uploading, toggle offline (DevTools Network → Offline).
-- [ ] UI shows offline state and the capture appears under **Pending uploads**.
-- [ ] Reload the page while still offline:
-  - pending upload still listed.
-- [ ] Go back online:
-  - use **Retry** / **Retry failed** and confirm it completes without re-taking the photo.
-
-### F) Verification → notification → public visibility
-This requires admin action.
-
-- [ ] After upload, copy the capture id from the URL `/capture/<captureId>`.
-- [ ] Admin transitions it to verified:
-  - `curl -s -X POST "http://localhost:8000/v1/admin/captures/<captureId>/transition" -H "X-Admin-Token: $ADMIN_API_TOKEN" -H 'Content-Type: application/json' -d '{"target_state":"verified","reason_code":"manual"}'`
-- [ ] In the web app, the user sees a new notification:
-  - “Capture verified & published” if fields were complete and auto-publish was requested.
-  - Otherwise “Capture verified” plus “Missing to publish: …”.
-- [ ] If published:
-  - Node detail now shows the capture image under “Verified captures”.
-  - The capture includes attribution/source display.
-
-### G) Report + takedown (rights posture)
-- [ ] On Node detail, click **Report** on a publicly visible capture.
-- [ ] Submit a report and confirm the UI shows “Reported”.
-- [ ] Admin lists reports:
-  - `curl -s -H "X-Admin-Token: $ADMIN_API_TOKEN" 'http://localhost:8000/v1/admin/reports?resolved=false&limit=10'`
-- [ ] Admin resolves with `hide_capture`:
-  - `curl -s -X POST "http://localhost:8000/v1/admin/reports/<reportId>/resolve" -H "X-Admin-Token: $ADMIN_API_TOKEN" -H 'Content-Type: application/json' -d '{"resolution":"hide_capture"}'`
-- [ ] Capture no longer appears publicly in node captures.
+What it does:
+- Runs PostGIS, the FastAPI app, and the Vite dev server.
+- Runs a migration step and (in `infra/docker-compose.yml`) seeds nodes + artists on first boot.
+- Runs an optional `tip-reconciler` service to periodically reconcile tip receipt finality.
 
 ---
 
-## 6) Observability (demo debugging essentials)
-
-- [ ] API responses include `X-Request-ID` (use it to correlate UI failures with logs).
-- [ ] `GET /metrics` responds (Prometheus text format).
-- [ ] Logs are readable in the environment you’ll demo from:
-  - local: Docker logs or terminal output
-  - deployed: your platform log viewer
-
-Optional (if you need deeper debugging):
-- `LOG_FORMAT=json` and `LOG_LEVEL=INFO`
-- `GA_OTEL_ENABLED=1` (and configure `OTEL_EXPORTER_OTLP_ENDPOINT` if exporting)
+## “Why it’s built this way” (key decisions encoded in code)
+- **Server-authoritative trust**: geofence checks, token validation, visibility rules, and tip receipt verification are enforced server-side.
+- **Low-friction onboarding**: anonymous sessions use a device id + cookie; no login flow is required for the core demo.
+- **Explicit gating and clear UX**: rank-locked nodes return structured `locked` payloads (not mysterious 403s).
+- **Resilient uploads**: upload intents persist locally and retry with backoff; uploads survive offline and reload.
+- **Auditability**: capture state transitions and publish events are stored in an event table; moderation actions have reason codes.
+- **Rights posture by default**: public visibility requires verified state + explicit attribution + rights attestation fields.
+- **Tips without chain indexing**: intent + memo linkage plus targeted tx verification avoids scanning the chain.
 
 ---
 
-## 7) Demo Day Runbook (recommended sequence)
+## Quick reference: endpoints currently wired
 
-Goal: show the full trust loop in ~5–8 minutes without setup drama.
+### Public / user (cookie-auth where noted)
+- `GET /health`
+- `POST /v1/sessions/anonymous` (sets session cookie)
+- `GET /v1/me` (auth required)
+- `GET /v1/me/notifications` (auth required)
+- `POST /v1/me/notifications/{notification_id}/read` (auth required)
+- `GET /v1/nodes?bbox=...`
+- `GET /v1/nodes/{node_id}`
+- `GET /v1/nodes/{node_id}/captures` (defaults to verified; non-admin sees only truly public captures)
+- `POST /v1/nodes/{node_id}/checkins/challenge` (auth required)
+- `POST /v1/nodes/{node_id}/checkins` (auth required)
+- `POST /v1/captures` (auth required)
+- `GET /v1/captures/{capture_id}` (auth required; owner-only)
+- `PATCH /v1/captures/{capture_id}` (auth required; owner-only)
+- `POST /v1/captures/{capture_id}/image` (auth required; owner-only)
+- `POST /v1/captures/{capture_id}/publish` (auth required; owner-only)
+- `POST /v1/captures/{capture_id}/reports` (auth required)
+- `POST /v1/tips/intents` (auth required)
+- `POST /v1/tips/confirm` (auth required)
+- `GET /v1/nodes/{node_id}/tips`
 
-1) Open the web app and show the map + a few seeded nodes.
-2) Select a node → show check-in panel and “proof-of-presence” concept.
-3) (If remote) spoof location inside the node radius and run **Check in**.
-4) **Take photo → Submit**, with attribution + rights + “auto-publish”.
-5) In a terminal, admin-verify the capture (one command).
-6) Back in the web app, show:
-   - notification (“verified & published”)
-   - the capture visible in Node detail with attribution
-   - rank panel/next unlock (if relevant)
-7) (Optional) demonstrate reporting + admin hide to show rights/takedown posture.
+### Admin (requires `X-Admin-Token`)
+- `GET /v1/admin/captures/pending`
+- `POST /v1/admin/captures/{capture_id}/transition`
+- `GET /v1/admin/reports`
+- `POST /v1/admin/reports/{report_id}/resolve`
+- `GET /v1/admin/abuse-events`
 
-Have a fallback:
-- [ ] A short screen recording of the full flow (in case Maps key/network fails).
+### Ops
+- `GET /metrics` (Prometheus)
+- `/media/*` (development local media serving)
 
 ---
 
-## 8) Explicit Non-goals for this submission (keep them out of the UI)
+## Scripts & operators’ tools (what exists)
+- `apps/api/scripts/seed_nodes.py`: upsert nodes from `data/seed/nodes.json` into PostGIS.
+- `apps/api/scripts/seed_artists.py`: upsert artists from `data/seed/artists.json` and attach `nodes.default_artist_id`.
+- `apps/api/scripts/generate_seed_nodes_from_places.py`: refresh node seed data from Google Places (demo-only; ToS-sensitive).
+- `apps/api/scripts/admin_list_pending_captures.py`: CLI helper to list pending captures via admin API.
+- `apps/api/scripts/admin_list_abuse_events.py`: CLI helper to list abuse events via admin API.
+- `apps/api/scripts/reconcile_tip_receipts.py`: reconcile receipt finalization statuses (one-shot or `--loop`).
+- `apps/api/scripts/backfill_rank_events.py`: backfill deterministic rank events for existing verified captures.
 
-- No user login / account recovery (anonymous device sessions only).
-- No tipping/on-chain receipts in the current demo loop.
-- No production-grade media access control (local `/media` mount is dev-oriented).
-- No async workers/queues for verification (admin-driven for hackathon).
+---
+
+## How to run (local)
+- Recommended: `infra/docker-compose.yml` for a full local stack with seeding.
+- Alternative: root `docker-compose.yml` for a stack with configurable ports (useful when ports collide).
+
+Also see `docs/COMMANDS.md` for the current runbook-style commands.
+
+---
+
+## Tests & checks (what exists)
+- API: `apps/api/tests/` contains coverage for sessions, nodes, check-in, captures (state transitions, uploads, publish), moderation/reports, notifications, rank events/materialization rules, tips (intents/confirm), and observability.
+- Web: `apps/web/src/**.test.ts(x)` contains coverage for the capture flow, image preprocessing, upload API retry behavior, map route behavior, and tip flow state.
+
+---
+
+## Demo readiness checklist (stop-ship)
+- Web loads and the Google map renders (valid `VITE_GOOGLE_MAPS_API_KEY`).
+- Anonymous session works end-to-end (cookie set; API calls succeed with `credentials: "include"`).
+- Nodes load for the current viewport and can be opened in `/nodes/:nodeId`.
+- Check-in challenge + verify works when inside the radius; outside-geofence and low-accuracy errors are clear.
+- Capture create + image upload works; pending uploads persist across offline + reload and can be retried.
+- Admin can verify a pending capture; user sees a notification.
+- If publish was requested and rights/attribution are present, verified captures become public and show in node detail.
+- Reporting and admin resolution work; resolved/hid captures stop showing publicly.
+
+---
+
+## Demo/deployment notes (easy-to-miss toggles)
+- Tips UI is gated by `VITE_TIPS_ENABLED` (documented in `.env.example`; defaults to `false`).
+- Verification workflow boundary events are emitted via `VERIFICATION_EVENTS_MODE` (defaults to `log`; optional `webhook` for external workflows).
+- Media serving: `/media/*` is optional unauthenticated static file serving (`MEDIA_SERVE_STATIC=true` is dev-oriented). For production, prefer object storage/CDN + set `MEDIA_SERVE_STATIC=false` and `MEDIA_PUBLIC_BASE_URL=...`.
+- Cookie security is configurable (`SESSION_COOKIE_SECURE`/`SESSION_COOKIE_DOMAIN`/`SESSION_COOKIE_SAMESITE`); any deployment needs a deliberate review in conjunction with `API_CORS_ORIGINS`.

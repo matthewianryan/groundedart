@@ -64,6 +64,10 @@ def _node_select_with_coords():
         Node.category,
         Node.radius_m,
         Node.min_rank,
+        Node.image_path,
+        Node.image_attribution,
+        Node.image_source_url,
+        Node.image_license,
         func.ST_Y(Node.location).label("lat"),
         func.ST_X(Node.location).label("lng"),
     )
@@ -76,7 +80,12 @@ async def _get_user_rank(db: DbSessionDep, user: OptionalUser) -> int:
     return await get_rank_for_user(db=db, user_id=user.id)
 
 
-def _row_to_node_public(row: Any) -> NodePublic:
+def _row_to_node_public(row: Any, *, base_media_url: str) -> NodePublic:
+    image_url = None
+    if row.image_path:
+        base = base_media_url.rstrip("/")
+        image_path = row.image_path.lstrip("/")
+        image_url = f"{base}/{image_path}"
     return NodePublic(
         id=row.id,
         name=row.name,
@@ -86,6 +95,10 @@ def _row_to_node_public(row: Any) -> NodePublic:
         lng=float(row.lng),
         radius_m=row.radius_m,
         min_rank=row.min_rank,
+        image_url=image_url,
+        image_attribution=row.image_attribution,
+        image_source_url=row.image_source_url,
+        image_license=row.image_license,
     )
 
 
@@ -94,6 +107,7 @@ async def list_nodes(
     db: DbSessionDep,
     user: OptionalUser,
     bbox: str | None = Query(default=None, description="minLng,minLat,maxLng,maxLat"),
+    settings: Settings = Depends(get_settings),
 ) -> NodesResponse:
     async with observe_operation(
         "node_discovery",
@@ -117,7 +131,12 @@ async def list_nodes(
             query = query.where(func.ST_Intersects(Node.location, envelope))
 
         rows = (await db.execute(query.limit(500))).all()
-        return NodesResponse(nodes=[_row_to_node_public(row) for row in rows])
+        return NodesResponse(
+            nodes=[
+                _row_to_node_public(row, base_media_url=settings.media_public_base_url)
+                for row in rows
+            ]
+        )
 
 
 @router.get("/nodes/{node_id}", response_model=NodeGetResponse)
@@ -125,6 +144,7 @@ async def get_node(
     node_id: uuid.UUID,
     db: DbSessionDep,
     user: OptionalUser,
+    settings: Settings = Depends(get_settings),
 ) -> NodeGetResponse:
     rank = await _get_user_rank(db, user)
     query = _node_select_with_coords().where(Node.id == node_id)
@@ -140,7 +160,9 @@ async def get_node(
                 required_rank=row.min_rank,
             )
         )
-    return NodeGetResponse(node=_row_to_node_public(row))
+    return NodeGetResponse(
+        node=_row_to_node_public(row, base_media_url=settings.media_public_base_url)
+    )
 
 
 @router.get("/nodes/{node_id}/captures", response_model=NodeCapturesResponse)
@@ -186,8 +208,11 @@ async def list_node_captures(
     if not is_admin:
         captures = [capture for capture in captures if is_capture_publicly_visible(capture)]
     return NodeCapturesResponse(
-        node=_row_to_node_public(node_row),
-        captures=[capture_to_public(capture) for capture in captures],
+        node=_row_to_node_public(node_row, base_media_url=settings.media_public_base_url),
+        captures=[
+            capture_to_public(capture, base_media_url=settings.media_public_base_url)
+            for capture in captures
+        ],
     )
 
 

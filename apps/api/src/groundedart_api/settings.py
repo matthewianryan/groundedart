@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 import json
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Literal
 
-from pydantic import AnyHttpUrl, Field, field_validator
+from pydantic import AnyHttpUrl, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,6 +44,18 @@ class Settings(BaseSettings):
     token_hash_secret: str = "dev-only-change-me"
     session_cookie_name: str = "ga_session"
     session_ttl_seconds: int = 60 * 60 * 24 * 30
+    session_cookie_secure: bool = Field(
+        default=False,
+        description="Whether the session cookie should be marked Secure (required for SameSite=None).",
+    )
+    session_cookie_samesite: Literal["lax", "strict", "none"] = Field(
+        default="lax",
+        description="SameSite attribute for the session cookie.",
+    )
+    session_cookie_domain: str | None = Field(
+        default=None,
+        description="Optional Domain attribute for the session cookie.",
+    )
     admin_api_token: str = "dev-admin-token-change-me"
 
     checkin_challenge_ttl_seconds: int = Field(
@@ -100,7 +112,32 @@ class Settings(BaseSettings):
         description="Solana JSON-RPC endpoint for tip receipt verification.",
     )
 
+    verification_events_mode: Literal["noop", "log", "webhook"] = Field(
+        default="log",
+        description="How to emit capture verification boundary events.",
+    )
+    verification_events_webhook_url: AnyHttpUrl | None = Field(
+        default=None,
+        description="Destination URL for webhook verification events when mode=webhook.",
+    )
+    verification_events_webhook_token: str | None = Field(
+        default=None,
+        description="Optional shared secret included as X-GroundedArt-Webhook-Token when mode=webhook.",
+    )
+    verification_events_webhook_timeout_seconds: float = Field(
+        default=5.0,
+        description="Timeout for webhook emission, in seconds.",
+    )
+
     media_dir: str = "./.local_media"
+    media_serve_static: bool = Field(
+        default=True,
+        description="Whether the API should mount /media as unauthenticated static file serving (dev-only).",
+    )
+    media_public_base_url: str = Field(
+        default="/media",
+        description="Base URL used when constructing image_url fields (e.g. /media or https://cdn.example.com/media).",
+    )
     upload_allowed_mime_types: list[str] = Field(
         default=["image/jpeg", "image/png", "image/webp"],
         description="Allowed MIME types for capture uploads.",
@@ -144,6 +181,16 @@ class Settings(BaseSettings):
         else:
             values = [str(item).strip() for item in value]
         return [item.lower() for item in values if item]
+
+    @model_validator(mode="after")
+    def _validate_settings(self) -> "Settings":
+        if self.verification_events_mode == "webhook" and not self.verification_events_webhook_url:
+            raise ValueError(
+                "VERIFICATION_EVENTS_WEBHOOK_URL is required when VERIFICATION_EVENTS_MODE=webhook"
+            )
+        if self.session_cookie_samesite == "none" and not self.session_cookie_secure:
+            raise ValueError("SESSION_COOKIE_SECURE=true is required when SESSION_COOKIE_SAMESITE=none")
+        return self
 
 
 @lru_cache(maxsize=1)

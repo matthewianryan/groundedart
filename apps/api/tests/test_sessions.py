@@ -130,11 +130,16 @@ async def test_anonymous_session_sets_cookie_attributes(client: AsyncClient) -> 
     cookie_lower = cookie_header.lower()
     assert cookie_header.startswith(f"{settings.session_cookie_name}=")
     assert "httponly" in cookie_lower
-    assert "samesite=lax" in cookie_lower
+    assert f"samesite={settings.session_cookie_samesite}" in cookie_lower
     assert "path=/" in cookie_lower
     assert f"max-age={settings.session_ttl_seconds}" in cookie_lower
-    assert "; secure" not in cookie_lower
-    assert ";secure" not in cookie_lower
+    if settings.session_cookie_domain:
+        assert f"domain={settings.session_cookie_domain.lower()}" in cookie_lower
+    if settings.session_cookie_secure:
+        assert "; secure" in cookie_lower or ";secure" in cookie_lower
+    else:
+        assert "; secure" not in cookie_lower
+        assert ";secure" not in cookie_lower
 
 
 @pytest.mark.asyncio

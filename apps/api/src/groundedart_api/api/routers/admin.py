@@ -26,6 +26,7 @@ from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
 from groundedart_api.domain.report_resolution_code import ReportResolutionCode
 from groundedart_api.domain.verification_events import VerificationEventEmitterDep
+from groundedart_api.settings import Settings, get_settings
 from groundedart_api.time import UtcNow, get_utcnow
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -37,8 +38,12 @@ ADMIN_TARGET_STATES = {
 }
 
 
-def capture_to_admin(capture: Capture, base_media_url: str = "/media") -> AdminCapture:
-    image_url = f"{base_media_url}/{capture.image_path}" if capture.image_path else None
+def capture_to_admin(capture: Capture, *, base_media_url: str) -> AdminCapture:
+    image_url = None
+    if capture.image_path:
+        base = base_media_url.rstrip("/")
+        image_path = capture.image_path.lstrip("/")
+        image_url = f"{base}/{image_path}"
     return AdminCapture(
         id=capture.id,
         node_id=capture.node_id,
@@ -90,6 +95,7 @@ async def list_pending_captures(
     created_after: dt.datetime | None = Query(default=None),
     created_before: dt.datetime | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=500),
+    settings: Settings = Depends(get_settings),
 ) -> AdminCapturesResponse:
     query = select(Capture).where(Capture.state == CaptureState.pending_verification.value)
     if node_id is not None:
@@ -100,7 +106,12 @@ async def list_pending_captures(
         query = query.where(Capture.created_at <= created_before)
 
     captures = (await db.scalars(query.order_by(Capture.created_at.desc()).limit(limit))).all()
-    return AdminCapturesResponse(captures=[capture_to_admin(capture) for capture in captures])
+    return AdminCapturesResponse(
+        captures=[
+            capture_to_admin(capture, base_media_url=settings.media_public_base_url)
+            for capture in captures
+        ]
+    )
 
 
 @router.post("/captures/{capture_id}/transition", response_model=AdminCaptureTransitionResponse)
@@ -109,6 +120,7 @@ async def transition_capture(
     body: AdminCaptureTransitionRequest,
     db: DbSessionDep,
     verification_events: VerificationEventEmitterDep,
+    settings: Settings = Depends(get_settings),
 ) -> AdminCaptureTransitionResponse:
     try:
         target_state = CaptureState(body.target_state)
@@ -135,7 +147,9 @@ async def transition_capture(
         verification_events=verification_events,
         details=body.details,
     )
-    return AdminCaptureTransitionResponse(capture=capture_to_admin(capture))
+    return AdminCaptureTransitionResponse(
+        capture=capture_to_admin(capture, base_media_url=settings.media_public_base_url)
+    )
 
 
 @router.get("/abuse-events", response_model=AdminAbuseEventsResponse)
