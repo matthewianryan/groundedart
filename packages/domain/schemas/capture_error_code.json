@@ -12,6 +12,7 @@
     "invalid_media_type",
     "upload_incomplete",
     "capture_rate_limited",
+    "insufficient_rank",
     "pending_verification_cap_reached",
     "capture_state_reason_required",
     "invalid_capture_state_reason",

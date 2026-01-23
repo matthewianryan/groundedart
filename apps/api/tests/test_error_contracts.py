@@ -107,6 +107,10 @@ async def test_error_contracts_checkins(
 ) -> None:
     node_id = await _create_node(db_sessionmaker)
     user_id = await _create_session(client)
+    settings = get_settings()
+    rate_window_start = utcnow() - dt.timedelta(
+        seconds=settings.checkin_challenge_rate_window_seconds + 1
+    )
 
     invalid = await client.post(
         f"/v1/nodes/{node_id}/checkins",
@@ -127,6 +131,7 @@ async def test_error_contracts_checkins(
                 id=expired_id,
                 user_id=user_id,
                 node_id=node_id,
+                created_at=rate_window_start,
                 expires_at=utcnow() - dt.timedelta(seconds=1),
             )
         )
@@ -150,6 +155,7 @@ async def test_error_contracts_checkins(
                 id=used_id,
                 user_id=user_id,
                 node_id=node_id,
+                created_at=rate_window_start,
                 expires_at=utcnow() + dt.timedelta(seconds=30),
                 used_at=utcnow(),
             )
@@ -167,7 +173,6 @@ async def test_error_contracts_checkins(
     assert used.status_code == 400
     _assert_error_code(used, error_codes, "challenge_used")
 
-    settings = get_settings()
     challenge = await client.post(f"/v1/nodes/{node_id}/checkins/challenge")
     assert challenge.status_code == 200
     accuracy = await client.post(

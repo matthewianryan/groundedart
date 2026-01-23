@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from groundedart_api.api.schemas import CapturePublic, CreateCaptureRequest, CreateCaptureResponse
 from groundedart_api.auth.deps import CurrentUser
 from groundedart_api.auth.tokens import hash_opaque_token
-from groundedart_api.db.models import Capture, CheckinToken
+from groundedart_api.db.models import Capture, CheckinToken, Node
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.abuse_events import record_abuse_event
 from groundedart_api.domain.capture_state import CaptureState
@@ -19,6 +19,8 @@ from groundedart_api.domain.capture_events import (
 )
 from groundedart_api.domain.capture_transitions import validate_capture_state_reason
 from groundedart_api.domain.errors import AppError
+from groundedart_api.domain.gating import assert_can_create_capture
+from groundedart_api.domain.rank_projection import get_rank_for_user
 from groundedart_api.domain.verification_events import VerificationEventEmitterDep
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.storage.deps import MediaStorageDep
@@ -67,6 +69,16 @@ async def create_capture(
             status_code=400,
         )
 
+    node = await db.get(Node, body.node_id)
+    if node is None:
+        raise AppError(
+            code="invalid_checkin_token",
+            message="Invalid check-in token",
+            status_code=400,
+        )
+
+    rank = await get_rank_for_user(db=db, user_id=user.id)
+
     window_start = now_time - dt.timedelta(seconds=settings.capture_rate_window_seconds)
     recent_captures = await db.scalar(
         select(func.count())
@@ -77,28 +89,26 @@ async def create_capture(
             Capture.created_at >= window_start,
         )
     )
-    if (recent_captures or 0) >= settings.max_captures_per_user_node_per_day:
-        await record_abuse_event(
-            db=db,
-            event_type="capture_rate_limited",
-            user_id=user.id,
-            node_id=token.node_id,
-            details={
-                "source": "capture_create",
-                "max_per_window": settings.max_captures_per_user_node_per_day,
-                "window_seconds": settings.capture_rate_window_seconds,
-                "recent_count": int(recent_captures or 0),
-            },
+    recent_count = int(recent_captures or 0)
+    try:
+        assert_can_create_capture(
+            rank=rank,
+            node_min_rank=node.min_rank,
+            recent_captures=recent_count,
+            window_seconds=settings.capture_rate_window_seconds,
         )
-        raise AppError(
-            code="capture_rate_limited",
-            message="Capture rate limit exceeded",
-            status_code=429,
-            details={
-                "max_per_window": settings.max_captures_per_user_node_per_day,
-                "window_seconds": settings.capture_rate_window_seconds,
-            },
-        )
+    except AppError as exc:
+        if exc.code == "capture_rate_limited":
+            details = dict(exc.details or {})
+            details["source"] = "capture_create"
+            await record_abuse_event(
+                db=db,
+                event_type="capture_rate_limited",
+                user_id=user.id,
+                node_id=token.node_id,
+                details=details,
+            )
+        raise
 
     token.used_at = now_time
     capture = Capture(

@@ -28,6 +28,7 @@ export type CaptureErrorCode =
   | "invalid_media_type"
   | "upload_incomplete"
   | "capture_rate_limited"
+  | "insufficient_rank"
   | "pending_verification_cap_reached";
 
 export type CaptureErrorResponse = {

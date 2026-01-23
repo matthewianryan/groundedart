@@ -11,7 +11,8 @@ export type CheckinErrorCode =
   | "checkin_challenge_rate_limited"
   | "location_accuracy_too_low"
   | "outside_geofence"
-  | "capture_rate_limited";
+  | "capture_rate_limited"
+  | "insufficient_rank";
 export type CheckinErrorDetails = {
   accuracy_m?: number;
   max_allowed_m?: number;

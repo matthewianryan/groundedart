@@ -1,5 +1,7 @@
 # Future options
 
+RefResolver is being removed in a future jsonschema release; they want people to use the referencing library APIs instead. Not necessary to be addressed during hackathon timeframe. 
+
 This document records **intentionally deferred** design options so we can revisit them without re-litigating history or accidentally promising them in MVP milestones.
 
 The canonical Milestone 2 approach is documented in `docs/ARCHITECTURE.md` and `docs/ROADMAP.md`:

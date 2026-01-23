@@ -11,6 +11,9 @@ import { ensureAnonymousSession } from "../auth/session";
 import { isApiError } from "../api/http";
 import { createCheckinChallenge, checkIn } from "../features/checkin/api";
 import { useUploadQueue } from "../features/captures/useUploadQueue";
+import { formatNextUnlockLine, formatRankCapsNotes } from "../features/me/copy";
+import { getMe } from "../features/me/api";
+import type { MeResponse } from "../features/me/types";
 import { listNodes } from "../features/nodes/api";
 import type { NodePublic } from "../features/nodes/types";
 
@@ -171,6 +174,9 @@ export function MapRoute() {
   const [checkinAccuracyM, setCheckinAccuracyM] = useState<number | undefined>(undefined);
   const [checkinDistanceM, setCheckinDistanceM] = useState<number | undefined>(undefined);
   const [checkinRadiusM, setCheckinRadiusM] = useState<number | undefined>(undefined);
+  const [me, setMe] = useState<MeResponse | null>(null);
+  const [meStatus, setMeStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [sessionReady, setSessionReady] = useState(false);
   const navigate = useNavigate();
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   const { isLoaded, loadError } = useJsApiLoader({
@@ -190,10 +196,37 @@ export function MapRoute() {
   const uploadQueue = useUploadQueue();
 
   useEffect(() => {
+    let cancelled = false;
     ensureAnonymousSession()
-      .then(() => setStatus("Ready"))
-      .catch((e) => setStatus(`Session error: ${String(e)}`));
+      .then(() => {
+        if (cancelled) return;
+        setStatus("Ready");
+        setSessionReady(true);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setStatus(`Session error: ${String(e)}`);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    const controller = new AbortController();
+    setMeStatus("loading");
+    getMe({ signal: controller.signal })
+      .then((res) => {
+        setMe(res);
+        setMeStatus("ready");
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setMeStatus("error");
+      });
+    return () => controller.abort();
+  }, [sessionReady]);
 
   useEffect(() => {
     if (!googleMapsApiKey) {
@@ -511,11 +544,46 @@ export function MapRoute() {
     []
   );
 
+  const nextUnlockLine = me ? formatNextUnlockLine(me) : null;
+  const capsNotes = me ? formatRankCapsNotes(me.rank_breakdown) : [];
+
   return (
     <div className="layout">
       <div className="panel">
         <h1>Grounded Art (MVP scaffold)</h1>
         <div className="muted">{status}</div>
+
+        {me ? (
+          <div className="node">
+            <div className="node-header">
+              <div>
+                <div className="muted">Current rank</div>
+                <div>{me.rank}</div>
+              </div>
+            </div>
+            {me.next_unlock ? (
+              <>
+                <div className="muted">Next unlock at rank {me.next_unlock.min_rank}.</div>
+                {nextUnlockLine ? <div className="muted">{nextUnlockLine}</div> : null}
+              </>
+            ) : (
+              <div className="muted">Top tier unlocked.</div>
+            )}
+            {capsNotes.map((note) => (
+              <div key={note} className="muted">
+                {note}
+              </div>
+            ))}
+          </div>
+        ) : meStatus === "loading" ? (
+          <div className="muted" style={{ marginTop: 8 }}>
+            Loading rank…
+          </div>
+        ) : meStatus === "error" ? (
+          <div className="muted" style={{ marginTop: 8 }}>
+            Rank unavailable.
+          </div>
+        ) : null}
 
         <details className="settings">
           <summary>Global settings</summary>

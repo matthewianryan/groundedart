@@ -9,10 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from groundedart_api.db.models import Capture, CuratorRankEvent
 from groundedart_api.domain.capture_state import CaptureState
-from groundedart_api.domain.rank_events import (
-    CAPTURE_VERIFIED_EVENT_TYPE,
-    DEFAULT_RANK_VERSION,
-)
+from groundedart_api.domain.gating import RANK_TIERS
+from groundedart_api.domain.rank_events import CAPTURE_VERIFIED_EVENT_TYPE, DEFAULT_RANK_VERSION
 PER_NODE_PER_DAY_CAP = 1
 PER_DAY_POINTS_CAP = 3
 
@@ -55,34 +53,6 @@ class _RankEventRow:
     delta: int
 
 
-_RANK_TIERS = [
-    {
-        "name": "New",
-        "min_rank": 0,
-        "checkin_challenges_per_node_per_5_min": 3,
-        "captures_per_node_per_24h": 1,
-    },
-    {
-        "name": "Apprentice",
-        "min_rank": 1,
-        "checkin_challenges_per_node_per_5_min": 5,
-        "captures_per_node_per_24h": 2,
-    },
-    {
-        "name": "Contributor",
-        "min_rank": 3,
-        "checkin_challenges_per_node_per_5_min": 8,
-        "captures_per_node_per_24h": 4,
-    },
-    {
-        "name": "Trusted",
-        "min_rank": 6,
-        "checkin_challenges_per_node_per_5_min": 12,
-        "captures_per_node_per_24h": 6,
-    },
-]
-
-
 def _utc_date(value: dt.datetime) -> dt.date:
     if value.tzinfo is None:
         return value.date()
@@ -90,18 +60,18 @@ def _utc_date(value: dt.datetime) -> dt.date:
 
 
 def _next_unlock_for_rank(rank: int) -> NextUnlock | None:
-    for tier in _RANK_TIERS:
-        if tier["min_rank"] > rank:
+    for tier in RANK_TIERS:
+        if tier.min_rank > rank:
             unlocks = [
                 (
                     "Check-in challenges per node / 5 min: "
-                    f"{tier['checkin_challenges_per_node_per_5_min']}"
+                    f"{tier.checkin_challenges_per_node_per_5_min}"
                 ),
-                f"Captures per node / 24h: {tier['captures_per_node_per_24h']}",
+                f"Captures per node / 24h: {tier.captures_per_node_per_24h}",
             ]
-            summary = f"Unlocks {tier['name']} tier limits."
+            summary = f"Unlocks {tier.name} tier limits."
             return NextUnlock(
-                min_rank=tier["min_rank"],
+                min_rank=tier.min_rank,
                 summary=summary,
                 unlocks=unlocks,
             )

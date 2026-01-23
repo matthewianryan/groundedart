@@ -24,6 +24,12 @@ from groundedart_api.db.models import Capture, CheckinChallenge, CheckinToken, N
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.abuse_events import record_abuse_event
 from groundedart_api.domain.capture_state import CaptureState
+from groundedart_api.domain.gating import (
+    assert_can_access_node,
+    assert_can_checkin,
+    assert_can_checkin_challenge,
+    assert_can_view_node,
+)
 from groundedart_api.domain.errors import AppError
 from groundedart_api.domain.rank_projection import get_rank_for_user
 from groundedart_api.settings import Settings, get_settings
@@ -98,10 +104,11 @@ async def get_node(
     user: OptionalUser,
 ) -> NodePublic:
     rank = await _get_user_rank(db, user)
-    query = _node_select_with_coords().where(Node.id == node_id, Node.min_rank <= rank)
+    query = _node_select_with_coords().where(Node.id == node_id)
     row = (await db.execute(query)).one_or_none()
     if row is None:
         raise AppError(code="node_not_found", message="Node not found", status_code=404)
+    assert_can_view_node(rank=rank, node_min_rank=row.min_rank)
     return _row_to_node_public(row)
 
 
@@ -122,10 +129,11 @@ async def list_node_captures(
         )
 
     rank = await _get_user_rank(db, user)
-    node_query = _node_select_with_coords().where(Node.id == node_id, Node.min_rank <= rank)
+    node_query = _node_select_with_coords().where(Node.id == node_id)
     node_row = (await db.execute(node_query)).one_or_none()
     if node_row is None:
         raise AppError(code="node_not_found", message="Node not found", status_code=404)
+    assert_can_view_node(rank=rank, node_min_rank=node_row.min_rank)
 
     captures = (
         await db.scalars(
@@ -150,6 +158,8 @@ async def create_checkin_challenge(
     if node is None:
         raise AppError(code="node_not_found", message="Node not found", status_code=404)
 
+    rank = await get_rank_for_user(db=db, user_id=user.id)
+
     window_start = now_time - dt.timedelta(seconds=settings.checkin_challenge_rate_window_seconds)
     recent_challenges = await db.scalar(
         select(func.count())
@@ -160,27 +170,26 @@ async def create_checkin_challenge(
             CheckinChallenge.created_at >= window_start,
         )
     )
-    if (recent_challenges or 0) >= settings.max_checkin_challenges_per_user_node_per_window:
-        await record_abuse_event(
-            db=db,
-            event_type="checkin_challenge_rate_limited",
-            user_id=user.id,
-            node_id=node.id,
-            details={
-                "max_per_window": settings.max_checkin_challenges_per_user_node_per_window,
-                "window_seconds": settings.checkin_challenge_rate_window_seconds,
-                "recent_count": int(recent_challenges or 0),
-            },
+    recent_count = int(recent_challenges or 0)
+    try:
+        assert_can_checkin_challenge(
+            rank=rank,
+            node_min_rank=node.min_rank,
+            recent_challenges=recent_count,
+            window_seconds=settings.checkin_challenge_rate_window_seconds,
         )
-        raise AppError(
-            code="checkin_challenge_rate_limited",
-            message="Check-in challenge rate limit exceeded",
-            status_code=429,
-            details={
-                "max_per_window": settings.max_checkin_challenges_per_user_node_per_window,
-                "window_seconds": settings.checkin_challenge_rate_window_seconds,
-            },
-        )
+    except AppError as exc:
+        if exc.code == "checkin_challenge_rate_limited":
+            details = dict(exc.details or {})
+            details["recent_count"] = recent_count
+            await record_abuse_event(
+                db=db,
+                event_type="checkin_challenge_rate_limited",
+                user_id=user.id,
+                node_id=node.id,
+                details=details,
+            )
+        raise
 
     expires_at = now_time + dt.timedelta(seconds=settings.checkin_challenge_ttl_seconds)
     challenge = CheckinChallenge(user_id=user.id, node_id=node.id, expires_at=expires_at)
@@ -251,6 +260,9 @@ async def check_in(
     if node is None:
         raise AppError(code="node_not_found", message="Node not found", status_code=404)
 
+    rank = await get_rank_for_user(db=db, user_id=user.id)
+    assert_can_access_node(rank=rank, node_min_rank=node.min_rank, feature="checkin")
+
     point = func.ST_SetSRID(func.ST_MakePoint(body.lng, body.lat), 4326)
     within = await db.scalar(
         select(
@@ -300,28 +312,26 @@ async def check_in(
             Capture.created_at >= window_start,
         )
     )
-    if (recent_captures or 0) >= settings.max_captures_per_user_node_per_day:
-        await record_abuse_event(
-            db=db,
-            event_type="capture_rate_limited",
-            user_id=user.id,
-            node_id=node.id,
-            details={
-                "source": "checkin",
-                "max_per_window": settings.max_captures_per_user_node_per_day,
-                "window_seconds": settings.capture_rate_window_seconds,
-                "recent_count": int(recent_captures or 0),
-            },
+    recent_count = int(recent_captures or 0)
+    try:
+        assert_can_checkin(
+            rank=rank,
+            node_min_rank=node.min_rank,
+            recent_captures=recent_count,
+            window_seconds=settings.capture_rate_window_seconds,
         )
-        raise AppError(
-            code="capture_rate_limited",
-            message="Capture rate limit exceeded",
-            status_code=429,
-            details={
-                "max_per_window": settings.max_captures_per_user_node_per_day,
-                "window_seconds": settings.capture_rate_window_seconds,
-            },
-        )
+    except AppError as exc:
+        if exc.code == "capture_rate_limited":
+            details = dict(exc.details or {})
+            details["source"] = "checkin"
+            await record_abuse_event(
+                db=db,
+                event_type="capture_rate_limited",
+                user_id=user.id,
+                node_id=node.id,
+                details=details,
+            )
+        raise
 
     challenge.used_at = now_time
 

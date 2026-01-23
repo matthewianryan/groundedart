@@ -13,9 +13,14 @@ const mockQueue = {
   retryNow: vi.fn(),
   remove: vi.fn()
 };
+const getMe = vi.fn();
 
 vi.mock("./useUploadQueue", () => ({
   useUploadQueue: () => mockQueue
+}));
+
+vi.mock("../me/api", () => ({
+  getMe: (...args: unknown[]) => getMe(...args)
 }));
 
 afterEach(() => {
@@ -23,11 +28,24 @@ afterEach(() => {
   mockQueue.enqueue.mockReset();
   mockQueue.retryNow.mockReset();
   mockQueue.remove.mockReset();
+  getMe.mockReset();
 });
 
 describe("CaptureFlow", () => {
   it("renders upload progress from the queue", async () => {
     const captureId = "cap_123456789";
+    getMe.mockResolvedValue({
+      user_id: "user_1",
+      rank: 0,
+      rank_version: "v1_points",
+      rank_breakdown: {
+        points_total: 0,
+        verified_captures_total: 0,
+        verified_captures_counted: 0,
+        caps_applied: { per_node_per_day: 0, per_day_total: 0 }
+      },
+      next_unlock: null
+    });
     mockQueue.items = [
       {
         captureId,
@@ -50,6 +68,18 @@ describe("CaptureFlow", () => {
 
   it("surfaces upload failures from the queue", async () => {
     const captureId = "cap_failed";
+    getMe.mockResolvedValue({
+      user_id: "user_1",
+      rank: 0,
+      rank_version: "v1_points",
+      rank_breakdown: {
+        points_total: 0,
+        verified_captures_total: 0,
+        verified_captures_counted: 0,
+        caps_applied: { per_node_per_day: 0, per_day_total: 0 }
+      },
+      next_unlock: null
+    });
     mockQueue.items = [
       {
         captureId,

@@ -7,6 +7,7 @@ import { MemoryRouter } from "react-router-dom";
 const listNodes = vi.fn();
 const createCheckinChallenge = vi.fn();
 const checkIn = vi.fn();
+const getMe = vi.fn();
 
 vi.mock("@react-google-maps/api", async () => {
   const ReactModule = await import("react");
@@ -47,6 +48,10 @@ vi.mock("../features/checkin/api", () => ({
   checkIn: (...args: unknown[]) => checkIn(...args)
 }));
 
+vi.mock("../features/me/api", () => ({
+  getMe: (...args: unknown[]) => getMe(...args)
+}));
+
 vi.mock("../features/captures/useUploadQueue", () => ({
   useUploadQueue: () => ({
     initialized: true,
@@ -73,6 +78,7 @@ beforeEach(() => {
   listNodes.mockReset();
   createCheckinChallenge.mockReset();
   checkIn.mockReset();
+  getMe.mockReset();
   process.env.VITE_GOOGLE_MAPS_API_KEY = "test";
   Object.defineProperty(navigator, "geolocation", {
     value: {
@@ -94,6 +100,18 @@ afterEach(() => {
 
 async function renderMap() {
   const user = userEvent.setup();
+  getMe.mockResolvedValue({
+    user_id: "user_1",
+    rank: 0,
+    rank_version: "v1_points",
+    rank_breakdown: {
+      points_total: 0,
+      verified_captures_total: 0,
+      verified_captures_counted: 0,
+      caps_applied: { per_node_per_day: 0, per_day_total: 0 }
+    },
+    next_unlock: { min_rank: 1, summary: "Unlocks Apprentice tier limits.", unlocks: [] }
+  });
   await vi.resetModules();
   const { MapRoute } = await import("./MapRoute");
   render(

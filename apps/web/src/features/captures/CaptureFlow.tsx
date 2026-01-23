@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { isApiError } from "../../api/http";
+import { formatNextUnlockLine, formatUnlockRequirement } from "../me/copy";
+import { getMe } from "../me/api";
+import type { MeResponse } from "../me/types";
 import { createCapture } from "./api";
 import { type CaptureAsset, type CaptureFailure, type CaptureFlowStatus, type CaptureIntent } from "./captureFlowState";
 import { clearActiveCaptureDraft, saveActiveCaptureDraft } from "./captureDraftStore";
@@ -24,6 +27,22 @@ type CaptureFlowProps = {
 
 type FailureStage = "submitting" | "persisting" | "uploading" | null;
 
+function getNumberDetail(details: Record<string, unknown>, key: string): number | undefined {
+  const value = details[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function formatWindow(windowSeconds?: number): string {
+  if (!windowSeconds) return "this window";
+  if (windowSeconds % 3600 === 0) {
+    return `${windowSeconds / 3600}h`;
+  }
+  if (windowSeconds % 60 === 0) {
+    return `${windowSeconds / 60}m`;
+  }
+  return `${windowSeconds}s`;
+}
+
 export function CaptureFlow({
   nodeId,
   nodeName,
@@ -43,6 +62,7 @@ export function CaptureFlow({
   const [failureStage, setFailureStage] = useState<FailureStage>(null);
   const [isEnqueued, setIsEnqueued] = useState(false);
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
+  const [me, setMe] = useState<MeResponse | null>(null);
   const submitLock = useRef(false);
   const uploadQueue = useUploadQueue();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -52,12 +72,24 @@ export function CaptureFlow({
     () => (captureId ? uploadQueue.items.find((i) => i.captureId === captureId) ?? null : null),
     [captureId, uploadQueue.items]
   );
+  const nextUnlockLine = me ? formatNextUnlockLine(me) : null;
 
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getMe({ signal: controller.signal })
+      .then((res) => setMe(res))
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setMe(null);
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     if (!checkinToken && !captureId) {
@@ -280,6 +312,41 @@ export function CaptureFlow({
       setFailureStage("submitting");
       submitLock.current = false;
       if (isApiError(err)) {
+        if (err.code === "insufficient_rank") {
+          const details = err.details ?? {};
+          const currentRank = getNumberDetail(details, "current_rank");
+          const requiredRank =
+            getNumberDetail(details, "required_rank") ?? getNumberDetail(details, "node_min_rank");
+          const detailParts: string[] = [];
+          if (currentRank !== undefined) detailParts.push(`Current rank: ${currentRank}.`);
+          if (requiredRank !== undefined) detailParts.push(`This node requires ${requiredRank}.`);
+          setFailure({
+            title: "Why can't I post?",
+            detail: detailParts.length ? detailParts.join(" ") : err.message,
+            nextStep:
+              currentRank !== undefined && requiredRank !== undefined
+                ? formatUnlockRequirement(currentRank, requiredRank)
+                : nextUnlockLine ?? "Verify more captures to unlock access."
+          });
+          return;
+        }
+        if (err.code === "capture_rate_limited") {
+          const details = err.details ?? {};
+          const currentRank = getNumberDetail(details, "current_rank");
+          const maxPerWindow = getNumberDetail(details, "max_per_window");
+          const windowSeconds = getNumberDetail(details, "window_seconds");
+          const detailParts: string[] = [];
+          if (currentRank !== undefined) detailParts.push(`Current rank: ${currentRank}.`);
+          if (maxPerWindow !== undefined && windowSeconds !== undefined) {
+            detailParts.push(`Limit: ${maxPerWindow} captures per ${formatWindow(windowSeconds)} at this node.`);
+          }
+          setFailure({
+            title: "Why can't I post?",
+            detail: detailParts.length ? detailParts.join(" ") : err.message,
+            nextStep: nextUnlockLine ?? "Verify more captures to unlock higher limits."
+          });
+          return;
+        }
         setFailure({
           title: "Capture creation failed",
           detail: err.message,

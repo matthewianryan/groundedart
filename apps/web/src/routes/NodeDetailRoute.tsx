@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { isApiError } from "../api/http";
 import { listNodeCaptures, type CapturePublic } from "../features/captures/api";
+import { getMe } from "../features/me/api";
+import type { MeResponse } from "../features/me/types";
 import type { NodePublic } from "../features/nodes/types";
 
 type NodeLocationState = {
@@ -15,6 +17,7 @@ export function NodeDetailRoute() {
   const [captures, setCaptures] = useState<CapturePublic[]>([]);
   const [capturesStatus, setCapturesStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [capturesError, setCapturesError] = useState<string | null>(null);
+  const [me, setMe] = useState<MeResponse | null>(null);
 
   useEffect(() => {
     if (!nodeId) {
@@ -45,6 +48,17 @@ export function NodeDetailRoute() {
 
     return () => controller.abort();
   }, [nodeId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getMe({ signal: controller.signal })
+      .then((res) => setMe(res))
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setMe(null);
+      });
+    return () => controller.abort();
+  }, []);
 
   return (
     <div className="detail-layout">
@@ -78,6 +92,9 @@ export function NodeDetailRoute() {
                 <dd>{node.min_rank}</dd>
               </div>
             </dl>
+            {me ? (
+              <div style={{ marginTop: 8 }}>You are rank {me.rank}; this node requires {node.min_rank}.</div>
+            ) : null}
             <div className="section">
               <h2>Verified captures</h2>
               {capturesStatus === "loading" ? (
