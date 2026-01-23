@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AdminCapturesResponse",
+  "type": "object",
+  "required": ["captures"],
+  "properties": {
+    "captures": {
+      "type": "array",
+      "items": { "$ref": "admin_capture.json" }
+    }
+  }
+}

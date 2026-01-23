@@ -1,0 +1,219 @@
+import React from "react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+
+const listNodes = vi.fn();
+const createCheckinChallenge = vi.fn();
+const checkIn = vi.fn();
+
+vi.mock("@react-google-maps/api", async () => {
+  const ReactModule = await import("react");
+  return {
+    useJsApiLoader: () => ({ isLoaded: true, loadError: undefined }),
+    GoogleMap: ({ children, onLoad, onIdle }: any) => {
+      ReactModule.useEffect(() => {
+        const bounds = {
+          getSouthWest: () => ({ lat: () => 0, lng: () => 0 }),
+          getNorthEast: () => ({ lat: () => 1, lng: () => 1 })
+        };
+        const map = { getBounds: () => bounds };
+        onLoad?.(map);
+        onIdle?.();
+      }, [onLoad, onIdle]);
+      return <div data-testid="map">{children}</div>;
+    },
+    Marker: ({ onClick }: any) => (
+      <button type="button" data-testid="marker" onClick={onClick}>
+        marker
+      </button>
+    ),
+    DirectionsRenderer: () => <div data-testid="directions-renderer" />,
+    DirectionsService: () => <div data-testid="directions-service" />
+  };
+});
+
+vi.mock("../auth/session", () => ({
+  ensureAnonymousSession: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock("../features/nodes/api", () => ({
+  listNodes: (...args: unknown[]) => listNodes(...args)
+}));
+
+vi.mock("../features/checkin/api", () => ({
+  createCheckinChallenge: (...args: unknown[]) => createCheckinChallenge(...args),
+  checkIn: (...args: unknown[]) => checkIn(...args)
+}));
+
+vi.mock("../features/captures/useUploadQueue", () => ({
+  useUploadQueue: () => ({
+    initialized: true,
+    persistenceError: undefined,
+    items: [],
+    pendingCount: 0,
+    uploadingCount: 0,
+    failedCount: 0,
+    retryNow: vi.fn(),
+    remove: vi.fn()
+  })
+}));
+
+beforeAll(() => {
+  (globalThis as any).google = {
+    maps: {
+      SymbolPath: { CIRCLE: 0 },
+      TravelMode: { WALKING: "WALKING" }
+    }
+  };
+});
+
+beforeEach(() => {
+  listNodes.mockReset();
+  createCheckinChallenge.mockReset();
+  checkIn.mockReset();
+  process.env.VITE_GOOGLE_MAPS_API_KEY = "test";
+  Object.defineProperty(navigator, "geolocation", {
+    value: {
+      getCurrentPosition: vi.fn((success: PositionCallback) =>
+        success({
+          coords: { latitude: 1, longitude: 2, accuracy: 9 },
+          timestamp: Date.now()
+        } as GeolocationPosition)
+      )
+    },
+    configurable: true
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  cleanup();
+});
+
+async function renderMap() {
+  const user = userEvent.setup();
+  await vi.resetModules();
+  const { MapRoute } = await import("./MapRoute");
+  render(
+    <MemoryRouter>
+      <MapRoute />
+    </MemoryRouter>
+  );
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  });
+  expect(listNodes).toHaveBeenCalled();
+  const markers = await screen.findAllByTestId("marker");
+  await user.click(markers[0]);
+  return user;
+}
+
+describe("MapRoute", () => {
+  it("shows check-in token after successful check-in", async () => {
+    listNodes.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "node_1",
+          name: "Test node",
+          category: "Mural",
+          description: "",
+          lat: 1,
+          lng: 2
+        }
+      ]
+    });
+    createCheckinChallenge.mockResolvedValueOnce({
+      challenge_id: "challenge_1",
+      expires_at: "2024-01-01T00:00:00Z"
+    });
+    checkIn.mockResolvedValueOnce({
+      checkin_token: "token_123456789",
+      expires_at: "2024-01-01T00:10:00Z"
+    });
+
+    const user = await renderMap();
+
+    await user.click(screen.getByRole("button", { name: "Check in" }));
+
+    await waitFor(() => expect(checkIn).toHaveBeenCalled());
+    expect(screen.getByText(/Token: token_12/)).toBeInTheDocument();
+    expect(screen.getByText("Checked in.")).toBeInTheDocument();
+  });
+
+  it("surfaces accuracy guardrails from check-in errors", async () => {
+    listNodes.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "node_1",
+          name: "Test node",
+          category: "Mural",
+          description: "",
+          lat: 1,
+          lng: 2
+        }
+      ]
+    });
+    createCheckinChallenge.mockResolvedValueOnce({
+      challenge_id: "challenge_1",
+      expires_at: "2024-01-01T00:00:00Z"
+    });
+    const user = await renderMap();
+
+    const { ApiError } = await import("../api/http");
+    checkIn.mockRejectedValueOnce(
+      new ApiError(
+        {
+          code: "location_accuracy_too_low",
+          message: "Accuracy too low",
+          details: { accuracy_m: 80, max_allowed_m: 25 }
+        },
+        400
+      )
+    );
+
+    await user.click(screen.getByRole("button", { name: "Check in" }));
+
+    await waitFor(() => expect(screen.getByText("Location accuracy too low")).toBeInTheDocument());
+    expect(screen.getByText("Accuracy 80m exceeds the 25m limit.")).toBeInTheDocument();
+    expect(screen.getByText(/retry/)).toBeInTheDocument();
+  });
+
+  it("surfaces outside-geofence messaging", async () => {
+    listNodes.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "node_1",
+          name: "Test node",
+          category: "Mural",
+          description: "",
+          lat: 1,
+          lng: 2
+        }
+      ]
+    });
+    createCheckinChallenge.mockResolvedValueOnce({
+      challenge_id: "challenge_1",
+      expires_at: "2024-01-01T00:00:00Z"
+    });
+    const user = await renderMap();
+
+    const { ApiError } = await import("../api/http");
+    checkIn.mockRejectedValueOnce(
+      new ApiError(
+        {
+          code: "outside_geofence",
+          message: "Outside geofence",
+          details: { distance_m: 120, radius_m: 50 }
+        },
+        403
+      )
+    );
+
+    await user.click(screen.getByRole("button", { name: "Check in" }));
+
+    await waitFor(() => expect(screen.getByText("Not inside the zone")).toBeInTheDocument());
+    expect(screen.getByText(/zone radius/)).toBeInTheDocument();
+  });
+});

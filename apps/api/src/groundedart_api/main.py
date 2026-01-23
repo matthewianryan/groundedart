@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from groundedart_api.api.errors import install_error_handlers
+from groundedart_api.api.routers.admin import router as admin_router
 from groundedart_api.api.routers.captures import router as captures_router
 from groundedart_api.api.routers.health import router as health_router
 from groundedart_api.api.routers.me import router as me_router
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(me_router)
     app.include_router(nodes_router)
     app.include_router(captures_router)
+    app.include_router(admin_router)
 
     Path(settings.media_dir).mkdir(parents=True, exist_ok=True)
     app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")

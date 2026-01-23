@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AdminCaptureTransitionRequest",
+  "type": "object",
+  "required": ["target_state"],
+  "properties": {
+    "target_state": {
+      "type": "string",
+      "enum": ["verified", "rejected", "hidden"]
+    },
+    "reason_code": { "type": ["string", "null"] },
+    "details": { "type": ["object", "null"] }
+  }
+}

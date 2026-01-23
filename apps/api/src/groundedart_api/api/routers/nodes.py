@@ -4,7 +4,7 @@ import datetime as dt
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 from geoalchemy2 import Geography
 from sqlalchemy import cast, func, select
 
@@ -111,7 +111,16 @@ async def list_node_captures(
     db: DbSessionDep,
     user: OptionalUser,
     state: CaptureState = Query(default=CaptureState.verified),
+    admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    settings: Settings = Depends(get_settings),
 ) -> CapturesResponse:
+    if state != CaptureState.verified and admin_token != settings.admin_api_token:
+        raise AppError(
+            code="admin_auth_required",
+            message="Admin authentication required",
+            status_code=401,
+        )
+
     rank = await _get_user_rank(db, user)
     node_query = _node_select_with_coords().where(Node.id == node_id, Node.min_rank <= rank)
     node_row = (await db.execute(node_query)).one_or_none()

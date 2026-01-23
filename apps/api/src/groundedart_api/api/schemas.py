@@ -77,3 +77,29 @@ class CreateCaptureResponse(BaseModel):
 
 class CapturesResponse(BaseModel):
     captures: list[CapturePublic]
+
+
+class AdminCapture(BaseModel):
+    id: uuid.UUID
+    node_id: uuid.UUID
+    user_id: uuid.UUID
+    state: str
+    state_reason: str | None = None
+    created_at: dt.datetime
+    image_url: str | None = None
+    attribution_artist_name: str | None = None
+    attribution_artwork_title: str | None = None
+
+
+class AdminCapturesResponse(BaseModel):
+    captures: list[AdminCapture]
+
+
+class AdminCaptureTransitionRequest(BaseModel):
+    target_state: str
+    reason_code: str | None = None
+    details: dict[str, object] | None = None
+
+
+class AdminCaptureTransitionResponse(BaseModel):
+    capture: AdminCapture

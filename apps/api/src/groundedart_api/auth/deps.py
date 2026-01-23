@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, Header, Request
 from sqlalchemy import select
 
 from groundedart_api.auth.tokens import hash_opaque_token
@@ -43,3 +43,18 @@ async def require_user(user: Annotated[User | None, Depends(get_optional_user)])
 
 CurrentUser = Annotated[User, Depends(require_user)]
 OptionalUser = Annotated[User | None, Depends(get_optional_user)]
+
+
+async def require_admin(
+    settings: Annotated[Settings, Depends(get_settings)],
+    admin_token: Annotated[str | None, Header(alias="X-Admin-Token")] = None,
+) -> None:
+    if not admin_token or admin_token != settings.admin_api_token:
+        raise AppError(
+            code="admin_auth_required",
+            message="Admin authentication required",
+            status_code=401,
+        )
+
+
+AdminAuth = Annotated[None, Depends(require_admin)]

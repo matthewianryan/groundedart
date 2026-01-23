@@ -9,6 +9,8 @@ from httpx import AsyncClient
 
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
 from groundedart_api.db.models import CuratorProfile, Node, Session, User
+from groundedart_api.db.models import Capture
+from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.settings import get_settings
 
 
@@ -59,6 +61,64 @@ async def create_ranked_nodes(db_sessionmaker) -> tuple[uuid.UUID, uuid.UUID]:
         )
         await session.commit()
     return public_id, restricted_id
+
+
+async def create_node_with_captures(db_sessionmaker) -> tuple[uuid.UUID, uuid.UUID]:
+    node_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    verified_id = uuid.uuid4()
+    async with db_sessionmaker() as session:
+        session.add(User(id=user_id))
+        session.add(
+            Node(
+                id=node_id,
+                name="Capture Node",
+                category="mural",
+                description=None,
+                location=WKTElement("POINT(-122.40 37.78)", srid=4326),
+                radius_m=25,
+                min_rank=0,
+            )
+        )
+        await session.flush()
+        session.add_all(
+            [
+                Capture(
+                    id=verified_id,
+                    user_id=user_id,
+                    node_id=node_id,
+                    state=CaptureState.verified.value,
+                    image_path="captures/verified.jpg",
+                    image_mime="image/jpeg",
+                ),
+                Capture(
+                    id=uuid.uuid4(),
+                    user_id=user_id,
+                    node_id=node_id,
+                    state=CaptureState.pending_verification.value,
+                    image_path="captures/pending.jpg",
+                    image_mime="image/jpeg",
+                ),
+                Capture(
+                    id=uuid.uuid4(),
+                    user_id=user_id,
+                    node_id=node_id,
+                    state=CaptureState.rejected.value,
+                    image_path="captures/rejected.jpg",
+                    image_mime="image/jpeg",
+                ),
+                Capture(
+                    id=uuid.uuid4(),
+                    user_id=user_id,
+                    node_id=node_id,
+                    state=CaptureState.hidden.value,
+                    image_path="captures/hidden.jpg",
+                    image_mime="image/jpeg",
+                ),
+            ]
+        )
+        await session.commit()
+    return node_id, verified_id
 
 
 @pytest.mark.asyncio
@@ -113,3 +173,44 @@ async def test_nodes_rank_filtering_for_list_and_detail(
     authed_detail = await client.get(f"/v1/nodes/{restricted_id}")
     assert authed_detail.status_code == 200
     assert authed_detail.json()["id"] == str(restricted_id)
+
+
+@pytest.mark.asyncio
+async def test_node_captures_rejects_non_verified_state_for_non_admin(
+    db_sessionmaker,
+    client: AsyncClient,
+) -> None:
+    node_id, _ = await create_node_with_captures(db_sessionmaker)
+    non_admin_states = ["hidden", "rejected", "pending_verification"]
+
+    for state in non_admin_states:
+        response = await client.get(f"/v1/nodes/{node_id}/captures", params={"state": state})
+        assert response.status_code == 401
+        assert response.json()["error"]["code"] == "admin_auth_required"
+
+    settings = get_settings()
+    _, token = await create_user_session(
+        db_sessionmaker,
+        expires_at=dt.datetime.now(dt.UTC) + dt.timedelta(hours=1),
+        rank=0,
+    )
+    client.cookies.set(settings.session_cookie_name, token)
+
+    for state in non_admin_states:
+        response = await client.get(f"/v1/nodes/{node_id}/captures", params={"state": state})
+        assert response.status_code == 401
+        assert response.json()["error"]["code"] == "admin_auth_required"
+
+
+@pytest.mark.asyncio
+async def test_node_captures_returns_only_verified_for_non_admin(
+    db_sessionmaker,
+    client: AsyncClient,
+) -> None:
+    node_id, verified_id = await create_node_with_captures(db_sessionmaker)
+
+    response = await client.get(f"/v1/nodes/{node_id}/captures")
+    assert response.status_code == 200
+    payload = response.json()
+    capture_ids = [capture["id"] for capture in payload["captures"]]
+    assert capture_ids == [str(verified_id)]

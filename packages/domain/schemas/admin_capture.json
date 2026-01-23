@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AdminCapture",
+  "type": "object",
+  "required": [
+    "id",
+    "node_id",
+    "user_id",
+    "state",
+    "state_reason",
+    "created_at",
+    "image_url",
+    "attribution_artist_name",
+    "attribution_artwork_title"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "node_id": { "type": "string", "format": "uuid" },
+    "user_id": { "type": "string", "format": "uuid" },
+    "state": {
+      "type": "string",
+      "enum": ["draft", "pending_verification", "verified", "rejected", "hidden"]
+    },
+    "state_reason": { "type": ["string", "null"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "image_url": { "type": ["string", "null"] },
+    "attribution_artist_name": { "type": ["string", "null"] },
+    "attribution_artwork_title": { "type": ["string", "null"] }
+  }
+}

@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     token_hash_secret: str = "dev-only-change-me"
     session_cookie_name: str = "ga_session"
     session_ttl_seconds: int = 60 * 60 * 24 * 30
+    admin_api_token: str = "dev-admin-token-change-me"
 
     checkin_challenge_ttl_seconds: int = Field(
         default=120, description="Time-to-live for check-in challenges, in seconds."

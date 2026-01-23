@@ -32,6 +32,20 @@ cd apps/api
 alembic -c alembic.ini upgrade head
 ```
 
+Verify current revision (optional but useful when `upgrade head` prints only INFO lines):
+
+```bash
+cd apps/api
+alembic -c alembic.ini current
+```
+
+List available revisions:
+
+```bash
+cd apps/api
+alembic -c alembic.ini history
+```
+
 ## Run the API server
 
 ```bash
