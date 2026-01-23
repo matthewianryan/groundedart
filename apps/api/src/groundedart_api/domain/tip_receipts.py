@@ -3,9 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 import datetime as dt
 from enum import StrEnum
-from typing import Protocol
+from typing import Annotated, Protocol
 import uuid
 
+from fastapi import Depends
+
+from groundedart_api.settings import Settings, get_settings
 
 class TipReceiptStatus(StrEnum):
     SEEN = "seen"
@@ -53,3 +56,16 @@ class TipReceiptProvider(Protocol):
         expected_amount_lamports: int,
     ) -> TipReceiptVerification:
         ...
+
+
+def get_tip_receipt_provider(
+    settings: Settings = Depends(get_settings),
+) -> TipReceiptProvider:
+    from groundedart_api.domain.tip_receipts_solana import SolanaTipReceiptProvider
+
+    return SolanaTipReceiptProvider(str(settings.solana_rpc_url))
+
+
+TipReceiptProviderDep = Annotated[
+    TipReceiptProvider, Depends(get_tip_receipt_provider)
+]

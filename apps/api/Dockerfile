@@ -11,4 +11,6 @@ COPY apps/api/alembic.ini /app/apps/api/alembic.ini
 COPY apps/api/scripts /app/apps/api/scripts
 
 RUN python -m pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -e .
+    && pip install --no-cache-dir -e . \
+    && python -m pip check \
+    && python -c "import groundedart_api.domain.tip_receipts_solana"

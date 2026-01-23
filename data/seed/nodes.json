@@ -10,6 +10,16 @@
     "min_rank": 0
   },
   {
+    "id": "e2b2e3a5-8c2d-4c5b-8f42-7e5d2e3c9f41",
+    "name": "Watershed Art Market",
+    "description": "Design and art market inside the V&A Waterfront's Watershed building.",
+    "category": "art_shop",
+    "lat": -33.9082,
+    "lng": 18.4208,
+    "radius_m": 70,
+    "min_rank": 0
+  },
+  {
     "id": "ad39607d-011f-4021-bfd3-7e5514d4268e",
     "name": "A4 Arts Foundation",
     "description": "Non-profit arts space with rotating exhibitions and research library.",
@@ -17,7 +27,7 @@
     "lat": -33.9229,
     "lng": 18.419,
     "radius_m": 80,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "595adae2-1393-47d2-bad8-05de38353d87",
@@ -27,7 +37,7 @@
     "lat": -33.9304,
     "lng": 18.4186,
     "radius_m": 60,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "876b4259-072b-4417-ad5e-0b0de0f8b168",
@@ -37,7 +47,7 @@
     "lat": -33.9297,
     "lng": 18.4226,
     "radius_m": 60,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "794de5ed-c10a-4909-a61d-4a59ce1c8bbf",
@@ -47,7 +57,7 @@
     "lat": -33.9282,
     "lng": 18.4131,
     "radius_m": 60,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "b4fc2c28-2b3b-4a2d-84ab-8cb04dec59d6",
@@ -57,7 +67,7 @@
     "lat": -33.9308,
     "lng": 18.4121,
     "radius_m": 100,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "6a8e029d-73c7-4bcc-becf-abff5ce46ea0",
@@ -67,7 +77,7 @@
     "lat": -34.081,
     "lng": 18.4452,
     "radius_m": 140,
-    "min_rank": 0
+    "min_rank": 2
   },
   {
     "id": "3f8bd57e-b8e8-4b3c-a983-c9a9fe29bbce",
@@ -77,7 +87,7 @@
     "lat": -33.9337,
     "lng": 18.3783,
     "radius_m": 70,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "6f59ce06-81f0-4991-bc51-2937d6797fcf",
@@ -87,7 +97,7 @@
     "lat": -33.9258,
     "lng": 18.4198,
     "radius_m": 70,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "d77e34b9-aeaa-44b6-b099-64d3c1777e84",
@@ -97,7 +107,7 @@
     "lat": -33.9288,
     "lng": 18.4479,
     "radius_m": 90,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "94235fdb-9dfa-4783-9fff-2193a6abcd9f",
@@ -107,7 +117,7 @@
     "lat": -33.9295,
     "lng": 18.4496,
     "radius_m": 110,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "6528e0b7-a841-4169-b1d6-bf51567fdffd",
@@ -117,7 +127,7 @@
     "lat": -33.9289,
     "lng": 18.4161,
     "radius_m": 90,
-    "min_rank": 0
+    "min_rank": 1
   },
   {
     "id": "af192d9c-9a0e-411b-a3c4-76f3842c1a06",
@@ -147,6 +157,6 @@
     "lat": -33.9256,
     "lng": 18.4231,
     "radius_m": 80,
-    "min_rank": 0
+    "min_rank": 1
   }
 ]

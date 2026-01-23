@@ -21,10 +21,9 @@ from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.errors import AppError
 from groundedart_api.domain.tip_receipts import (
     TipReceiptFailureReason,
-    TipReceiptProvider,
+    TipReceiptProviderDep,
     TipReceiptVerificationFailure,
 )
-from groundedart_api.domain.tip_receipts_solana import get_solana_tip_receipt_provider
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.time import UtcNow, get_utcnow
 
@@ -133,7 +132,7 @@ async def confirm_tip(
     payload: ConfirmTipRequest,
     db: DbSessionDep,
     user: CurrentUser,
-    provider: TipReceiptProvider = Depends(get_solana_tip_receipt_provider),
+    provider: TipReceiptProviderDep,
     now: UtcNow = Depends(get_utcnow),
 ) -> TipReceiptPublic:
     tip_intent = await db.get(TipIntent, payload.tip_intent_id)

@@ -8,6 +8,10 @@ Canonical commands for common workflows. Run from the repo root unless noted.
 docker compose -f infra/docker-compose.yml up --build
 ```
 
+Notes:
+- The `migrate` container applies Alembic migrations and then runs the seed scripts (`seed_nodes.py`, `seed_artists.py`) so tips work in a fresh DB.
+- The `web` container auto-runs `npm ci` if `node_modules/` is missing or out of sync with `package-lock.json`.
+
 ## Essentials (dependencies + hydration)
 
 Activate the API virtualenv once per shell:
