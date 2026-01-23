@@ -8,6 +8,7 @@ SEED_FILE="$REPO_ROOT/data/seed/artists.json"
 KEYPAIR_PATH="${SOLANA_KEYPAIR_PATH:-$HOME/.config/solana/devnet.json}"
 CLUSTER_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
 AIRDROP_AMOUNT="2"
+PYTHON_BIN="${PYTHON_BIN:-}"
 
 PUBKEY=""
 ARTIST_ID=""
@@ -78,6 +79,17 @@ if [[ ! -f "$SEED_FILE" ]]; then
   exit 1
 fi
 
+if [[ -z "$PYTHON_BIN" ]]; then
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+  else
+    echo "Python not found. Install python3 (recommended) or set PYTHON_BIN."
+    exit 1
+  fi
+fi
+
 if [[ -z "$PUBKEY" ]]; then
   if ! command -v solana >/dev/null 2>&1; then
     echo "Solana CLI not found. Install it or pass --pubkey."
@@ -108,7 +120,7 @@ fi
 
 if [[ -z "$ARTIST_ID" && "$ALL_ARTISTS" == "false" ]]; then
   if [[ -t 0 ]]; then
-    python - <<'PY' "$SEED_FILE"
+    "$PYTHON_BIN" - <<'PY' "$SEED_FILE"
 import json
 import sys
 from pathlib import Path
@@ -124,7 +136,7 @@ PY
     if [[ "$choice" == "all" ]]; then
       ALL_ARTISTS="true"
     else
-      ARTIST_ID="$(python - <<'PY' "$SEED_FILE" "$choice"
+      ARTIST_ID="$("$PYTHON_BIN" - <<'PY' "$SEED_FILE" "$choice"
 import json
 import sys
 from pathlib import Path
@@ -144,7 +156,7 @@ PY
   fi
 fi
 
-python - <<'PY' "$SEED_FILE" "$PUBKEY" "$ARTIST_ID" "$ALL_ARTISTS"
+"$PYTHON_BIN" - <<'PY' "$SEED_FILE" "$PUBKEY" "$ARTIST_ID" "$ALL_ARTISTS"
 import json
 import sys
 from pathlib import Path
