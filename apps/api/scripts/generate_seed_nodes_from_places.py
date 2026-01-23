@@ -18,17 +18,21 @@ PLACES_KEY_ENV = "VITE_GOOGLE_MAPS_API_KEY"
 UUID_NAMESPACE = uuid.UUID("1f9e1b2b-3ed4-4c0b-8d21-9d6c0d2c8c1e")
 
 WATERFRONT_CENTER = (-33.9075, 18.4231)
+WETHINKCODE_CENTER = (-33.9272245, 18.4554980)
+RANK_DISTANCE_CENTERS = [WATERFRONT_CENTER, WETHINKCODE_CENTER]
 RANK0_NAMES = {
     "Zeitz Museum of Contemporary Art Africa",
     "V&A Waterfront Public Art Route",
     "Battery Park Skate & Art Walls",
     "Watershed Art Market",
+    "WeThinkCode_",
 }
 
 CAPETOWN_CENTERS = [
     ("Waterfront", -33.9075, 18.4231),
     ("CBD", -33.9249, 18.4241),
     ("Woodstock", -33.9297, 18.4479),
+    ("WeThinkCode", -33.9272245, 18.4554980),
     ("Gardens", -33.9371, 18.4149),
     ("Sea Point", -33.9193, 18.3862),
     ("Green Point", -33.9106, 18.4099),
@@ -61,6 +65,56 @@ SEARCH_QUERIES = [
 ]
 
 MANUAL_NODES = [
+    {
+        "id": "e730a001-11ac-425e-b5f8-104323a19df3",
+        "name": "WeThinkCode_",
+        "description": "Coding academy and hackathon venue in Woodstock.",
+        "category": "art_school",
+        "lat": -33.9272245,
+        "lng": 18.455498,
+        "radius_m": 90,
+        "min_rank": 0,
+    },
+    {
+        "id": "0d961df5-7e0d-40e5-9ef0-ac68d59e4d9b",
+        "name": "Old Biscuit Mill",
+        "description": "Design market and artisan shops in Woodstock.",
+        "category": "art_shop",
+        "lat": -33.9274527,
+        "lng": 18.457579,
+        "radius_m": 70,
+        "min_rank": 1,
+    },
+    {
+        "id": "910bd3d9-39d1-4afc-8dd7-5c31ccb75ac1",
+        "name": "The Neighbourgoods Market",
+        "description": "Weekly market with local makers at the Old Biscuit Mill.",
+        "category": "art_shop",
+        "lat": -33.927451,
+        "lng": 18.4581374,
+        "radius_m": 70,
+        "min_rank": 1,
+    },
+    {
+        "id": "ee4a2a36-179c-4551-b152-b95d7c80c6f7",
+        "name": "The Woodstock Exchange",
+        "description": "Design hub with studios and boutiques on Albert Road.",
+        "category": "art_shop",
+        "lat": -33.9268834,
+        "lng": 18.445957,
+        "radius_m": 70,
+        "min_rank": 1,
+    },
+    {
+        "id": "8cbde9ff-eb0e-4817-82a6-6330528956d6",
+        "name": "The Palms Decor and Lifestyle Centre",
+        "description": "Lifestyle and design stores on Sir Lowry Road.",
+        "category": "art_shop",
+        "lat": -33.9269606,
+        "lng": 18.4400815,
+        "radius_m": 70,
+        "min_rank": 1,
+    },
     {
         "id": "b752b4c2-6da5-4bba-bdc1-5687db128123",
         "name": "Zeitz Museum of Contemporary Art Africa",
@@ -151,7 +205,9 @@ def _radius_for_category(category: str) -> int:
 def _min_rank_for_place(name: str, lat: float, lng: float) -> int:
     if name in RANK0_NAMES:
         return 0
-    distance_km = _haversine_km(WATERFRONT_CENTER[0], WATERFRONT_CENTER[1], lat, lng)
+    distance_km = min(
+        _haversine_km(center[0], center[1], lat, lng) for center in RANK_DISTANCE_CENTERS
+    )
     if distance_km <= 3.0:
         return 1
     return 2
@@ -293,7 +349,7 @@ def main() -> None:
 
     for manual in MANUAL_NODES:
         node = dict(manual)
-        node["min_rank"] = 0
+        node["min_rank"] = int(node.get("min_rank", 0))
         nodes.append(node)
         seen_keys.add(_dedupe_key(node["name"], float(node["lat"]), float(node["lng"])))
 

@@ -30,6 +30,16 @@
     "min_rank": 0
   },
   {
+    "id": "e730a001-11ac-425e-b5f8-104323a19df3",
+    "name": "WeThinkCode_",
+    "description": "Coding academy and hackathon venue in Woodstock.",
+    "category": "art_school",
+    "lat": -33.9272245,
+    "lng": 18.455498,
+    "radius_m": 90,
+    "min_rank": 0
+  },
+  {
     "id": "b752b4c2-6da5-4bba-bdc1-5687db128123",
     "name": "Zeitz Museum of Contemporary Art Africa",
     "description": "Flagship contemporary art museum in the V&A Waterfront's Silo District.",
@@ -146,6 +156,16 @@
     "category": "art_shop",
     "lat": -33.9220286,
     "lng": 18.419862,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "26b405bf-8b8c-5628-afd9-ddfef8294a82",
+    "name": "AI Cables",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9144672,
+    "lng": 18.4826303,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -300,6 +320,16 @@
     "min_rank": 1
   },
   {
+    "id": "aee3689b-94a4-5b35-9021-e7ba72f93943",
+    "name": "Aristo Interiors / Kitchens and Interiors",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9315595,
+    "lng": 18.4666536,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "e6076f99-8ef8-5efa-884c-9daa95231167",
     "name": "Art Gallery of Africa .",
     "description": "Listed on Google Places as a gallery in Cape Town.",
@@ -336,6 +366,26 @@
     "category": "gallery",
     "lat": -33.9069282,
     "lng": 18.4222965,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "1fd9934c-e3d2-5a3a-a6ee-000b94e5e059",
+    "name": "ArtKlub | Cape Town",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.926351,
+    "lng": 18.4479563,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "78ddf23c-3be6-59c6-b18b-4a7f9f9dac28",
+    "name": "ArtLab",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9294481,
+    "lng": 18.4600077,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -390,6 +440,26 @@
     "min_rank": 1
   },
   {
+    "id": "19762f16-8108-5905-b66b-52f9c8be3531",
+    "name": "Ash Ceramics",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.93147,
+    "lng": 18.45833,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "237b3c50-9389-593f-b182-59fdcf032d29",
+    "name": "Ashanti Design",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9160086,
+    "lng": 18.4686093,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "493a0147-0183-5d16-b029-25b993295ba1",
     "name": "Association for Visual Arts (AVA Gallery)",
     "description": "Listed on Google Places as a gallery in Cape Town.",
@@ -400,12 +470,32 @@
     "min_rank": 1
   },
   {
+    "id": "8496d835-58c4-5d47-a422-40695e23ccc4",
+    "name": "Atang Tshikare",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9265469,
+    "lng": 18.4477412,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "a57eafee-7c71-5dee-ac27-12faa624a427",
     "name": "Axis Art Gallery",
     "description": "Listed on Google Places as a gallery in Cape Town.",
     "category": "gallery",
     "lat": -33.9167207,
     "lng": 18.4174168,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "8df85e55-b85a-578e-8c30-9c1175c4d135",
+    "name": "BEADS AND WIRE CONNECTION",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9314524,
+    "lng": 18.4609176,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -460,12 +550,62 @@
     "min_rank": 1
   },
   {
+    "id": "aed83f19-ddbc-5f63-8487-7ecc15d864d7",
+    "name": "Baz-Art",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9316015,
+    "lng": 18.4555131,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "3410e1b9-0066-55f6-b489-5dfc466e8d16",
+    "name": "Big Tree Designs",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9281999,
+    "lng": 18.480336,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "965fe299-93f1-5945-808c-59956326ce00",
+    "name": "Bit by bit mosaic",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9424882,
+    "lng": 18.4736893,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "85b6c246-8c7d-563b-813e-bfaef3fed304",
+    "name": "Blakstone",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9342738,
+    "lng": 18.4311399,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "35b82b6a-b10e-5d27-8a6a-3e49bb9863eb",
     "name": "Blossom Cape Town",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.9069467,
     "lng": 18.4183623,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "22b71135-f617-53e2-8824-1766074b7392",
+    "name": "Blue Gecko Art Studio",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9249182,
+    "lng": 18.479766,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -500,12 +640,42 @@
     "min_rank": 1
   },
   {
+    "id": "88cbfa2d-2a4e-5e07-873c-842ca7cf6598",
+    "name": "Bright Studio & Gallery",
+    "description": "Listed on Google Places as a gallery in Cape Town.",
+    "category": "gallery",
+    "lat": -33.9280492,
+    "lng": 18.4578442,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "90c788b2-7e75-505e-800c-a7bf447f672f",
+    "name": "Bronze Age Studio",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9273813,
+    "lng": 18.449649,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "84ac75c2-d0bc-5982-96e6-47635dd081ca",
     "name": "CAPE CRAFT & DESIGN INSTITUTE",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.9070104,
     "lng": 18.4184327,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "e56c545a-02ce-56be-bf61-b642921ae725",
+    "name": "CanvasPlus",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9270547,
+    "lng": 18.45503,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -570,12 +740,42 @@
     "min_rank": 1
   },
   {
+    "id": "a3e959d5-31c6-5963-af8a-9ec291747520",
+    "name": "Cape Town Life Drawing",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9298942,
+    "lng": 18.4507342,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "9263e004-565e-548b-aae3-0cf65a5c9a87",
+    "name": "Cape Town Science Centre",
+    "description": "Listed on Google Places as a museum in Cape Town.",
+    "category": "museum",
+    "lat": -33.9382265,
+    "lng": 18.4639457,
+    "radius_m": 120,
+    "min_rank": 1
+  },
+  {
     "id": "39319dd0-84ed-576b-993f-467763d4f247",
     "name": "Cape Town Sewing Centre",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.9269593,
     "lng": 18.4262891,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "9a4d2a90-51f7-5560-bb3f-28a8f700b63d",
+    "name": "Cape Town Street Art Tour",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9275444,
+    "lng": 18.4570823,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -680,6 +880,16 @@
     "min_rank": 1
   },
   {
+    "id": "22e0dbc0-6882-5b49-ab21-5db9713e1601",
+    "name": "Clay Hands",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.929949,
+    "lng": 18.450709,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "cbce2d78-744c-5d03-a091-46ef303e7c97",
     "name": "Cocktails and Canvas Cape Town & Jhb",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -690,12 +900,42 @@
     "min_rank": 1
   },
   {
+    "id": "7f93a913-7d04-56f9-94ae-435d09b34ed9",
+    "name": "Concept Store",
+    "description": "Listed on Google Places as a gallery in Cape Town.",
+    "category": "gallery",
+    "lat": -33.9269711,
+    "lng": 18.4503923,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "2c3529c9-7418-5054-8ee5-cd6cf55551f1",
     "name": "Craftovus",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.92650010000001,
     "lng": 18.4461623,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "b2f7a728-8ee4-5679-83ac-7beced68febf",
+    "name": "Create. Hobby Studio",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9361704,
+    "lng": 18.4681278,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "03a84074-5b92-50e4-8ebe-cb12e93d86dd",
+    "name": "Crema Design",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9274192,
+    "lng": 18.4550442,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -730,12 +970,32 @@
     "min_rank": 1
   },
   {
+    "id": "5b9f38d4-5b14-57da-bf30-2d77acb58a85",
+    "name": "Design Afrika",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9346369,
+    "lng": 18.4551984,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "c21941ac-9bbf-5d50-a056-902bbfcd0555",
     "name": "Design Lab",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.9068408,
     "lng": 18.4184711,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "9d108032-fb83-5528-9fe1-f092bf99f8ea",
+    "name": "Design Time",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9386349,
+    "lng": 18.4710137,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -870,6 +1130,16 @@
     "min_rank": 1
   },
   {
+    "id": "69b899ba-dabf-5685-a6bb-45bde20f899e",
+    "name": "European Light & Design Centre",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9316335,
+    "lng": 18.455481,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "8dedb6f4-9f67-5a22-b46e-806d44287ff7",
     "name": "Everard Read CIRCA Gallery, Cape Town",
     "description": "Listed on Google Places as a gallery in Cape Town.",
@@ -910,12 +1180,42 @@
     "min_rank": 1
   },
   {
+    "id": "d4cfa55a-51f6-572e-982f-241442397dc4",
+    "name": "Feed the Animals - Mural artwork",
+    "description": "Listed on Google Places as a public art in Cape Town.",
+    "category": "public_art",
+    "lat": -33.9334534,
+    "lng": 18.4530646,
+    "radius_m": 110,
+    "min_rank": 1
+  },
+  {
     "id": "e6b323ce-5e9e-5781-85bd-7aa5b3207da4",
     "name": "Fibre Designs Rug Gallery",
     "description": "Listed on Google Places as a gallery in Cape Town.",
     "category": "gallery",
     "lat": -33.91606,
     "lng": 18.41738,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "d029638e-94d4-5d66-968c-c03ac0a4d56b",
+    "name": "Flat Art Studios",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9315879,
+    "lng": 18.4555223,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "47e0e8e0-f134-5fe3-9415-ef6de8bea57c",
+    "name": "Frere St Studios",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9272431,
+    "lng": 18.4475155,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -990,6 +1290,16 @@
     "min_rank": 1
   },
   {
+    "id": "537fb8e9-8c89-54c0-ac68-b9e1c5ed5063",
+    "name": "Greatmore Studios Trust",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9302167,
+    "lng": 18.4540037,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "76a4f05a-3b6d-5784-8cb4-4995f2f0b0d0",
     "name": "Ground Art Caffe",
     "description": "Listed on Google Places as a gallery in Cape Town.",
@@ -1016,6 +1326,26 @@
     "category": "art_shop",
     "lat": -33.9320604,
     "lng": 18.421605,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "c8ea5190-6796-5cb1-b68f-d3ab77f8ac75",
+    "name": "Heart of Cape Town Museum",
+    "description": "Listed on Google Places as a museum in Cape Town.",
+    "category": "museum",
+    "lat": -33.94116169999999,
+    "lng": 18.4615964,
+    "radius_m": 120,
+    "min_rank": 1
+  },
+  {
+    "id": "e44ddc7b-e291-5d35-bc77-3c82f85744aa",
+    "name": "Hoi P'loy (PTY) Ltd - Lighting Store Cape Town",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.93106,
+    "lng": 18.45739,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1050,6 +1380,16 @@
     "min_rank": 1
   },
   {
+    "id": "23e785ec-24e6-5865-8b17-f117f91b1aa7",
+    "name": "I Love Screenprinting",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.926351,
+    "lng": 18.4479563,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "05a10884-4a05-5526-959b-d88a16e44cfe",
     "name": "Ibrahim Design",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -1060,12 +1400,52 @@
     "min_rank": 1
   },
   {
+    "id": "06a5712e-3711-5de3-804b-59bf7e60d013",
+    "name": "Iconic Designs",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9271734,
+    "lng": 18.4805578,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "da92f1e9-5ea2-515c-b4c9-8fb5b5e3afaa",
     "name": "Imagery Induction Cape Town",
     "description": "Listed on Google Places as a gallery in Cape Town.",
     "category": "gallery",
     "lat": -33.9228988,
     "lng": 18.4209101,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "23b06442-c6f6-5eb6-9191-d68d49c5f5b0",
+    "name": "Imiso Ceramics",
+    "description": "Listed on Google Places as a gallery in Cape Town.",
+    "category": "gallery",
+    "lat": -33.9275814,
+    "lng": 18.4570851,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "ca579a48-72bb-59a2-8be9-8f606c2ff2f0",
+    "name": "InSitu",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9266158,
+    "lng": 18.4511223,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "242d280c-d110-5ab7-a774-31a3d9ef0fb7",
+    "name": "InSitu Studio",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.930634,
+    "lng": 18.458715,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1220,12 +1600,52 @@
     "min_rank": 1
   },
   {
+    "id": "93b355ad-c881-5145-a34c-701b96f51b23",
+    "name": "King's Blockhouse",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9506631,
+    "lng": 18.4504169,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "71f2e8b3-9c31-5263-816e-9e7abaf6ce22",
+    "name": "KnexT Art Gallery",
+    "description": "Listed on Google Places as a gallery in Cape Town.",
+    "category": "gallery",
+    "lat": -33.9272345,
+    "lng": 18.451941,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "b2f7a047-8146-5d68-ae79-220cb41db37c",
     "name": "L I M E L I N E",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.9129893,
     "lng": 18.4227788,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "220a6ea4-166b-52b9-8539-7301fdfe57f0",
+    "name": "L&Y WOOD DESIGN",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9257714,
+    "lng": 18.4682516,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "9ea0f956-d8af-54ba-b809-1a86de86d41f",
+    "name": "LT Discount Paint Wholesalers",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9294636,
+    "lng": 18.4505514,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1250,6 +1670,16 @@
     "min_rank": 1
   },
   {
+    "id": "f213d1f1-a38a-5d07-91a2-239c2396d329",
+    "name": "Liesel Trautman Ceramics",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9338247,
+    "lng": 18.4672676,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "34a25d36-3d06-5f5c-8152-7e9c72a26d04",
     "name": "Lifestyle Ceramics Cape Town",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -1260,12 +1690,52 @@
     "min_rank": 1
   },
   {
+    "id": "6f03cfb4-ce4d-52e3-a425-eaac64a4dc54",
+    "name": "Lifestyle Design Centre",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9290443,
+    "lng": 18.4804505,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "def29234-2cb0-5051-bef2-340c7253a601",
+    "name": "Loft Editions",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9314302,
+    "lng": 18.4568982,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "4972c895-4399-5eeb-956a-6b51f615a30a",
     "name": "Louis Botha Equestrian Statue",
     "description": "Listed on Google Places as a studio in Cape Town.",
     "category": "studio",
     "lat": -33.927793,
     "lng": 18.419375,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "d3db9b13-b8bb-519e-bee7-001b4666e781",
+    "name": "Louise Decor & Design",
+    "description": "Listed on Google Places as a gallery in Cape Town.",
+    "category": "gallery",
+    "lat": -33.9392273,
+    "lng": 18.4691616,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "8ba38c72-233d-52c3-b3f0-b4f9d1759b82",
+    "name": "Made by Hand",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9317207,
+    "lng": 18.4690303,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1310,6 +1780,16 @@
     "min_rank": 1
   },
   {
+    "id": "e16b6c53-b17f-565b-885e-9b728e78c675",
+    "name": "Mervyn Gers Ceramics",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9159445,
+    "lng": 18.470614,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "ab6e62ce-4995-56bb-9cc0-ab8ab30a1dae",
     "name": "Michaelis Galleries",
     "description": "Listed on Google Places as a gallery in Cape Town.",
@@ -1330,6 +1810,16 @@
     "min_rank": 1
   },
   {
+    "id": "7564d4b2-8390-55e5-a7c9-3790d4eea8cc",
+    "name": "Michelle Harper Design Studio",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.927544,
+    "lng": 18.457082,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "75205be6-29c6-566d-8de6-13b6ec9b5e47",
     "name": "Modern design furniture",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -1340,12 +1830,32 @@
     "min_rank": 1
   },
   {
+    "id": "b7c6288a-c67b-55a0-b41c-9294de90f958",
+    "name": "Monkeybiz South Africa",
+    "description": "Listed on Google Places as a gallery in Cape Town.",
+    "category": "gallery",
+    "lat": -33.9171191,
+    "lng": 18.4661483,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "d11f1d13-af44-561b-a2aa-8e5a7190a732",
     "name": "Monument Station",
     "description": "Listed on Google Places as a museum in Cape Town.",
     "category": "museum",
     "lat": -33.9233742,
     "lng": 18.430152,
+    "radius_m": 120,
+    "min_rank": 1
+  },
+  {
+    "id": "03494f85-89a8-57a6-a0c7-d9ef0f40c59b",
+    "name": "Mostert's Mill",
+    "description": "Listed on Google Places as a museum in Cape Town.",
+    "category": "museum",
+    "lat": -33.9520909,
+    "lng": 18.4662054,
     "radius_m": 120,
     "min_rank": 1
   },
@@ -1440,6 +1950,16 @@
     "min_rank": 1
   },
   {
+    "id": "2338d28a-80b5-556d-8b11-99da6da8a7a4",
+    "name": "Nicolas Lehmann",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.923548,
+    "lng": 18.4793365,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "11afa343-076a-5ac5-a902-9100c97b3a89",
     "name": "Nobel Square",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -1450,12 +1970,32 @@
     "min_rank": 1
   },
   {
+    "id": "62e8405f-d582-506c-8829-b58228ef646f",
+    "name": "Nook Decor and Design",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9279269,
+    "lng": 18.4821402,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "4c7c01c7-8b2e-57c6-a4e6-449c58baa4b0",
     "name": "OKHA Design Studio",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.9313772,
     "lng": 18.4160678,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "0d961df5-7e0d-40e5-9ef0-ac68d59e4d9b",
+    "name": "Old Biscuit Mill",
+    "description": "Design market and artisan shops in Woodstock.",
+    "category": "art_shop",
+    "lat": -33.9274527,
+    "lng": 18.457579,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1516,6 +2056,16 @@
     "category": "art_shop",
     "lat": -33.9261107,
     "lng": 18.4131778,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "8fe9b8c5-5e67-5f06-841e-efe5fbcda5d1",
+    "name": "PNA Observatory",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9417717,
+    "lng": 18.4666651,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1600,6 +2150,16 @@
     "min_rank": 1
   },
   {
+    "id": "393b8296-81ea-5902-87ca-8b10d8063fae",
+    "name": "Print Art Cape Town",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9378856,
+    "lng": 18.4636115,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "9cb6cb0b-0c87-5fc6-bc9a-e995f45a464a",
     "name": "Public Sculptures",
     "description": "Listed on Google Places as a public art in Cape Town.",
@@ -1630,6 +2190,16 @@
     "min_rank": 1
   },
   {
+    "id": "24f12d2e-4bfa-5dfb-a154-d6f183ec2900",
+    "name": "Ranzani Design",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9287743,
+    "lng": 18.455414,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "6bebaec2-382c-531d-9cf4-089bda05fc39",
     "name": "Rare Gallery",
     "description": "Listed on Google Places as a gallery in Cape Town.",
@@ -1650,6 +2220,16 @@
     "min_rank": 1
   },
   {
+    "id": "6aeafac4-cbf3-589c-b530-e6130c895cb3",
+    "name": "Rhodes Memorial",
+    "description": "Listed on Google Places as a public art in Cape Town.",
+    "category": "public_art",
+    "lat": -33.9523906,
+    "lng": 18.4590942,
+    "radius_m": 110,
+    "min_rank": 1
+  },
+  {
     "id": "b1665238-f9f5-5d88-a3bf-a511f1c72928",
     "name": "Robert Scott Monument",
     "description": "Listed on Google Places as a public art in Cape Town.",
@@ -1657,6 +2237,16 @@
     "lat": -33.9198939,
     "lng": 18.4249719,
     "radius_m": 110,
+    "min_rank": 1
+  },
+  {
+    "id": "2b32132b-37b4-5088-823f-854dc50616a2",
+    "name": "Robin Sprong Wallpaper",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9298633,
+    "lng": 18.4434815,
+    "radius_m": 70,
     "min_rank": 1
   },
   {
@@ -1677,6 +2267,16 @@
     "lat": -33.9304037,
     "lng": 18.4206034,
     "radius_m": 120,
+    "min_rank": 1
+  },
+  {
+    "id": "12ff5600-7dbe-5983-a8b5-ef7ef45b585b",
+    "name": "Ruth Prowse School of Art",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9323606,
+    "lng": 18.4550437,
+    "radius_m": 70,
     "min_rank": 1
   },
   {
@@ -1730,12 +2330,42 @@
     "min_rank": 1
   },
   {
+    "id": "8f95d013-b540-576c-a56c-e2e1eeec10b5",
+    "name": "STUDIO VOOP",
+    "description": "Listed on Google Places as a gallery in Cape Town.",
+    "category": "gallery",
+    "lat": -33.9299651,
+    "lng": 18.4582098,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "afd461ca-99d6-50b0-ae65-7fba90efff67",
     "name": "Sailor Tinkerbell",
     "description": "Listed on Google Places as a studio in Cape Town.",
     "category": "studio",
     "lat": -33.9272223,
     "lng": 18.4101636,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "beb62706-7b26-5eb2-97cd-21c248c72a3c",
+    "name": "Sarah Heinamann Studio",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9274593,
+    "lng": 18.4496733,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "fe17e384-f7d9-530f-b54b-c05d00ddd364",
+    "name": "Setsmart",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9080451,
+    "lng": 18.478028,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1756,6 +2386,16 @@
     "category": "studio",
     "lat": -33.926504,
     "lng": 18.4453311,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "74d6330b-809b-593f-a329-49f21d250885",
+    "name": "SideTrack Studios",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9258374,
+    "lng": 18.4700288,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1790,6 +2430,16 @@
     "min_rank": 1
   },
   {
+    "id": "0c6994c3-dc07-5cff-a13b-740645f34c4c",
+    "name": "Sixtwenty Interior Design and Home Accessories (Pty) Ltd",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9275927,
+    "lng": 18.4557043,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "d50f9d7a-4e07-5b96-87be-11fbbf47e922",
     "name": "Skermunkil Design Studio",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -1806,6 +2456,16 @@
     "category": "studio",
     "lat": -33.9313493,
     "lng": 18.4223801,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "634f2723-f541-5f40-aa4f-485745d7815b",
+    "name": "Smart Art - Think it. We'll Print it.",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9363259,
+    "lng": 18.4642457,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1830,12 +2490,32 @@
     "min_rank": 1
   },
   {
+    "id": "896e2041-563c-5c1e-9731-d5902ea92b82",
+    "name": "South Atlantic Press",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9297768,
+    "lng": 18.4432793,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "dcef8735-7f0f-5c8b-a1fb-46d89ba37822",
     "name": "Southern Guild Cape Town",
     "description": "Listed on Google Places as a gallery in Cape Town.",
     "category": "gallery",
     "lat": -33.9099241,
     "lng": 18.4228693,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "f3f2cd61-b394-5cce-a285-1cfd02d86725",
+    "name": "Space for Life Art & Design",
+    "description": "Listed on Google Places as a gallery in Cape Town.",
+    "category": "gallery",
+    "lat": -33.9313592,
+    "lng": 18.4468936,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1856,6 +2536,16 @@
     "category": "studio",
     "lat": -33.924811,
     "lng": 18.4194399,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "b104dca0-ac41-5f15-a45e-47dad83b6b3a",
+    "name": "Stanislaw Trzebinski Studios (Pty) Ltd",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9269763,
+    "lng": 18.4501371,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1890,6 +2580,46 @@
     "min_rank": 1
   },
   {
+    "id": "eb6eee0f-a605-5a70-8fb5-a3b9404f12f7",
+    "name": "Streetwires Artist Collective",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9281099,
+    "lng": 18.4578781,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "f70cad83-4ce7-55fb-91ac-5581c212fe96",
+    "name": "Studio Andrew Kayser",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9311724,
+    "lng": 18.4682314,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "dd00f2b8-23aa-5495-932e-423480131715",
+    "name": "Studio Beryl",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9286724,
+    "lng": 18.4469894,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "95b8fc11-516f-5097-b864-f81680e4703c",
+    "name": "Studio Masson",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9183412,
+    "lng": 18.465713,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "ffde2aed-9acd-53b5-97c8-bd47924400cd",
     "name": "Sunshine Crafts",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -1897,6 +2627,26 @@
     "lat": -33.9070104,
     "lng": 18.4184327,
     "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "ac7e43a3-a410-554c-8378-8e3396786fe5",
+    "name": "Super Floral Distributors Cape Town (SA)",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9154709,
+    "lng": 18.4759692,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "a9e3c93b-7672-5e5d-8d13-575a1c2180c6",
+    "name": "THE BIJOU",
+    "description": "Listed on Google Places as a museum in Cape Town.",
+    "category": "museum",
+    "lat": -33.932655,
+    "lng": 18.4665183,
+    "radius_m": 120,
     "min_rank": 1
   },
   {
@@ -1950,6 +2700,16 @@
     "min_rank": 1
   },
   {
+    "id": "97c2633d-b5c1-51aa-89ba-f9d0c3c2e76e",
+    "name": "The Children's Art Centre",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.934353,
+    "lng": 18.4398987,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "205b0816-e1aa-5f17-8df8-7cf481ce6d32",
     "name": "The Company's Garden Restaurant",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -1960,12 +2720,32 @@
     "min_rank": 1
   },
   {
+    "id": "606eefaa-5f6a-5f25-8afc-8d8b65c23d45",
+    "name": "The Deckle Edge",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.934479,
+    "lng": 18.4578367,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "46d7e2d9-ffe8-5273-96fd-1ab1bdeab873",
     "name": "The Excellence Group",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.91826530000001,
     "lng": 18.4179136,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "3a721924-717f-5582-9017-525dd86ed9cc",
+    "name": "The Frame & Art Factory",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9283485,
+    "lng": 18.459095,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -1990,6 +2770,16 @@
     "min_rank": 1
   },
   {
+    "id": "910bd3d9-39d1-4afc-8dd7-5c31ccb75ac1",
+    "name": "The Neighbourgoods Market",
+    "description": "Weekly market with local makers at the Old Biscuit Mill.",
+    "category": "art_shop",
+    "lat": -33.927451,
+    "lng": 18.4581374,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "61f613d6-23f6-57a6-86b2-095dec4bd511",
     "name": "The Old Slave Tree Memorial",
     "description": "Listed on Google Places as a public art in Cape Town.",
@@ -2006,6 +2796,16 @@
     "category": "studio",
     "lat": -33.9208442,
     "lng": 18.4192644,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "8cbde9ff-eb0e-4817-82a6-6330528956d6",
+    "name": "The Palms Decor and Lifestyle Centre",
+    "description": "Lifestyle and design stores on Sir Lowry Road.",
+    "category": "art_shop",
+    "lat": -33.9269606,
+    "lng": 18.4400815,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -2036,6 +2836,26 @@
     "category": "art_shop",
     "lat": -33.9069582,
     "lng": 18.4185352,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "ee4a2a36-179c-4551-b152-b95d7c80c6f7",
+    "name": "The Woodstock Exchange",
+    "description": "Design hub with studios and boutiques on Albert Road.",
+    "category": "art_shop",
+    "lat": -33.9268834,
+    "lng": 18.445957,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "6e2f4156-10e9-56bc-900c-7d4a060efdd9",
+    "name": "Timber Furniture Designs",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.92719110000001,
+    "lng": 18.4519698,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -2120,6 +2940,26 @@
     "min_rank": 1
   },
   {
+    "id": "6d53cb51-7943-54f6-adaf-4c183ca3152f",
+    "name": "Vorster & Braye Ceramic Design",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9286724,
+    "lng": 18.4469894,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "8bf81f84-97c8-58ff-a03a-f9bf36919522",
+    "name": "Vredehoek Quarry",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9403715,
+    "lng": 18.4336353,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
     "id": "b476e31d-1944-546e-b2f4-4c7951a97233",
     "name": "WATER DIXON",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -2146,6 +2986,46 @@
     "category": "gallery",
     "lat": -33.9219368,
     "lng": 18.4196,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "40c0a522-aaaa-5f8b-a464-74b35a6289e9",
+    "name": "WetINK Design - Fine Art Printing",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9269,
+    "lng": 18.44582,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "ca11c000-d23c-54e2-b39c-fa0b440564b5",
+    "name": "Woodstock street art",
+    "description": "Listed on Google Places as a studio in Cape Town.",
+    "category": "studio",
+    "lat": -33.9267967,
+    "lng": 18.4473054,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "f71e798e-eeaa-5b73-9851-e8c2c56c8595",
+    "name": "Woolworld",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9324889,
+    "lng": 18.4568869,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "5a976add-b573-587b-bfb8-eda716b238a4",
+    "name": "Write GEAR - Specialist Stationery Store",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9296115,
+    "lng": 18.4495639,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -2216,6 +3096,26 @@
     "category": "art_shop",
     "lat": -33.913233,
     "lng": 18.4229391,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "d652b535-406c-5a77-bf8b-09d455f20e07",
+    "name": "clementina ceramics",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9294606,
+    "lng": 18.442757,
+    "radius_m": 70,
+    "min_rank": 1
+  },
+  {
+    "id": "386584ee-1809-5855-8826-9a47c2c6a430",
+    "name": "dV Studio",
+    "description": "Listed on Google Places as a art shop in Cape Town.",
+    "category": "art_shop",
+    "lat": -33.9275444,
+    "lng": 18.4570823,
     "radius_m": 70,
     "min_rank": 1
   },
@@ -2340,16 +3240,6 @@
     "min_rank": 2
   },
   {
-    "id": "26b405bf-8b8c-5628-afd9-ddfef8294a82",
-    "name": "AI Cables",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9144672,
-    "lng": 18.4826303,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "12545de4-a31d-59c3-8d5d-b2ef7ed53a17",
     "name": "Able Seaman Just Nuisance",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -2420,16 +3310,6 @@
     "min_rank": 2
   },
   {
-    "id": "aee3689b-94a4-5b35-9021-e7ba72f93943",
-    "name": "Aristo Interiors / Kitchens and Interiors",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9315595,
-    "lng": 18.4666536,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "47310715-5ef1-5e90-95a7-486fd022af9e",
     "name": "Art & Office (Direct School Supplier Only)",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -2496,26 +3376,6 @@
     "category": "art_shop",
     "lat": -33.9803465,
     "lng": 25.5573523,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "1fd9934c-e3d2-5a3a-a6ee-000b94e5e059",
-    "name": "ArtKlub | Cape Town",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.926351,
-    "lng": 18.4479563,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "78ddf23c-3be6-59c6-b18b-4a7f9f9dac28",
-    "name": "ArtLab",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9294481,
-    "lng": 18.4600077,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -2620,26 +3480,6 @@
     "min_rank": 2
   },
   {
-    "id": "19762f16-8108-5905-b66b-52f9c8be3531",
-    "name": "Ash Ceramics",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.93147,
-    "lng": 18.45833,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "237b3c50-9389-593f-b182-59fdcf032d29",
-    "name": "Ashanti Design",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9160086,
-    "lng": 18.4686093,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "5cedfec2-9212-5bad-8497-4989f92701fe",
     "name": "Assegaai Submarine Museum",
     "description": "Listed on Google Places as a museum in Cape Town.",
@@ -2650,32 +3490,12 @@
     "min_rank": 2
   },
   {
-    "id": "8496d835-58c4-5d47-a422-40695e23ccc4",
-    "name": "Atang Tshikare",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9265469,
-    "lng": 18.4477412,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "5871aca5-6214-52e2-8563-f2877b4badc2",
     "name": "Auckland Studios",
     "description": "Listed on Google Places as a studio in Cape Town.",
     "category": "studio",
     "lat": -33.9035467,
     "lng": 18.4776968,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "8df85e55-b85a-578e-8c30-9c1175c4d135",
-    "name": "BEADS AND WIRE CONNECTION",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9314524,
-    "lng": 18.4609176,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -2710,16 +3530,6 @@
     "min_rank": 2
   },
   {
-    "id": "aed83f19-ddbc-5f63-8487-7ecc15d864d7",
-    "name": "Baz-Art",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9316015,
-    "lng": 18.4555131,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "899e152a-da21-5b1c-89de-6492d2572117",
     "name": "Beautiful Living",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -2740,26 +3550,6 @@
     "min_rank": 2
   },
   {
-    "id": "3410e1b9-0066-55f6-b489-5dfc466e8d16",
-    "name": "Big Tree Designs",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9281999,
-    "lng": 18.480336,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "965fe299-93f1-5945-808c-59956326ce00",
-    "name": "Bit by bit mosaic",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9424882,
-    "lng": 18.4736893,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "ec9e63fd-942c-574d-b02f-c6750f8ce9bc",
     "name": "Black River Studio",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -2770,32 +3560,12 @@
     "min_rank": 2
   },
   {
-    "id": "85b6c246-8c7d-563b-813e-bfaef3fed304",
-    "name": "Blakstone",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9342738,
-    "lng": 18.4311399,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "58676b0b-0158-5cf2-92ea-ba7870815bc3",
     "name": "Block & Chisel Diep River",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -34.0350126,
     "lng": 18.4652861,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "22b71135-f617-53e2-8824-1766074b7392",
-    "name": "Blue Gecko Art Studio",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9249182,
-    "lng": 18.479766,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -2826,26 +3596,6 @@
     "category": "gallery",
     "lat": -34.0430185,
     "lng": 18.3483721,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "88cbfa2d-2a4e-5e07-873c-842ca7cf6598",
-    "name": "Bright Studio & Gallery",
-    "description": "Listed on Google Places as a gallery in Cape Town.",
-    "category": "gallery",
-    "lat": -33.9280492,
-    "lng": 18.4578442,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "90c788b2-7e75-505e-800c-a7bf447f672f",
-    "name": "Bronze Age Studio",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9273813,
-    "lng": 18.449649,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -2906,16 +3656,6 @@
     "category": "art_shop",
     "lat": -33.8159408,
     "lng": 18.5569496,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "e56c545a-02ce-56be-bf61-b642921ae725",
-    "name": "CanvasPlus",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9270547,
-    "lng": 18.45503,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -2997,36 +3737,6 @@
     "lat": -33.9437396,
     "lng": 18.499395,
     "radius_m": 110,
-    "min_rank": 2
-  },
-  {
-    "id": "a3e959d5-31c6-5963-af8a-9ec291747520",
-    "name": "Cape Town Life Drawing",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9298942,
-    "lng": 18.4507342,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "9263e004-565e-548b-aae3-0cf65a5c9a87",
-    "name": "Cape Town Science Centre",
-    "description": "Listed on Google Places as a museum in Cape Town.",
-    "category": "museum",
-    "lat": -33.9382265,
-    "lng": 18.4639457,
-    "radius_m": 120,
-    "min_rank": 2
-  },
-  {
-    "id": "9a4d2a90-51f7-5560-bb3f-28a8f700b63d",
-    "name": "Cape Town Street Art Tour",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9275444,
-    "lng": 18.4570823,
-    "radius_m": 70,
     "min_rank": 2
   },
   {
@@ -3140,16 +3850,6 @@
     "min_rank": 2
   },
   {
-    "id": "22e0dbc0-6882-5b49-ab21-5db9713e1601",
-    "name": "Clay Hands",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.929949,
-    "lng": 18.450709,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "b78d5000-3045-5781-b9d8-46278ec39146",
     "name": "Clayheart Ceramics",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -3176,16 +3876,6 @@
     "category": "art_shop",
     "lat": -34.0068439,
     "lng": 18.463156,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "7f93a913-7d04-56f9-94ae-435d09b34ed9",
-    "name": "Concept Store",
-    "description": "Listed on Google Places as a gallery in Cape Town.",
-    "category": "gallery",
-    "lat": -33.9269711,
-    "lng": 18.4503923,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -3250,32 +3940,12 @@
     "min_rank": 2
   },
   {
-    "id": "b2f7a728-8ee4-5679-83ac-7beced68febf",
-    "name": "Create. Hobby Studio",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9361704,
-    "lng": 18.4681278,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "bc2bd857-b47e-5e99-bdd1-ab55944228a1",
     "name": "Creations of Promise",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -34.0186901,
     "lng": 18.5007809,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "03a84074-5b92-50e4-8ebe-cb12e93d86dd",
-    "name": "Crema Design",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9274192,
-    "lng": 18.4550442,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -3310,32 +3980,12 @@
     "min_rank": 2
   },
   {
-    "id": "5b9f38d4-5b14-57da-bf30-2d77acb58a85",
-    "name": "Design Afrika",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9346369,
-    "lng": 18.4551984,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "386748a6-fb69-55fc-825d-6faa68ef24fd",
     "name": "Design Syndicate Cape Town (Western Cape Head Office)",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.9122612,
     "lng": 18.4874539,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "9d108032-fb83-5528-9fe1-f092bf99f8ea",
-    "name": "Design Time",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9386349,
-    "lng": 18.4710137,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -3410,16 +4060,6 @@
     "min_rank": 2
   },
   {
-    "id": "69b899ba-dabf-5685-a6bb-45bde20f899e",
-    "name": "European Light & Design Centre",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9316335,
-    "lng": 18.455481,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "a043029e-3e28-59ea-8e1d-a2118f22fbd9",
     "name": "Eve's Mural Painting",
     "description": "Listed on Google Places as a public art in Cape Town.",
@@ -3477,16 +4117,6 @@
     "lat": -34.1054512,
     "lng": 18.4699242,
     "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "d4cfa55a-51f6-572e-982f-241442397dc4",
-    "name": "Feed the Animals - Mural artwork",
-    "description": "Listed on Google Places as a public art in Cape Town.",
-    "category": "public_art",
-    "lat": -33.9334534,
-    "lng": 18.4530646,
-    "radius_m": 110,
     "min_rank": 2
   },
   {
@@ -3550,16 +4180,6 @@
     "min_rank": 2
   },
   {
-    "id": "d029638e-94d4-5d66-968c-c03ac0a4d56b",
-    "name": "Flat Art Studios",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9315879,
-    "lng": 18.4555223,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "858a7280-4726-5757-9fcb-ab39d74a5d6e",
     "name": "Flying Dutchman Funicular",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -3587,16 +4207,6 @@
     "lat": -33.8819324,
     "lng": 18.5270231,
     "radius_m": 110,
-    "min_rank": 2
-  },
-  {
-    "id": "47e0e8e0-f134-5fe3-9415-ef6de8bea57c",
-    "name": "Frere St Studios",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9272431,
-    "lng": 18.4475155,
-    "radius_m": 70,
     "min_rank": 2
   },
   {
@@ -3710,16 +4320,6 @@
     "min_rank": 2
   },
   {
-    "id": "537fb8e9-8c89-54c0-ac68-b9e1c5ed5063",
-    "name": "Greatmore Studios Trust",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9302167,
-    "lng": 18.4540037,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "4856728d-212e-5145-97ab-ccb79e1c6d8d",
     "name": "Grow Creative Solutions",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -3750,32 +4350,12 @@
     "min_rank": 2
   },
   {
-    "id": "c8ea5190-6796-5cb1-b68f-d3ab77f8ac75",
-    "name": "Heart of Cape Town Museum",
-    "description": "Listed on Google Places as a museum in Cape Town.",
-    "category": "museum",
-    "lat": -33.94116169999999,
-    "lng": 18.4615964,
-    "radius_m": 120,
-    "min_rank": 2
-  },
-  {
     "id": "52d64117-a9d8-57e1-8b73-a88f2a940619",
     "name": "Het Posthuys",
     "description": "Listed on Google Places as a studio in Cape Town.",
     "category": "studio",
     "lat": -34.1103899,
     "lng": 18.4669989,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "e44ddc7b-e291-5d35-bc77-3c82f85744aa",
-    "name": "Hoi P'loy (PTY) Ltd - Lighting Store Cape Town",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.93106,
-    "lng": 18.45739,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -3807,16 +4387,6 @@
     "lat": -33.9150751,
     "lng": 19.1234038,
     "radius_m": 110,
-    "min_rank": 2
-  },
-  {
-    "id": "23e785ec-24e6-5865-8b17-f117f91b1aa7",
-    "name": "I Love Screenprinting",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.926351,
-    "lng": 18.4479563,
-    "radius_m": 70,
     "min_rank": 2
   },
   {
@@ -3860,16 +4430,6 @@
     "min_rank": 2
   },
   {
-    "id": "06a5712e-3711-5de3-804b-59bf7e60d013",
-    "name": "Iconic Designs",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9271734,
-    "lng": 18.4805578,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "d5f41bec-4af8-545e-9fbc-e05b15243a41",
     "name": "Ikwezi Art centre",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -3886,36 +4446,6 @@
     "category": "art_shop",
     "lat": -33.91705230000001,
     "lng": 18.5130096,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "23b06442-c6f6-5eb6-9191-d68d49c5f5b0",
-    "name": "Imiso Ceramics",
-    "description": "Listed on Google Places as a gallery in Cape Town.",
-    "category": "gallery",
-    "lat": -33.9275814,
-    "lng": 18.4570851,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "ca579a48-72bb-59a2-8be9-8f606c2ff2f0",
-    "name": "InSitu",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9266158,
-    "lng": 18.4511223,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "242d280c-d110-5ab7-a774-31a3d9ef0fb7",
-    "name": "InSitu Studio",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.930634,
-    "lng": 18.458715,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -4090,16 +4620,6 @@
     "min_rank": 2
   },
   {
-    "id": "93b355ad-c881-5145-a34c-701b96f51b23",
-    "name": "King's Blockhouse",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9506631,
-    "lng": 18.4504169,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "649c417e-7814-59c7-9e21-d7f330d166c8",
     "name": "Kingsbridge Art",
     "description": "Listed on Google Places as a gallery in Cape Town.",
@@ -4120,32 +4640,12 @@
     "min_rank": 2
   },
   {
-    "id": "71f2e8b3-9c31-5263-816e-9e7abaf6ce22",
-    "name": "KnexT Art Gallery",
-    "description": "Listed on Google Places as a gallery in Cape Town.",
-    "category": "gallery",
-    "lat": -33.9272345,
-    "lng": 18.451941,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "c6b38a6c-d049-5f2b-a405-5f30eaca73b5",
     "name": "Kommetjie Ceramics",
     "description": "Listed on Google Places as a studio in Cape Town.",
     "category": "studio",
     "lat": -34.1451711,
     "lng": 18.3220901,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "220a6ea4-166b-52b9-8539-7301fdfe57f0",
-    "name": "L&Y WOOD DESIGN",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9257714,
-    "lng": 18.4682516,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -4176,16 +4676,6 @@
     "category": "art_shop",
     "lat": -33.9769338,
     "lng": 18.4848164,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "9ea0f956-d8af-54ba-b809-1a86de86d41f",
-    "name": "LT Discount Paint Wholesalers",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9294636,
-    "lng": 18.4505514,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -4240,26 +4730,6 @@
     "min_rank": 2
   },
   {
-    "id": "f213d1f1-a38a-5d07-91a2-239c2396d329",
-    "name": "Liesel Trautman Ceramics",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9338247,
-    "lng": 18.4672676,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "6f03cfb4-ce4d-52e3-a425-eaac64a4dc54",
-    "name": "Lifestyle Design Centre",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9290443,
-    "lng": 18.4804505,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "d22e7554-a82a-575a-a516-0666486011b6",
     "name": "Lindsey & Lutz",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -4276,16 +4746,6 @@
     "category": "gallery",
     "lat": -34.0923699,
     "lng": 18.8117386,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "def29234-2cb0-5051-bef2-340c7253a601",
-    "name": "Loft Editions",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9314302,
-    "lng": 18.4568982,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -4310,16 +4770,6 @@
     "min_rank": 2
   },
   {
-    "id": "d3db9b13-b8bb-519e-bee7-001b4666e781",
-    "name": "Louise Decor & Design",
-    "description": "Listed on Google Places as a gallery in Cape Town.",
-    "category": "gallery",
-    "lat": -33.9392273,
-    "lng": 18.4691616,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "d31ee463-e79d-5bbb-b296-8f9fd2c9084d",
     "name": "Lynette Morris-Hale Creative ceramics",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -4337,16 +4787,6 @@
     "lat": -34.012056,
     "lng": 18.4636749,
     "radius_m": 110,
-    "min_rank": 2
-  },
-  {
-    "id": "8ba38c72-233d-52c3-b3f0-b4f9d1759b82",
-    "name": "Made by Hand",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9317207,
-    "lng": 18.4690303,
-    "radius_m": 70,
     "min_rank": 2
   },
   {
@@ -4470,42 +4910,12 @@
     "min_rank": 2
   },
   {
-    "id": "e16b6c53-b17f-565b-885e-9b728e78c675",
-    "name": "Mervyn Gers Ceramics",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9159445,
-    "lng": 18.470614,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "7564d4b2-8390-55e5-a7c9-3790d4eea8cc",
-    "name": "Michelle Harper Design Studio",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.927544,
-    "lng": 18.457082,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "1a193ee6-dd75-5aba-a79c-67e7f9780980",
     "name": "Milnerton Lighthouse",
     "description": "Listed on Google Places as a studio in Cape Town.",
     "category": "studio",
     "lat": -33.8817104,
     "lng": 18.487795,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "b7c6288a-c67b-55a0-b41c-9294de90f958",
-    "name": "Monkeybiz South Africa",
-    "description": "Listed on Google Places as a gallery in Cape Town.",
-    "category": "gallery",
-    "lat": -33.9171191,
-    "lng": 18.4661483,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -4537,16 +4947,6 @@
     "lat": -34.1538366,
     "lng": 18.4261474,
     "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "03494f85-89a8-57a6-a0c7-d9ef0f40c59b",
-    "name": "Mostert's Mill",
-    "description": "Listed on Google Places as a museum in Cape Town.",
-    "category": "museum",
-    "lat": -33.9520909,
-    "lng": 18.4662054,
-    "radius_m": 120,
     "min_rank": 2
   },
   {
@@ -4610,32 +5010,12 @@
     "min_rank": 2
   },
   {
-    "id": "2338d28a-80b5-556d-8b11-99da6da8a7a4",
-    "name": "Nicolas Lehmann",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.923548,
-    "lng": 18.4793365,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "71868e9f-e512-5245-876f-03ec3929c5b2",
     "name": "Nienke van der Meulen Ceramic Artist",
     "description": "Listed on Google Places as a studio in Cape Town.",
     "category": "studio",
     "lat": -33.9892858,
     "lng": 18.4742778,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "62e8405f-d582-506c-8829-b58228ef646f",
-    "name": "Nook Decor and Design",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9279269,
-    "lng": 18.4821402,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -4810,16 +5190,6 @@
     "min_rank": 2
   },
   {
-    "id": "8fe9b8c5-5e67-5f06-841e-efe5fbcda5d1",
-    "name": "PNA Observatory",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9417717,
-    "lng": 18.4666651,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "75c8d846-e1ae-55c2-932b-23240169d9cd",
     "name": "PNA Plattekloof",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -4990,16 +5360,6 @@
     "min_rank": 2
   },
   {
-    "id": "393b8296-81ea-5902-87ca-8b10d8063fae",
-    "name": "Print Art Cape Town",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9378856,
-    "lng": 18.4636115,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "196a294f-612b-558b-b518-a34d27f8a0de",
     "name": "Purely Porcelain Studio - Imhoff Farm",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -5016,16 +5376,6 @@
     "category": "art_shop",
     "lat": -34.1249402,
     "lng": 18.4510048,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "24f12d2e-4bfa-5dfb-a154-d6f183ec2900",
-    "name": "Ranzani Design",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9287743,
-    "lng": 18.455414,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -5050,16 +5400,6 @@
     "min_rank": 2
   },
   {
-    "id": "6aeafac4-cbf3-589c-b530-e6130c895cb3",
-    "name": "Rhodes Memorial",
-    "description": "Listed on Google Places as a public art in Cape Town.",
-    "category": "public_art",
-    "lat": -33.9523906,
-    "lng": 18.4590942,
-    "radius_m": 110,
-    "min_rank": 2
-  },
-  {
     "id": "d3fe7bbf-3b54-5082-b6b9-90daefd45147",
     "name": "Robben Island Museum",
     "description": "Listed on Google Places as a museum in Cape Town.",
@@ -5067,16 +5407,6 @@
     "lat": -33.7997539,
     "lng": 18.3722834,
     "radius_m": 120,
-    "min_rank": 2
-  },
-  {
-    "id": "2b32132b-37b4-5088-823f-854dc50616a2",
-    "name": "Robin Sprong Wallpaper",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9298633,
-    "lng": 18.4434815,
-    "radius_m": 70,
     "min_rank": 2
   },
   {
@@ -5140,16 +5470,6 @@
     "min_rank": 2
   },
   {
-    "id": "12ff5600-7dbe-5983-a8b5-ef7ef45b585b",
-    "name": "Ruth Prowse School of Art",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9323606,
-    "lng": 18.4550437,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "74995af8-9ed7-50dc-8366-d9b4cdabaac8",
     "name": "SA Decor And Design",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -5186,26 +5506,6 @@
     "category": "art_shop",
     "lat": -33.9714604,
     "lng": 18.5052231,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "8f95d013-b540-576c-a56c-e2e1eeec10b5",
-    "name": "STUDIO VOOP",
-    "description": "Listed on Google Places as a gallery in Cape Town.",
-    "category": "gallery",
-    "lat": -33.9299651,
-    "lng": 18.4582098,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "beb62706-7b26-5eb2-97cd-21c248c72a3c",
-    "name": "Sarah Heinamann Studio",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9274593,
-    "lng": 18.4496733,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -5260,26 +5560,6 @@
     "min_rank": 2
   },
   {
-    "id": "fe17e384-f7d9-530f-b54b-c05d00ddd364",
-    "name": "Setsmart",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9080451,
-    "lng": 18.478028,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "74d6330b-809b-593f-a329-49f21d250885",
-    "name": "SideTrack Studios",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9258374,
-    "lng": 18.4700288,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "8da1b0d3-4e21-5de0-9230-fbad90e111a3",
     "name": "Simon's Town Museum",
     "description": "Listed on Google Places as a museum in Cape Town.",
@@ -5330,32 +5610,12 @@
     "min_rank": 2
   },
   {
-    "id": "0c6994c3-dc07-5cff-a13b-740645f34c4c",
-    "name": "Sixtwenty Interior Design and Home Accessories (Pty) Ltd",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9275927,
-    "lng": 18.4557043,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "6c5cff1e-36d0-53a2-b78c-715de7d7a753",
     "name": "Skeleton Gorge Waterfall",
     "description": "Listed on Google Places as a studio in Cape Town.",
     "category": "studio",
     "lat": -33.9820106,
     "lng": 18.4240986,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "634f2723-f541-5f40-aa4f-485745d7815b",
-    "name": "Smart Art - Think it. We'll Print it.",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9363259,
-    "lng": 18.4642457,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -5410,52 +5670,12 @@
     "min_rank": 2
   },
   {
-    "id": "896e2041-563c-5c1e-9731-d5902ea92b82",
-    "name": "South Atlantic Press",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9297768,
-    "lng": 18.4432793,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "f3f2cd61-b394-5cce-a285-1cfd02d86725",
-    "name": "Space for Life Art & Design",
-    "description": "Listed on Google Places as a gallery in Cape Town.",
-    "category": "gallery",
-    "lat": -33.9313592,
-    "lng": 18.4468936,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "b104dca0-ac41-5f15-a45e-47dad83b6b3a",
-    "name": "Stanislaw Trzebinski Studios (Pty) Ltd",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9269763,
-    "lng": 18.4501371,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "9d35b087-0a74-5381-bbc6-a0cd799f04ff",
     "name": "Stitch 'n Stuff",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -33.9840231,
     "lng": 18.4785676,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "eb6eee0f-a605-5a70-8fb5-a3b9404f12f7",
-    "name": "Streetwires Artist Collective",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9281099,
-    "lng": 18.4578781,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -5480,26 +5700,6 @@
     "min_rank": 2
   },
   {
-    "id": "f70cad83-4ce7-55fb-91ac-5581c212fe96",
-    "name": "Studio Andrew Kayser",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9311724,
-    "lng": 18.4682314,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "dd00f2b8-23aa-5495-932e-423480131715",
-    "name": "Studio Beryl",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9286724,
-    "lng": 18.4469894,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "eb7dc169-da36-508f-86e6-3f31f8b5c26c",
     "name": "Studio G - Art Gallery & Creative Studio",
     "description": "Listed on Google Places as a gallery in Cape Town.",
@@ -5516,16 +5716,6 @@
     "category": "gallery",
     "lat": -33.9525624,
     "lng": 18.3782145,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "95b8fc11-516f-5097-b864-f81680e4703c",
-    "name": "Studio Masson",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9183412,
-    "lng": 18.465713,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -5547,26 +5737,6 @@
     "lat": -33.8701953,
     "lng": 18.4919717,
     "radius_m": 110,
-    "min_rank": 2
-  },
-  {
-    "id": "ac7e43a3-a410-554c-8378-8e3396786fe5",
-    "name": "Super Floral Distributors Cape Town (SA)",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9154709,
-    "lng": 18.4759692,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "a9e3c93b-7672-5e5d-8d13-575a1c2180c6",
-    "name": "THE BIJOU",
-    "description": "Listed on Google Places as a museum in Cape Town.",
-    "category": "museum",
-    "lat": -33.932655,
-    "lng": 18.4665183,
-    "radius_m": 120,
     "min_rank": 2
   },
   {
@@ -5616,16 +5786,6 @@
     "category": "art_shop",
     "lat": -33.9815944,
     "lng": 18.464116,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "97c2633d-b5c1-51aa-89ba-f9d0c3c2e76e",
-    "name": "The Children's Art Centre",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.934353,
-    "lng": 18.4398987,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -5720,16 +5880,6 @@
     "min_rank": 2
   },
   {
-    "id": "606eefaa-5f6a-5f25-8afc-8d8b65c23d45",
-    "name": "The Deckle Edge",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.934479,
-    "lng": 18.4578367,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "81452650-0f94-591c-a2d1-dcd49b2a7556",
     "name": "The Deckle Edge Art Store - Knysna Branch",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -5746,16 +5896,6 @@
     "category": "art_shop",
     "lat": -33.9189119,
     "lng": 18.508893,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "3a721924-717f-5582-9017-525dd86ed9cc",
-    "name": "The Frame & Art Factory",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9283485,
-    "lng": 18.459095,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -5930,16 +6070,6 @@
     "min_rank": 2
   },
   {
-    "id": "6e2f4156-10e9-56bc-900c-7d4a060efdd9",
-    "name": "Timber Furniture Designs",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.92719110000001,
-    "lng": 18.4519698,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "f05a3113-bd0a-5704-bb43-f1526afd7d3a",
     "name": "Tinka Art",
     "description": "Listed on Google Places as a studio in Cape Town.",
@@ -6050,26 +6180,6 @@
     "min_rank": 2
   },
   {
-    "id": "6d53cb51-7943-54f6-adaf-4c183ca3152f",
-    "name": "Vorster & Braye Ceramic Design",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9286724,
-    "lng": 18.4469894,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "8bf81f84-97c8-58ff-a03a-f9bf36919522",
-    "name": "Vredehoek Quarry",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9403715,
-    "lng": 18.4336353,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "5187009a-c2c3-5d3f-ae14-71131aad8ed3",
     "name": "WallArt Studios",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -6086,16 +6196,6 @@
     "category": "art_shop",
     "lat": -34.1371132,
     "lng": 18.3776378,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "40c0a522-aaaa-5f8b-a464-74b35a6289e9",
-    "name": "WetINK Design - Fine Art Printing",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9269,
-    "lng": 18.44582,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -6140,16 +6240,6 @@
     "min_rank": 2
   },
   {
-    "id": "ca11c000-d23c-54e2-b39c-fa0b440564b5",
-    "name": "Woodstock street art",
-    "description": "Listed on Google Places as a studio in Cape Town.",
-    "category": "studio",
-    "lat": -33.9267967,
-    "lng": 18.4473054,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "dfe2cace-7d04-5b6b-9a3f-f92ba3635714",
     "name": "Woolcrate",
     "description": "Listed on Google Places as a art shop in Cape Town.",
@@ -6160,32 +6250,12 @@
     "min_rank": 2
   },
   {
-    "id": "f71e798e-eeaa-5b73-9851-e8c2c56c8595",
-    "name": "Woolworld",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9324889,
-    "lng": 18.4568869,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
     "id": "2479f570-1f04-5798-a1cc-2fd5d710e59e",
     "name": "Wren Design Shop & Studio",
     "description": "Listed on Google Places as a art shop in Cape Town.",
     "category": "art_shop",
     "lat": -34.1043288,
     "lng": 18.4682176,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "5a976add-b573-587b-bfb8-eda716b238a4",
-    "name": "Write GEAR - Specialist Stationery Store",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9296115,
-    "lng": 18.4495639,
     "radius_m": 70,
     "min_rank": 2
   },
@@ -6246,26 +6316,6 @@
     "category": "art_shop",
     "lat": -34.1039016,
     "lng": 18.4682603,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "d652b535-406c-5a77-bf8b-09d455f20e07",
-    "name": "clementina ceramics",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9294606,
-    "lng": 18.442757,
-    "radius_m": 70,
-    "min_rank": 2
-  },
-  {
-    "id": "386584ee-1809-5855-8826-9a47c2c6a430",
-    "name": "dV Studio",
-    "description": "Listed on Google Places as a art shop in Cape Town.",
-    "category": "art_shop",
-    "lat": -33.9275444,
-    "lng": 18.4570823,
     "radius_m": 70,
     "min_rank": 2
   },
