@@ -7,6 +7,7 @@ import {
   useJsApiLoader
 } from "@react-google-maps/api";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { ensureAnonymousSession } from "../auth/session";
 import { isApiError } from "../api/http";
 import { createCheckinChallenge, checkIn } from "../features/checkin/api";
@@ -16,6 +17,8 @@ import { getMe } from "../features/me/api";
 import type { MeResponse } from "../features/me/types";
 import { listNodes } from "../features/nodes/api";
 import type { NodePublic } from "../features/nodes/types";
+import { Button, Card, Badge, Select, Alert } from "../components/ui";
+import { slideInLeft, fadeInUp, staggerContainer, staggerItem, defaultTransition } from "../utils/animations";
 
 const NODE_FETCH_DEBOUNCE_MS = 250;
 const DEFAULT_CENTER: google.maps.LatLngLiteral = { lat: -33.9249, lng: 18.4241 };
@@ -550,286 +553,472 @@ export function MapRoute() {
 
   return (
     <div className={`layout ${isPanelVisible ? "" : "layout-panel-hidden"}`}>
-      <div className={`panel ${isPanelVisible ? "" : "panel-hidden"}`}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-          <h1 style={{ margin: 0 }}>Grounded Art (MVP scaffold)</h1>
-          <button
-            onClick={() => setIsPanelVisible(false)}
-            style={{
-              padding: "4px 8px",
-              backgroundColor: "transparent",
-              border: "1px solid #e5e7eb",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "12px",
-              color: "#6b7280"
-            }}
-            title="Hide panel"
+      <AnimatePresence>
+        {isPanelVisible && (
+          <motion.div
+            className="panel"
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={slideInLeft}
+            transition={defaultTransition}
           >
-            ✕
-          </button>
-        </div>
-        <div className="muted">{status}</div>
-
-        {me ? (
-          <div className="node">
-            <div className="node-header">
-              <div>
-                <div className="muted">Current rank</div>
-                <div>{me.rank}</div>
-              </div>
-            </div>
-            {me.next_unlock ? (
-              <>
-                <div className="muted">Next unlock at rank {me.next_unlock.min_rank}.</div>
-                {nextUnlockLine ? <div className="muted">{nextUnlockLine}</div> : null}
-              </>
-            ) : (
-              <div className="muted">Top tier unlocked.</div>
-            )}
-            {capsNotes.map((note) => (
-              <div key={note} className="muted">
-                {note}
-              </div>
-            ))}
-          </div>
-        ) : meStatus === "loading" ? (
-          <div className="muted" style={{ marginTop: 8 }}>
-            Loading rank…
-          </div>
-        ) : meStatus === "error" ? (
-          <div className="muted" style={{ marginTop: 8 }}>
-            Rank unavailable.
-          </div>
-        ) : null}
-
-        <details className="settings">
-          <summary>Global settings</summary>
-          <div className="settings-body">
-            <div className="settings-group">
-              <div className="settings-label">Map style preset</div>
-              <div className="settings-options">
-                {MAP_STYLE_ORDER.map((presetKey) => (
-                  <label key={presetKey} className="settings-option">
-                    <input
-                      type="radio"
-                      name="map-style-preset"
-                      value={presetKey}
-                      checked={mapStylePreset === presetKey}
-                      onChange={handleMapStyleChange}
-                    />
-                    <span>{MAP_STYLE_PRESETS[presetKey].label}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="muted">{MAP_STYLE_PRESETS[mapStylePreset].description}</div>
-            </div>
-          </div>
-        </details>
-
-        {uploadQueue.persistenceError ? (
-          <div className="alert">
-            <div>Upload persistence unavailable</div>
-            <div className="muted">{uploadQueue.persistenceError}</div>
-          </div>
-        ) : null}
-
-        {uploadQueue.items.length ? (
-          <div className="node">
-            <div className="node-header">
-              <div>
-                <div className="muted">Pending uploads</div>
-                <div>
-                  {uploadQueue.uploadingCount ? `${uploadQueue.uploadingCount} uploading` : null}
-                  {uploadQueue.uploadingCount && (uploadQueue.pendingCount || uploadQueue.failedCount) ? " • " : null}
-                  {uploadQueue.pendingCount ? `${uploadQueue.pendingCount} queued` : null}
-                  {uploadQueue.pendingCount && uploadQueue.failedCount ? " • " : null}
-                  {uploadQueue.failedCount ? `${uploadQueue.failedCount} failed` : null}
-                </div>
-              </div>
-              <div className="node-actions">
-                <button
-                  onClick={() => uploadQueue.items.filter((i) => i.status === "failed").forEach((i) => void uploadQueue.retryNow(i.captureId))}
-                  disabled={!uploadQueue.failedCount}
+            <Card variant="light" padding="sm" className="mb-3">
+              <div className="flex justify-between items-start gap-4 mb-2">
+                <h1 className="text-base md:text-lg font-bold m-0 text-grounded-charcoal dark:text-grounded-parchment">Grounded Art</h1>
+                <Button
+                  variant="light"
+                  size="sm"
+                  onClick={() => setIsPanelVisible(false)}
+                  className="!p-2 !min-w-0"
+                  title="Hide panel"
                 >
-                  Retry failed
-                </button>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
               </div>
-            </div>
-            {!isOnline ? <div className="muted" style={{ marginTop: 4 }}>Offline — uploads resume when you reconnect.</div> : null}
-            <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
-              {uploadQueue.items.map((item) => {
-                const nextAttemptMs = item.nextAttemptAt ? Date.parse(item.nextAttemptAt) : null;
-                const secondsUntilRetry =
-                  nextAttemptMs && Number.isFinite(nextAttemptMs) ? Math.max(0, Math.round((nextAttemptMs - Date.now()) / 1000)) : null;
-                const progressPct =
-                  item.progress?.total && item.progress.total > 0
-                    ? Math.min(100, Math.round((item.progress.loaded / item.progress.total) * 100))
-                    : null;
+              <div className="text-muted text-xs">{status}</div>
+            </Card>
 
-                return (
-                  <div key={item.captureId} style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+            {me ? (
+              <motion.div
+                initial="initial"
+                animate="animate"
+                variants={fadeInUp}
+                transition={defaultTransition}
+              >
+                <Card variant="light" padding="sm" className="mb-3">
+                  <div className="flex items-center justify-between gap-4 mb-2">
                     <div>
-                      <div>Capture {item.captureId.slice(0, 8)}…</div>
-                      <div className="muted">
-                        {item.status === "uploading"
-                          ? progressPct !== null
-                            ? `Uploading (${progressPct}%)`
-                            : "Uploading"
-                          : item.status === "pending"
-                            ? secondsUntilRetry && secondsUntilRetry > 0
-                              ? `Retrying in ${formatSeconds(secondsUntilRetry)}`
-                              : "Queued"
-                            : "Failed"}
-                        {item.lastError?.code ? ` • ${item.lastError.code}` : null}
+                      <div className="text-muted text-xs uppercase tracking-wide mb-1">Current rank</div>
+                      <Badge variant="copper" size="md" className="text-base">
+                        {me.rank}
+                      </Badge>
+                    </div>
+                  </div>
+                  {me.next_unlock ? (
+                    <div className="space-y-1">
+                      <div className="text-muted text-sm">Next unlock at rank {me.next_unlock.min_rank}.</div>
+                      {nextUnlockLine ? <div className="text-muted text-sm">{nextUnlockLine}</div> : null}
+                    </div>
+                  ) : (
+                    <div className="text-muted text-sm">Top tier unlocked.</div>
+                  )}
+                  {capsNotes.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {capsNotes.map((note) => (
+                        <div key={note} className="text-muted text-sm">
+                          {note}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+            ) : meStatus === "loading" ? (
+              <Card variant="light" padding="sm" className="mb-3">
+                <div className="text-muted text-sm">Loading rank…</div>
+              </Card>
+            ) : meStatus === "error" ? (
+              <Card variant="light" padding="sm" className="mb-3">
+                <div className="text-muted text-sm">Rank unavailable.</div>
+              </Card>
+            ) : null}
+
+            <motion.div
+              initial="initial"
+              animate="animate"
+              variants={fadeInUp}
+              transition={{ ...defaultTransition, delay: 0.1 }}
+            >
+              <Card variant="light" padding="sm" className="mb-3">
+                <details className="group">
+                  <summary className="cursor-pointer list-none flex items-center justify-between text-xs uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-2">
+                    <span className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Global settings
+                    </span>
+                    <svg
+                      className="w-3.5 h-3.5 transition-transform duration-300 group-open:rotate-180 text-grounded-charcoal/60 dark:text-grounded-parchment/60"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <Select
+                        label="Map style preset"
+                        value={mapStylePreset}
+                        onChange={(e) => {
+                          const nextPreset = e.target.value;
+                          if (isMapStylePresetKey(nextPreset)) setMapStylePreset(nextPreset);
+                        }}
+                        options={MAP_STYLE_ORDER.map((presetKey) => ({
+                          value: presetKey,
+                          label: MAP_STYLE_PRESETS[presetKey].label
+                        }))}
+                        helperText={MAP_STYLE_PRESETS[mapStylePreset].description}
+                      />
+                    </div>
+                  </div>
+                </details>
+              </Card>
+            </motion.div>
+
+            {uploadQueue.persistenceError ? (
+              <motion.div
+                initial="initial"
+                animate="animate"
+                variants={fadeInUp}
+                transition={{ ...defaultTransition, delay: 0.2 }}
+                className="mb-4"
+              >
+                <Alert variant="warning" title="Upload persistence unavailable">
+                  {uploadQueue.persistenceError}
+                </Alert>
+              </motion.div>
+            ) : null}
+
+            {uploadQueue.items.length ? (
+              <motion.div
+                initial="initial"
+                animate="animate"
+                variants={fadeInUp}
+                transition={{ ...defaultTransition, delay: 0.2 }}
+                className="mb-4"
+              >
+                <Card variant="light" padding="sm" className="mb-3">
+                  <div className="flex items-center justify-between gap-4 mb-2">
+                    <div>
+                      <div className="text-muted text-xs uppercase tracking-wide mb-1">Pending uploads</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {uploadQueue.uploadingCount ? (
+                          <Badge variant="info" size="sm">
+                            {uploadQueue.uploadingCount} uploading
+                          </Badge>
+                        ) : null}
+                        {uploadQueue.pendingCount ? (
+                          <Badge variant="default" size="sm">
+                            {uploadQueue.pendingCount} queued
+                          </Badge>
+                        ) : null}
+                        {uploadQueue.failedCount ? (
+                          <Badge variant="error" size="sm">
+                            {uploadQueue.failedCount} failed
+                          </Badge>
+                        ) : null}
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {item.status === "failed" ? (
-                        <button onClick={() => void uploadQueue.retryNow(item.captureId)} disabled={!isOnline}>
-                          Retry
-                        </button>
-                      ) : null}
-                      <button onClick={() => void uploadQueue.remove(item.captureId)}>Remove</button>
+                    <Button
+                      variant="light"
+                      size="sm"
+                      onClick={() => uploadQueue.items.filter((i) => i.status === "failed").forEach((i) => void uploadQueue.retryNow(i.captureId))}
+                      disabled={!uploadQueue.failedCount || !isOnline}
+                    >
+                      Retry failed
+                    </Button>
+                  </div>
+                  {!isOnline ? (
+                    <div className="text-muted text-sm mb-3">Offline — uploads resume when you reconnect.</div>
+                  ) : null}
+                  <div className="space-y-3">
+                    {uploadQueue.items.map((item, index) => {
+                      const nextAttemptMs = item.nextAttemptAt ? Date.parse(item.nextAttemptAt) : null;
+                      const secondsUntilRetry =
+                        nextAttemptMs && Number.isFinite(nextAttemptMs) ? Math.max(0, Math.round((nextAttemptMs - Date.now()) / 1000)) : null;
+                      const progressPct =
+                        item.progress?.total && item.progress.total > 0
+                          ? Math.min(100, Math.round((item.progress.loaded / item.progress.total) * 100))
+                          : null;
+
+                      return (
+                        <motion.div
+                          key={item.captureId}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerItem}
+                          transition={{ ...defaultTransition, delay: index * 0.05 }}
+                        >
+                          <Card variant="light" padding="sm" className="flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium mb-1">Capture {item.captureId.slice(0, 8)}…</div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {item.status === "uploading" ? (
+                                  <>
+                                    <Badge variant="info" size="sm">
+                                      {progressPct !== null ? `Uploading (${progressPct}%)` : "Uploading"}
+                                    </Badge>
+                                    {progressPct !== null && (
+                                      <div className="flex-1 min-w-[100px] h-2 bg-grounded-charcoal/10 dark:bg-grounded-parchment/10 rounded-full overflow-hidden">
+                                        <motion.div
+                                          className="h-full bg-grounded-copper"
+                                          initial={{ width: 0 }}
+                                          animate={{ width: `${progressPct}%` }}
+                                          transition={{ duration: 0.3 }}
+                                        />
+                                      </div>
+                                    )}
+                                  </>
+                                ) : item.status === "pending" ? (
+                                  <Badge variant="default" size="sm">
+                                    {secondsUntilRetry && secondsUntilRetry > 0
+                                      ? `Retrying in ${formatSeconds(secondsUntilRetry)}`
+                                      : "Queued"}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="error" size="sm">
+                                    Failed
+                                  </Badge>
+                                )}
+                                {item.lastError?.code ? (
+                                  <span className="text-muted text-xs">• {item.lastError.code}</span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {item.status === "failed" ? (
+                                <Button
+                                  variant="light"
+                                  size="sm"
+                                  onClick={() => void uploadQueue.retryNow(item.captureId)}
+                                  disabled={!isOnline}
+                                >
+                                  Retry
+                                </Button>
+                              ) : null}
+                              <Button
+                                variant="light"
+                                size="sm"
+                                onClick={() => void uploadQueue.remove(item.captureId)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              </motion.div>
+            ) : null}
+
+            <motion.div
+              initial="initial"
+              animate="animate"
+              variants={fadeInUp}
+              transition={{ ...defaultTransition, delay: 0.3 }}
+              className="mb-4"
+            >
+              <Card variant="light" padding="sm" className="mb-3">
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  <div>
+                    <div className="text-muted text-xs uppercase tracking-wide mb-1">Nodes in view</div>
+                    <div className="text-sm font-semibold text-grounded-charcoal dark:text-grounded-parchment">
+                      {nodesStatus === "loading"
+                        ? "Loading nodes…"
+                        : nodesStatus === "error"
+                        ? "Unable to load"
+                        : nodes.length}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="node">
-          <div className="node-header">
-            <div>
-              <div className="muted">Nodes in view</div>
-              <div>
-                {nodesStatus === "loading"
-                  ? "Loading nodes…"
-                  : nodesStatus === "error"
-                  ? "Unable to load"
-                  : nodes.length}
-              </div>
-            </div>
-            <div className="node-actions">
-              <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)} disabled={nodesStatus === "loading"}>
-                {nodesStatus === "error" ? "Retry" : "Refresh"}
-              </button>
-            </div>
-          </div>
-          {nodesStatus === "loading" ? <div className="muted">Fetching the latest nodes…</div> : null}
-          {nodesStatus === "ready" && nodes.length === 0 ? (
-            <div className="muted">No nodes in this viewport yet.</div>
-          ) : null}
-          {nodesStatus === "error" ? (
-            <div className="alert">
-              <div>Could not load nodes.</div>
-              <div className="muted">{nodesError ?? "Unknown error"}</div>
-              <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)}>Try again</button>
-            </div>
-          ) : null}
-        </div>
-
-        {selectedNode ? (
-          <div className="node">
-            <div>
-              <strong>{selectedNode.name}</strong>
-            </div>
-            <div className="muted">{selectedNode.category}</div>
-            {selectedNode.description ? <div>{selectedNode.description}</div> : null}
-            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={handleOpenDetails}>Open detail</button>
-              <button
-                onClick={handleCheckIn}
-                disabled={
-                  !isOnline ||
-                  checkinState === "requesting_location" ||
-                  checkinState === "challenging" ||
-                  checkinState === "verifying"
-                }
-              >
-                {checkinState === "requesting_location"
-                  ? "Locating…"
-                  : checkinState === "challenging"
-                  ? "Creating challenge…"
-                  : checkinState === "verifying"
-                  ? "Verifying…"
-                  : "Check in"}
-              </button>
-              <button onClick={handleRequestDirections} disabled={!isLoaded}>
-                Directions
-              </button>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <div className="muted">Check-in status</div>
-              <div>
-                {checkinState === "idle"
-                  ? "Not checked in yet."
-                  : checkinState === "success"
-                  ? "Checked in."
-                  : checkinState === "failure"
-                  ? "Check-in failed."
-                  : "Checking in…"}
-              </div>
-              <div className="muted" style={{ marginTop: 4 }}>
-                Accuracy: {formatMeters(checkinAccuracyM)} | Distance: {formatMeters(checkinDistanceM)} | Radius:{" "}
-                {formatMeters(checkinRadiusM)}
-              </div>
-              {checkinFailure ? (
-                <div className="alert" style={{ marginTop: 8 }}>
-                  <div>{checkinFailure.title}</div>
-                  {checkinFailure.detail ? <div className="muted">{checkinFailure.detail}</div> : null}
-                  {checkinFailure.nextStep ? <div className="muted">{checkinFailure.nextStep}</div> : null}
-                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={handleCheckIn} disabled={!isOnline}>
-                      Retry check-in
-                    </button>
-                    <button onClick={handleRequestDirections} disabled={!isLoaded}>
-                      Get directions
-                    </button>
-                  </div>
+                  <Button
+                    variant="light"
+                    size="sm"
+                    onClick={() => scheduleNodesRefresh(lastBboxRef.current)}
+                    disabled={nodesStatus === "loading"}
+                    isLoading={nodesStatus === "loading"}
+                  >
+                    {nodesStatus === "error" ? "Retry" : "Refresh"}
+                  </Button>
                 </div>
-              ) : null}
-            </div>
-            <div className="muted" style={{ marginTop: 8 }}>
-              Token: {checkinToken ? `${checkinToken.slice(0, 8)}…` : "none"} | Directions:{" "}
-              {directionsResult ? "ready" : "not requested"}
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <button onClick={handleStartCapture} disabled={!checkinToken}>
-                Take photo
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="node">
-            <div className="muted">Select a node marker to check in.</div>
-          </div>
+                {nodesStatus === "loading" ? (
+                  <div className="text-muted text-sm">Fetching the latest nodes…</div>
+                ) : null}
+                {nodesStatus === "ready" && nodes.length === 0 ? (
+                  <div className="text-muted text-sm">No nodes in this viewport yet.</div>
+                ) : null}
+                {nodesStatus === "error" ? (
+                  <Alert variant="error" title="Could not load nodes">
+                    <div className="text-xs mb-3">{nodesError ?? "Unknown error"}</div>
+                    <Button
+                      variant="light"
+                      size="sm"
+                      onClick={() => scheduleNodesRefresh(lastBboxRef.current)}
+                    >
+                      Try again
+                    </Button>
+                  </Alert>
+                ) : null}
+              </Card>
+            </motion.div>
+
+            {selectedNode ? (
+              <motion.div
+                initial="initial"
+                animate="animate"
+                variants={fadeInUp}
+                transition={{ ...defaultTransition, delay: 0.4 }}
+                className="mb-4"
+              >
+                <Card variant="light" padding="sm" className="mb-3">
+                  <div className="mb-3">
+                    <h2 className="text-sm font-semibold mb-1 text-grounded-charcoal dark:text-grounded-parchment">{selectedNode.name}</h2>
+                    <Badge variant="default" size="sm" className="mb-2">
+                      {selectedNode.category}
+                    </Badge>
+                    {selectedNode.description ? (
+                      <div className="text-muted text-xs mt-2">{selectedNode.description}</div>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Button variant="light" size="sm" onClick={handleOpenDetails}>
+                      <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      Open detail
+                    </Button>
+                    <Button
+                      variant="copper"
+                      size="sm"
+                      onClick={handleCheckIn}
+                      disabled={
+                        !isOnline ||
+                        checkinState === "requesting_location" ||
+                        checkinState === "challenging" ||
+                        checkinState === "verifying"
+                      }
+                      isLoading={
+                        checkinState === "requesting_location" ||
+                        checkinState === "challenging" ||
+                        checkinState === "verifying"
+                      }
+                    >
+                      {checkinState === "requesting_location"
+                        ? "Locating…"
+                        : checkinState === "challenging"
+                        ? "Creating challenge…"
+                        : checkinState === "verifying"
+                        ? "Verifying…"
+                        : (
+                          <>
+                            <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Check in
+                          </>
+                        )}
+                    </Button>
+                    <Button variant="light" size="sm" onClick={handleRequestDirections} disabled={!isLoaded}>
+                      <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                      Directions
+                    </Button>
+                  </div>
+                  <div className="mb-4">
+                    <div className="text-muted text-xs uppercase tracking-wide mb-2">Check-in status</div>
+                    <div className="mb-2">
+                      {checkinState === "idle" ? (
+                        <Badge variant="default" size="sm">Not checked in yet</Badge>
+                      ) : checkinState === "success" ? (
+                        <Badge variant="success" size="sm">Checked in</Badge>
+                      ) : checkinState === "failure" ? (
+                        <Badge variant="error" size="sm">Check-in failed</Badge>
+                      ) : (
+                        <Badge variant="info" size="sm">Checking in…</Badge>
+                      )}
+                    </div>
+                    <div className="text-muted text-xs space-y-1">
+                      <div>Accuracy: {formatMeters(checkinAccuracyM)}</div>
+                      <div>Distance: {formatMeters(checkinDistanceM)}</div>
+                      <div>Radius: {formatMeters(checkinRadiusM)}</div>
+                    </div>
+                    {checkinFailure ? (
+                      <div className="mt-4">
+                        <Alert variant="error" title={checkinFailure.title}>
+                          {checkinFailure.detail && <div className="text-xs mb-2">{checkinFailure.detail}</div>}
+                          {checkinFailure.nextStep && <div className="text-xs mb-3">{checkinFailure.nextStep}</div>}
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="copper" size="sm" onClick={handleCheckIn} disabled={!isOnline}>
+                              Retry check-in
+                            </Button>
+                            <Button variant="light" size="sm" onClick={handleRequestDirections} disabled={!isLoaded}>
+                              Get directions
+                            </Button>
+                          </div>
+                        </Alert>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="text-muted text-xs mb-4 space-y-1">
+                    <div>Token: {checkinToken ? `${checkinToken.slice(0, 8)}…` : "none"}</div>
+                    <div>Directions: {directionsResult ? "ready" : "not requested"}</div>
+                  </div>
+                  <Button
+                    variant="copper"
+                    size="md"
+                    onClick={handleStartCapture}
+                    disabled={!checkinToken}
+                    fullWidth
+                  >
+                    <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Take photo
+                  </Button>
+                </Card>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial="initial"
+                animate="animate"
+                variants={fadeInUp}
+                transition={{ ...defaultTransition, delay: 0.4 }}
+                className="mb-3"
+              >
+                <Card variant="light" padding="sm">
+                  <div className="text-muted text-sm text-center py-3">Select a node marker to check in.</div>
+                </Card>
+              </motion.div>
+            )}
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
       <div className="map-area">
-        {!isPanelVisible && (
-          <button
-            onClick={() => setIsPanelVisible(true)}
-            style={{
-              position: "absolute",
-              top: "12px",
-              left: "12px",
-              zIndex: 1000,
-              padding: "8px 12px",
-              backgroundColor: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-            }}
-          >
-            ☰ Show Panel
-          </button>
-        )}
+        <AnimatePresence>
+          {!isPanelVisible && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={defaultTransition}
+              className="absolute top-3 left-3 z-[1000]"
+            >
+              <Button
+                variant="light"
+                size="md"
+                onClick={() => setIsPanelVisible(true)}
+                className="shadow-lg"
+              >
+                <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                Show Panel
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {!googleMapsApiKey ? (
           <div className="muted" style={{ padding: 12 }}>
             Set VITE_GOOGLE_MAPS_API_KEY in .env to load the map.
