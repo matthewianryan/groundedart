@@ -200,3 +200,40 @@ async def test_upload_forbidden_for_other_user(db_sessionmaker, client: AsyncCli
     assert response.status_code == 403
     payload = response.json()
     assert payload["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_get_capture_happy_path(db_sessionmaker, client: AsyncClient) -> None:
+    capture_id = await create_capture(db_sessionmaker, client)
+
+    response = await client.get(f"/v1/captures/{capture_id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == str(capture_id)
+    assert payload["state"] == CaptureState.draft.value
+    assert payload["image_url"] is None
+
+
+@pytest.mark.asyncio
+async def test_get_capture_not_found(client: AsyncClient) -> None:
+    await create_session(client)
+    response = await client.get(f"/v1/captures/{uuid.uuid4()}")
+
+    assert response.status_code == 404
+    payload = response.json()
+    assert payload["error"]["code"] == "capture_not_found"
+
+
+@pytest.mark.asyncio
+async def test_get_capture_forbidden_for_other_user(db_sessionmaker, client: AsyncClient) -> None:
+    capture_id = await create_capture(db_sessionmaker, client)
+
+    other_app = create_app()
+    async with AsyncClient(transport=ASGITransport(app=other_app), base_url="http://test") as other_client:
+        await create_session(other_client)
+        response = await other_client.get(f"/v1/captures/{capture_id}")
+
+    assert response.status_code == 403
+    payload = response.json()
+    assert payload["error"]["code"] == "forbidden"

@@ -1,13 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { isApiError } from "../../api/http";
 import { createCapture } from "./api";
-import {
-  buildCaptureIntent,
-  type CaptureAsset,
-  type CaptureFailure,
-  type CaptureFlowStatus,
-  type CaptureIntent
-} from "./captureFlowState";
+import { type CaptureAsset, type CaptureFailure, type CaptureFlowStatus, type CaptureIntent } from "./captureFlowState";
+import { clearActiveCaptureDraft, saveActiveCaptureDraft } from "./captureDraftStore";
 import {
   ImagePreprocessError,
   IMAGE_PREPROCESS_MAX_BYTES,
@@ -19,20 +14,35 @@ type CaptureFlowProps = {
   nodeId: string;
   nodeName?: string;
   checkinToken: string | null;
+  captureId?: string | null;
+  initialAsset?: CaptureAsset | null;
+  initialIntent?: CaptureIntent | null;
+  onCaptureCreated?: (captureId: string) => void;
   onDone?: (captureId: string) => void;
   onCancel?: () => void;
 };
 
 type FailureStage = "submitting" | "persisting" | "uploading" | null;
 
-export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }: CaptureFlowProps) {
+export function CaptureFlow({
+  nodeId,
+  nodeName,
+  checkinToken,
+  captureId: initialCaptureId,
+  initialAsset,
+  initialIntent,
+  onCaptureCreated,
+  onDone,
+  onCancel
+}: CaptureFlowProps) {
   const [status, setStatus] = useState<CaptureFlowStatus>("capturing");
-  const [asset, setAsset] = useState<CaptureAsset | null>(null);
-  const [intent, setIntent] = useState<CaptureIntent | null>(null);
-  const [captureId, setCaptureId] = useState<string | null>(null);
+  const [asset, setAsset] = useState<CaptureAsset | null>(initialAsset ?? null);
+  const [intent, setIntent] = useState<CaptureIntent | null>(initialIntent ?? null);
+  const [captureId, setCaptureId] = useState<string | null>(initialCaptureId ?? null);
   const [failure, setFailure] = useState<CaptureFailure | null>(null);
   const [failureStage, setFailureStage] = useState<FailureStage>(null);
   const [isEnqueued, setIsEnqueued] = useState(false);
+  const [draftWarning, setDraftWarning] = useState<string | null>(null);
   const submitLock = useRef(false);
   const uploadQueue = useUploadQueue();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -50,24 +60,43 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
   }, [previewUrl]);
 
   useEffect(() => {
-    if (!checkinToken) {
+    if (!checkinToken && !captureId) {
       setStatus("failure");
       setFailure({
         title: "Missing check-in token",
         detail: "Return to the map and check in before capturing."
       });
     }
-  }, [checkinToken]);
+  }, [checkinToken, captureId]);
+
+  useEffect(() => {
+    if (initialCaptureId && initialCaptureId !== captureId) {
+      setCaptureId(initialCaptureId);
+    }
+  }, [initialCaptureId, captureId]);
+
+  useEffect(() => {
+    if (!initialAsset || asset) return;
+    setAsset(initialAsset);
+    setIntent(initialIntent ?? null);
+    setStatus("preview");
+  }, [asset, initialAsset, initialIntent]);
+
+  useEffect(() => {
+    if (!captureId || !queuedItem || isEnqueued) return;
+    setIsEnqueued(true);
+  }, [captureId, queuedItem, isEnqueued]);
 
   function resetToCapture() {
     setStatus("capturing");
     setAsset(null);
     setIntent(null);
-    setCaptureId(null);
     setFailure(null);
     setFailureStage(null);
     setIsEnqueued(false);
+    setDraftWarning(null);
     submitLock.current = false;
+    void clearActiveCaptureDraft().catch(() => undefined);
   }
 
   function handleTriggerCamera() {
@@ -87,14 +116,36 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
     try {
       const processed = await preprocessCaptureImage(file);
       if (token !== preprocessToken.current) return;
-      setAsset({
+      const capturedAt = new Date().toISOString();
+      const processedAsset = {
         blob: processed.blob,
         file: processed.file,
         fileName: processed.fileName,
         contentType: processed.mimeType,
         size: processed.size
-      });
-      if (checkinToken) setIntent(buildCaptureIntent(nodeId, checkinToken));
+      };
+      setAsset(processedAsset);
+      if (checkinToken) {
+        setIntent({ nodeId, checkinToken, capturedAt });
+      }
+      if (checkinToken && !captureId) {
+        try {
+          await saveActiveCaptureDraft({
+            nodeId,
+            nodeName,
+            checkinToken,
+            capturedAt,
+            blob: processedAsset.blob,
+            fileName: processedAsset.fileName,
+            mimeType: processedAsset.contentType,
+            size: processedAsset.size
+          });
+          setDraftWarning(null);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          setDraftWarning(message);
+        }
+      }
       setStatus("preview");
     } catch (err) {
       if (token !== preprocessToken.current) return;
@@ -127,19 +178,18 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
     }
   }
 
-  function handleRetake() {
+  async function handleRetake() {
+    if (captureId) {
+      try {
+        await uploadQueue.remove(captureId);
+      } catch {
+        // Ignore failures; the next submit will attempt to enqueue again.
+      }
+    }
     resetToCapture();
   }
 
   async function handleSubmit() {
-    if (!checkinToken) {
-      setStatus("failure");
-      setFailure({
-        title: "Missing check-in token",
-        detail: "Return to the map and check in before submitting."
-      });
-      return;
-    }
     if (!asset) {
       setStatus("failure");
       setFailure({
@@ -153,6 +203,44 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
     submitLock.current = true;
     setFailure(null);
     setFailureStage(null);
+
+    if (captureId) {
+      setStatus("uploading");
+      setFailureStage("uploading");
+      try {
+        await uploadQueue.enqueue({
+          captureId,
+          blob: asset.blob,
+          fileName: asset.fileName,
+          mimeType: asset.contentType,
+          createdAt: new Date().toISOString()
+        });
+        setIsEnqueued(true);
+        await uploadQueue.retryNow(captureId);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setStatus("failure");
+        setFailureStage("uploading");
+        setFailure({
+          title: "Upload failed",
+          detail: message,
+          nextStep: "Try again once you have a stable connection."
+        });
+        submitLock.current = false;
+      }
+      return;
+    }
+
+    if (!checkinToken) {
+      setStatus("failure");
+      setFailure({
+        title: "Missing check-in token",
+        detail: "Return to the map and check in before submitting."
+      });
+      submitLock.current = false;
+      return;
+    }
+
     setStatus("submitting");
     try {
       const created = await createCapture({
@@ -160,6 +248,9 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
         checkin_token: checkinToken
       });
       setCaptureId(created.capture.id);
+      onCaptureCreated?.(created.capture.id);
+      setDraftWarning(null);
+      void clearActiveCaptureDraft().catch(() => undefined);
       setStatus("uploading");
       setFailureStage("persisting");
       try {
@@ -205,8 +296,7 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
   }
 
   async function handleRetry() {
-    if (!checkinToken) return;
-    if (!asset) {
+    if (!asset && !captureId) {
       resetToCapture();
       return;
     }
@@ -278,6 +368,11 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
     setFailureStage("uploading");
   }, [captureId, isEnqueued, queuedItem]);
 
+  function handleCancelAction() {
+    void clearActiveCaptureDraft().catch(() => undefined);
+    onCancel?.();
+  }
+
   function describeState() {
     if (status === "capturing") return "Ready to capture";
     if (status === "processing") return "Processing photo";
@@ -307,16 +402,24 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
         {intentSummary}
       </div>
 
+      {draftWarning ? (
+        <div className="alert" style={{ marginTop: 12 }}>
+          <div>Local fallback unavailable</div>
+          <div className="muted">{draftWarning}</div>
+          <div className="muted">Keep this tab open until the capture is created.</div>
+        </div>
+      ) : null}
+
       {status === "capturing" ? (
         <div style={{ marginTop: 12 }}>
           <div className="muted">Use your camera to capture the node.</div>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={handleTriggerCamera} disabled={!checkinToken}>
+            <button onClick={handleTriggerCamera} disabled={!checkinToken && !captureId}>
               Take photo
             </button>
-            {onCancel ? <button onClick={onCancel}>Cancel</button> : null}
+            {onCancel ? <button onClick={handleCancelAction}>Cancel</button> : null}
           </div>
-          {!checkinToken ? (
+          {!checkinToken && !captureId ? (
             <div className="alert" style={{ marginTop: 8 }}>
               <div>Check-in required</div>
               <div className="muted">Return to the map to check in before capturing.</div>
@@ -340,11 +443,11 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
             {asset.size ? `${Math.round(asset.size / 1024)} KB` : null}
           </div>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={handleUploadFromPreview} disabled={!checkinToken || submitLock.current}>
+            <button onClick={handleUploadFromPreview} disabled={(!checkinToken && !captureId) || submitLock.current}>
               Submit
             </button>
             <button onClick={handleRetake}>Retake</button>
-            {onCancel ? <button onClick={onCancel}>Cancel</button> : null}
+            {onCancel ? <button onClick={handleCancelAction}>Cancel</button> : null}
           </div>
         </div>
       ) : null}
@@ -395,7 +498,7 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
                 Done
               </button>
             ) : null}
-            {onCancel ? <button onClick={onCancel}>Back to map</button> : null}
+            {onCancel ? <button onClick={handleCancelAction}>Back to map</button> : null}
           </div>
         </div>
       ) : null}
@@ -406,11 +509,11 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
           {failure.detail ? <div className="muted">{failure.detail}</div> : null}
           {failure.nextStep ? <div className="muted">{failure.nextStep}</div> : null}
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={handleRetry} disabled={!checkinToken}>
+            <button onClick={handleRetry} disabled={!checkinToken && !captureId}>
               Retry
             </button>
             <button onClick={handleRetake}>Retake</button>
-            {onCancel ? <button onClick={onCancel}>Cancel</button> : null}
+            {onCancel ? <button onClick={handleCancelAction}>Cancel</button> : null}
           </div>
         </div>
       ) : null}

@@ -50,7 +50,7 @@ Deliverables:
 - Resilient uploads (retry-only for M2; resumable is a future upgrade — see `docs/FUTUREOPTIONS.md`).
 - Canonical ordering for M2: `POST /v1/captures` (consumes check-in token) → `POST /v1/captures/{id}/image` (retryable; API-terminated storage).
 - Source of truth for ordering/contracts: `docs/ARCHITECTURE.md` (Capture + upload).
-- Capture record creation requires a valid, unused check-in token and writes a `pending_verification` capture.
+- Capture record creation requires a valid, unused check-in token and writes a `draft` capture (pending upload).
 
 Exit criteria:
 - Upload failures are recoverable without losing the capture intent.

@@ -82,9 +82,9 @@ Goal: reliably upload photos on weak networks without corrupting trust.
 
 Flow (canonical for M2; aligned with the current API + web client):
 1. Client captures an image and applies a *mobile-friendly* preprocessing step (resize/compress).
-2. Client creates a capture record (consuming the one-time check-in token); the API stores it as `pending_verification` and returns a `capture_id`.
+2. Client creates a capture record (consuming the one-time check-in token); the API stores it as `draft` (pending upload) and returns a `capture_id`.
 3. Client uploads the image to the API as `POST /v1/captures/{capture_id}/image` (retryable).
-4. API associates the uploaded image with the existing capture.
+4. API associates the uploaded image with the existing capture and promotes it to `pending_verification`.
 
 Notes:
 - MVP storage is **API-terminated** (client uploads to our API; the API persists media).

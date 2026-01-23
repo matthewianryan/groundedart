@@ -10,6 +10,7 @@ from groundedart_api.auth.deps import CurrentUser
 from groundedart_api.auth.tokens import hash_opaque_token
 from groundedart_api.db.models import Capture, CheckinToken
 from groundedart_api.db.session import DbSessionDep
+from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.storage.deps import MediaStorageDep
@@ -63,13 +64,27 @@ async def create_capture(
         node_id=body.node_id,
         attribution_artist_name=body.attribution_artist_name,
         attribution_artwork_title=body.attribution_artwork_title,
-        state="pending_verification",
+        state=CaptureState.draft.value,
         state_reason="geo_passed",
     )
     db.add(capture)
     await db.commit()
     await db.refresh(capture)
     return CreateCaptureResponse(capture=capture_to_public(capture))
+
+
+@router.get("/captures/{capture_id}", response_model=CapturePublic)
+async def get_capture(
+    capture_id: uuid.UUID,
+    db: DbSessionDep,
+    user: CurrentUser,
+) -> CapturePublic:
+    capture = await db.get(Capture, capture_id)
+    if capture is None:
+        raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
+    if capture.user_id != user.id:
+        raise AppError(code="forbidden", message="Forbidden", status_code=403)
+    return capture_to_public(capture)
 
 
 @router.post("/captures/{capture_id}/image", response_model=CapturePublic)
@@ -89,6 +104,8 @@ async def upload_capture_image(
     stored = await storage.save_capture_image(capture_id=capture.id, upload=file)
     capture.image_path = stored.path
     capture.image_mime = stored.mime
+    if capture.state == CaptureState.draft.value:
+        capture.state = CaptureState.pending_verification.value
     await db.commit()
     await db.refresh(capture)
     return capture_to_public(capture)

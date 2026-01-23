@@ -24,7 +24,7 @@ const MAP_OPTIONS: google.maps.MapOptions = {
 };
 const MAP_STYLE_STORAGE_KEY = "groundedart.mapStylePreset";
 
-type MapStylePresetKey = "default" | "ultra-minimal" | "canvas" | "streets" | "context";
+type MapStylePresetKey = "default" | "ultra-minimal" | "streets" | "context";
 type MapStylePreset = {
   label: string;
   description: string;
@@ -38,49 +38,46 @@ const MAP_STYLE_PRESETS: Record<MapStylePresetKey, MapStylePreset> = {
     styles: null
   },
   "ultra-minimal": {
-    label: "Ultra Minimal",
+    label: "Streets",
     description: "Road geometry only, with labels and POI removed.",
     styles: [
       { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
       { featureType: "poi", stylers: [{ visibility: "off" }] },
       { featureType: "transit", stylers: [{ visibility: "off" }] },
       { featureType: "administrative", stylers: [{ visibility: "off" }] },
-      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
-      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFEF2" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFEF2" }] },
       { featureType: "road", elementType: "geometry", stylers: [{ color: "#000000" }, { visibility: "on" }] },
       { featureType: "road", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] }
     ]
   },
-  canvas: {
-    label: "Canvas",
-    description: "Highways and arterials only, drawn as bold strokes.",
-    styles: [
-      { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "poi", stylers: [{ visibility: "off" }] },
-      { featureType: "transit", stylers: [{ visibility: "off" }] },
-      { featureType: "administrative", stylers: [{ visibility: "off" }] },
-      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
-      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
-      { featureType: "road", elementType: "geometry", stylers: [{ visibility: "off" }] },
-      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 2.0 }] },
-      { featureType: "road.arterial", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 1.4 }] },
-      { featureType: "road.local", stylers: [{ visibility: "off" }] }
-    ]
-  },
   streets: {
-    label: "Streets",
+    label: "Ultra Minimal",
     description: "All road classes visible with minimal context.",
     styles: [
       { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
       { featureType: "poi", stylers: [{ visibility: "off" }] },
       { featureType: "transit", stylers: [{ visibility: "off" }] },
       { featureType: "administrative", stylers: [{ visibility: "off" }] },
-      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
-      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
-      { featureType: "road", elementType: "geometry", stylers: [{ visibility: "off" }] },
-      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 2.0 }] },
-      { featureType: "road.arterial", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 1.4 }] },
-      { featureType: "road.local", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 0.9 }] }
+      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFEF2" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFEF2" }] },
+      { featureType: "road", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
+      { featureType: "road", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] },
+      {
+        featureType: "road.highway",
+        elementType: "geometry.stroke",
+        stylers: [{ visibility: "on" }, { color: "#000000" }, { weight: 2.0 }]
+      },
+      {
+        featureType: "road.arterial",
+        elementType: "geometry.stroke",
+        stylers: [{ visibility: "on" }, { color: "#000000" }, { weight: 1.4 }]
+      },
+      {
+        featureType: "road.local",
+        elementType: "geometry.stroke",
+        stylers: [{ visibility: "on" }, { color: "#000000" }, { weight: 0.9 }]
+      }
     ]
   },
   context: {
@@ -90,18 +87,27 @@ const MAP_STYLE_PRESETS: Record<MapStylePresetKey, MapStylePreset> = {
       { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
       { featureType: "poi", stylers: [{ visibility: "off" }] },
       { featureType: "transit", stylers: [{ visibility: "off" }] },
-      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
-      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
-      { featureType: "road", elementType: "geometry", stylers: [{ visibility: "off" }] },
-      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 2.0 }] },
-      { featureType: "road.arterial", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 1.4 }] },
+      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFEF2" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFEF2" }] },
+      { featureType: "road", elementType: "geometry.fill", stylers: [{ visibility: "off" }] },
+      { featureType: "road", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] },
+      {
+        featureType: "road.highway",
+        elementType: "geometry.stroke",
+        stylers: [{ visibility: "on" }, { color: "#000000" }, { weight: 2.0 }]
+      },
+      {
+        featureType: "road.arterial",
+        elementType: "geometry.stroke",
+        stylers: [{ visibility: "on" }, { color: "#000000" }, { weight: 1.4 }]
+      },
       { featureType: "administrative.locality", elementType: "labels.text", stylers: [{ visibility: "on" }, { color: "#000000" }] },
       { featureType: "administrative.neighborhood", elementType: "labels.text", stylers: [{ visibility: "on" }, { color: "#000000" }] }
     ]
   }
 };
 
-const MAP_STYLE_ORDER: MapStylePresetKey[] = ["default", "ultra-minimal", "canvas", "streets", "context"];
+const MAP_STYLE_ORDER: MapStylePresetKey[] = ["default", "ultra-minimal", "streets", "context"];
 type CheckinState = "idle" | "requesting_location" | "challenging" | "verifying" | "success" | "failure";
 
 function bboxString(bounds: google.maps.LatLngBounds): string {

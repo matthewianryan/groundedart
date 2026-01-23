@@ -21,7 +21,9 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(o) for o in settings.api_cors_origins],
+        # AnyHttpUrl normalizes to a trailing slash, but browser Origin headers do not.
+        # Ensure we compare against the canonical Origin form (`scheme://host[:port]`).
+        allow_origins=[str(o).rstrip("/") for o in settings.api_cors_origins],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

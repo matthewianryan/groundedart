@@ -8,7 +8,7 @@ export function App() {
     <Routes>
       <Route path="/" element={<MapRoute />} />
       <Route path="/map" element={<MapRoute />} />
-      <Route path="/capture" element={<CaptureRoute />} />
+      <Route path="/capture/:captureId?" element={<CaptureRoute />} />
       <Route path="/nodes/:nodeId" element={<NodeDetailRoute />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

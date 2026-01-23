@@ -189,7 +189,7 @@ class Capture(Base):
 
     state: Mapped[str] = mapped_column(
         String(32),
-        default=CaptureState.pending_verification.value,
+        default=CaptureState.draft.value,
         nullable=False,
     )
     state_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)

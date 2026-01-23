@@ -28,6 +28,13 @@ class Settings(BaseSettings):
         env_file=ENV_FILE,
         env_file_encoding="utf-8",
         env_parse_delimiter=",",
+        # pydantic-settings attempts JSON-decoding for complex env types (e.g. list fields).
+        # That makes simple values like `API_CORS_ORIGINS=http://localhost:5173` fail at load
+        # time (before our validators run), which prevents the API from starting.
+        #
+        # Disable auto-decoding and handle both JSON-array and comma-delimited formats in
+        # our validators instead.
+        enable_decoding=False,
         extra="ignore",
     )
 
@@ -77,7 +84,18 @@ class Settings(BaseSettings):
     @classmethod
     def _normalize_upload_mime_types(cls, value: list[str] | str) -> list[str]:
         if isinstance(value, str):
-            values = [item.strip() for item in value.split(",")]
+            raw = value.strip()
+            if raw.startswith("["):
+                try:
+                    parsed = json.loads(raw)
+                except json.JSONDecodeError:
+                    parsed = None
+                if isinstance(parsed, list):
+                    values = [str(item).strip() for item in parsed]
+                else:
+                    values = [item.strip() for item in raw.split(",")]
+            else:
+                values = [item.strip() for item in raw.split(",")]
         else:
             values = [str(item).strip() for item in value]
         return [item.lower() for item in values if item]

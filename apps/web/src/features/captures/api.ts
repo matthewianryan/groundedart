@@ -37,6 +37,10 @@ export async function createCapture(body: {
   return apiFetch<CreateCaptureResponse>("/v1/captures", { method: "POST", body: JSON.stringify(body) });
 }
 
+export async function getCapture(captureId: string) {
+  return apiFetch<CapturePublic>(`/v1/captures/${captureId}`);
+}
+
 export type UploadCaptureImageOptions = {
   signal?: AbortSignal;
   onProgress?: (loadedBytes: number, totalBytes?: number) => void;
