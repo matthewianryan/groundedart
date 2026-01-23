@@ -82,6 +82,42 @@ cd apps/web
 npm run dev
 ```
 
+## Solana tip demo (devnet)
+
+Prereqs:
+- API + web app running.
+- Migrations applied (nodes are seeded via Alembic).
+
+Env vars (for tips):
+- `SOLANA_RPC_URL` for the API (devnet RPC).
+- `VITE_SOLANA_RPC_URL` for the web wallet adapter (same devnet RPC; optional if using defaults).
+- Cluster: devnet only (wallet adapter is configured for devnet).
+
+Seed a demo artist recipient pubkey:
+1. Create or copy a devnet wallet pubkey (Phantom/Solflare, or `solana-keygen new`).
+2. Update `data/seed/artists.json` with that pubkey and the node id(s) to receive tips (use ids from `data/seed/nodes.json`).
+3. Seed the DB:
+
+```bash
+cd apps/api
+python scripts/seed_artists.py
+```
+
+Fund demo wallets with devnet SOL:
+- CLI: `solana airdrop 2 <PUBKEY> --url devnet`
+- Web faucet: https://faucet.solana.com/ (devnet)
+
+Run the tip receipt reconciler (separate terminal):
+
+```bash
+cd apps/api
+python scripts/reconcile_tip_receipts.py --loop
+```
+
+RPC commitment levels:
+- Tip confirm uses `confirmed` for fast feedback; receipts may still be non-final.
+- Reconciliation polls with `finalized` to upgrade receipt status once finality lands.
+
 ## Manual M2 weak-network checklist (mobile + throttling)
 
 Prereqs:

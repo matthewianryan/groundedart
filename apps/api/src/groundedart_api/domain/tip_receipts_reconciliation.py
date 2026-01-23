@@ -11,7 +11,7 @@ from groundedart_api.db.models import TipReceipt
 from groundedart_api.domain.tip_receipts import TipReceiptFailureReason, TipReceiptStatus
 from groundedart_api.domain.tip_receipts_solana import fetch_solana_transaction
 
-FetchTransaction = Callable[[str, str], Awaitable[dict[str, Any]]]
+FetchTransaction = Callable[[str, str, str | None], Awaitable[dict[str, Any]]]
 
 
 @dataclass(frozen=True)
@@ -103,7 +103,9 @@ async def reconcile_tip_receipts(
     for receipt in receipts:
         processed += 1
         try:
-            response = await fetch_transaction(rpc_url, receipt.tx_signature)
+            response = await fetch_transaction(
+                rpc_url, receipt.tx_signature, commitment="finalized"
+            )
         except Exception:
             lookup = TransactionLookupResult(found=False, error=True)
         else:

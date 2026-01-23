@@ -9,6 +9,12 @@ The canonical Milestone 2 approach is documented in `docs/ARCHITECTURE.md` and `
 - **Storage**: API-terminated
 - **Resilience**: retry-only (no resumable protocol in M2)
 
+## Related tasks (tracking)
+
+Concrete implementation work lives in `docs/TASKS.md`, especially:
+- M5-07a…M5-07g (Solana-native tipping tasks).
+- M5-06 (optional) tip receipt adapter boundary.
+
 ## Option: Upload asset first, then create capture (asset-referenced captures)
 
 ### Functional change (what it means)

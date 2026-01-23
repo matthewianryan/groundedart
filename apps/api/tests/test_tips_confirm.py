@@ -106,7 +106,10 @@ async def test_tip_confirm_happy_path(
     tip_intent_id = await create_tip_intent(client, node_id, 12345)
     tx_signature = "5m9h4f7f1B7uD1a6iC7H2M2T6B4Gkq9Q3xU9f7jkh9zz1"
 
-    async def _fake_fetch(_rpc_url: str, _tx_signature: str) -> dict[str, object]:
+    async def _fake_fetch(
+        _rpc_url: str, _tx_signature: str, commitment: str | None
+    ) -> dict[str, object]:
+        assert commitment == "confirmed"
         return _mock_tx_result(
             tip_intent_id=tip_intent_id,
             from_pubkey="6bHW7K6q1w8b9C2q3Q4w9z6z1Z2Z9w8x7a3b1c2d3e4f",
@@ -150,7 +153,10 @@ async def test_tip_confirm_missing_memo_records_failure(
     tip_intent_id = await create_tip_intent(client, node_id, 5000)
     tx_signature = "8nF1b9Yv7a6d3C9f1P9w6Z2d4Z6j4a9f7B6G2X3y1z5s"
 
-    async def _fake_fetch(_rpc_url: str, _tx_signature: str) -> dict[str, object]:
+    async def _fake_fetch(
+        _rpc_url: str, _tx_signature: str, commitment: str | None
+    ) -> dict[str, object]:
+        assert commitment == "confirmed"
         return _mock_tx_result(
             tip_intent_id=tip_intent_id,
             from_pubkey="6bHW7K6q1w8b9C2q3Q4w9z6z1Z2Z9w8x7a3b1c2d3e4f",
@@ -181,7 +187,10 @@ async def test_tip_confirm_reuses_existing_receipt(
     tip_intent_id = await create_tip_intent(client, node_id, 1000)
     tx_signature = "4q7H6g3m2k1J7c8v5t9m2n8Q6w1x3z5p2o9r7s6t5u4"
 
-    async def _fake_fetch(_rpc_url: str, _tx_signature: str) -> dict[str, object]:
+    async def _fake_fetch(
+        _rpc_url: str, _tx_signature: str, commitment: str | None
+    ) -> dict[str, object]:
+        assert commitment == "confirmed"
         return _mock_tx_result(
             tip_intent_id=tip_intent_id,
             from_pubkey="6bHW7K6q1w8b9C2q3Q4w9z6z1Z2Z9w8x7a3b1c2d3e4f",
