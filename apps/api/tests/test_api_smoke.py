@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import uuid
 
 import pytest
@@ -76,6 +77,12 @@ async def test_node_detail_and_verified_captures(db_sessionmaker, client: AsyncC
                     state=CaptureState.verified.value,
                     image_path="captures/verified.jpg",
                     image_mime="image/jpeg",
+                    visibility="public",
+                    attribution_artist_name="Test Artist",
+                    attribution_artwork_title="Test Title",
+                    attribution_source="Test Source",
+                    rights_basis="i_took_photo",
+                    rights_attested_at=dt.datetime.now(dt.UTC),
                 ),
                 Capture(
                     id=uuid.uuid4(),

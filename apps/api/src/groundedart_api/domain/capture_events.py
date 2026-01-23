@@ -45,7 +45,7 @@ def record_capture_created_event(
     actor_user_id: uuid.UUID | None,
     reason_code: str | None,
     details: dict[str, object] | None = None,
-) -> None:
+    ) -> None:
     db.add(
         CaptureEvent(
             capture_id=capture.id,
@@ -53,6 +53,28 @@ def record_capture_created_event(
             from_state=None,
             to_state=CaptureState.draft.value,
             reason_code=reason_code,
+            actor_type=actor_type,
+            actor_user_id=actor_user_id,
+            details=details,
+        )
+    )
+
+
+def record_capture_published_event(
+    *,
+    db: AsyncSession,
+    capture: Capture,
+    actor_type: str,
+    actor_user_id: uuid.UUID | None,
+    details: dict[str, object] | None = None,
+) -> None:
+    db.add(
+        CaptureEvent(
+            capture_id=capture.id,
+            event_type="capture_published",
+            from_state=capture.state,
+            to_state=capture.state,
+            reason_code=None,
             actor_type=actor_type,
             actor_user_id=actor_user_id,
             details=details,

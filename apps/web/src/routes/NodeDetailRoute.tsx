@@ -19,6 +19,15 @@ export function NodeDetailRoute() {
   const [capturesError, setCapturesError] = useState<string | null>(null);
   const [me, setMe] = useState<MeResponse | null>(null);
 
+  function formatAttribution(capture: CapturePublic): string | null {
+    const artist = capture.attribution_artist_name?.trim();
+    const title = capture.attribution_artwork_title?.trim();
+    if (artist && title) return `${artist} — ${title}`;
+    if (artist) return artist;
+    if (title) return title;
+    return null;
+  }
+
   useEffect(() => {
     if (!nodeId) {
       setCaptures([]);
@@ -105,15 +114,31 @@ export function NodeDetailRoute() {
                 <div className="empty-state">No verified captures yet.</div>
               ) : (
                 <div className="captures-grid">
-                  {captures.map((capture) => (
-                    <div key={capture.id} className="capture-thumb">
-                      {capture.image_url ? (
-                        <img src={capture.image_url} alt="Verified capture" loading="lazy" />
-                      ) : (
-                        <div className="capture-thumb-fallback">Image pending</div>
-                      )}
-                    </div>
-                  ))}
+                  {captures.map((capture) => {
+                    const attribution = formatAttribution(capture);
+                    return (
+                      <div key={capture.id} className="capture-thumb">
+                        {capture.image_url ? (
+                          <img src={capture.image_url} alt="Verified capture" loading="lazy" />
+                        ) : (
+                          <div className="capture-thumb-fallback">Image pending</div>
+                        )}
+                        {attribution ? (
+                          <div className="muted" style={{ marginTop: 6 }}>
+                            {attribution}
+                            {capture.attribution_source ? ` · ${capture.attribution_source}` : ""}
+                          </div>
+                        ) : null}
+                        {capture.attribution_source_url ? (
+                          <div className="muted" style={{ marginTop: 4 }}>
+                            <a href={capture.attribution_source_url} target="_blank" rel="noreferrer">
+                              Source
+                            </a>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

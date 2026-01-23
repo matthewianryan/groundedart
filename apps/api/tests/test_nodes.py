@@ -135,6 +135,12 @@ async def create_node_with_captures(db_sessionmaker) -> tuple[uuid.UUID, uuid.UU
                     state=CaptureState.verified.value,
                     image_path="captures/verified.jpg",
                     image_mime="image/jpeg",
+                    visibility="public",
+                    attribution_artist_name="Test Artist",
+                    attribution_artwork_title="Test Title",
+                    attribution_source="Test Source",
+                    rights_basis="i_took_photo",
+                    rights_attested_at=dt.datetime.now(dt.UTC),
                 ),
                 Capture(
                     id=uuid.uuid4(),

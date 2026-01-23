@@ -6,16 +6,26 @@ import uuid
 from fastapi import APIRouter, Depends, UploadFile
 from sqlalchemy import func, select
 
-from groundedart_api.api.schemas import CapturePublic, CreateCaptureRequest, CreateCaptureResponse
+from groundedart_api.api.schemas import (
+    CapturePublic,
+    CreateCaptureRequest,
+    CreateCaptureResponse,
+    UpdateCaptureRequest,
+)
 from groundedart_api.auth.deps import CurrentUser
 from groundedart_api.auth.tokens import hash_opaque_token
 from groundedart_api.db.models import Capture, CheckinToken, Node
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.abuse_events import record_abuse_event
+from groundedart_api.domain.attribution_rights import (
+    missing_attribution_fields,
+    missing_rights_fields,
+)
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.capture_events import (
     apply_capture_transition_with_audit,
     record_capture_created_event,
+    record_capture_published_event,
 )
 from groundedart_api.domain.capture_transitions import validate_capture_state_reason
 from groundedart_api.domain.errors import AppError
@@ -156,6 +166,90 @@ async def get_capture(
         raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
     if capture.user_id != user.id:
         raise AppError(code="forbidden", message="Forbidden", status_code=403)
+    return capture_to_public(capture)
+
+
+@router.patch("/captures/{capture_id}", response_model=CapturePublic)
+async def update_capture(
+    capture_id: uuid.UUID,
+    body: UpdateCaptureRequest,
+    db: DbSessionDep,
+    user: CurrentUser,
+    now: UtcNow = Depends(get_utcnow),
+) -> CapturePublic:
+    capture = await db.get(Capture, capture_id)
+    if capture is None:
+        raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
+    if capture.user_id != user.id:
+        raise AppError(code="forbidden", message="Forbidden", status_code=403)
+
+    fields = body.model_fields_set
+    if "attribution_artist_name" in fields:
+        capture.attribution_artist_name = body.attribution_artist_name
+    if "attribution_artwork_title" in fields:
+        capture.attribution_artwork_title = body.attribution_artwork_title
+    if "attribution_source" in fields:
+        capture.attribution_source = body.attribution_source
+    if "attribution_source_url" in fields:
+        capture.attribution_source_url = body.attribution_source_url
+    if "rights_basis" in fields:
+        capture.rights_basis = body.rights_basis
+    if "rights_attestation" in fields:
+        capture.rights_attested_at = now() if body.rights_attestation else None
+
+    await db.commit()
+    await db.refresh(capture)
+    return capture_to_public(capture)
+
+
+@router.post("/captures/{capture_id}/publish", response_model=CapturePublic)
+async def publish_capture(
+    capture_id: uuid.UUID,
+    db: DbSessionDep,
+    user: CurrentUser,
+) -> CapturePublic:
+    capture = await db.get(Capture, capture_id)
+    if capture is None:
+        raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
+    if capture.user_id != user.id:
+        raise AppError(code="forbidden", message="Forbidden", status_code=403)
+    if capture.state != CaptureState.verified.value:
+        raise AppError(
+            code="capture_not_verified",
+            message="Capture is not verified yet",
+            status_code=400,
+        )
+
+    missing_attribution = missing_attribution_fields(capture)
+    if missing_attribution:
+        raise AppError(
+            code="capture_missing_attribution",
+            message="Attribution fields required for publish",
+            status_code=400,
+            details={"missing_fields": missing_attribution},
+        )
+
+    missing_rights = missing_rights_fields(capture)
+    if missing_rights:
+        raise AppError(
+            code="capture_missing_rights",
+            message="Rights attestation required for publish",
+            status_code=400,
+            details={"missing_fields": missing_rights},
+        )
+
+    if capture.visibility != "public":
+        previous_visibility = capture.visibility
+        capture.visibility = "public"
+        record_capture_published_event(
+            db=db,
+            capture=capture,
+            actor_type="user",
+            actor_user_id=user.id,
+            details={"previous_visibility": previous_visibility},
+        )
+    await db.commit()
+    await db.refresh(capture)
     return capture_to_public(capture)
 
 

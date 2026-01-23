@@ -24,6 +24,8 @@ export type CreateCaptureResponse = {
 };
 
 export type UploadCaptureImageResponse = CapturePublic;
+export type UpdateCaptureResponse = CapturePublic;
+export type PublishCaptureResponse = CapturePublic;
 
 export type CaptureErrorCode =
   | "invalid_checkin_token"
@@ -60,6 +62,27 @@ export async function createCapture(body: {
 
 export async function getCapture(captureId: string) {
   return apiFetch<CapturePublic>(`/v1/captures/${captureId}`);
+}
+
+export async function updateCapture(
+  captureId: string,
+  body: {
+    attribution_artist_name?: string | null;
+    attribution_artwork_title?: string | null;
+    attribution_source?: string | null;
+    attribution_source_url?: string | null;
+    rights_basis?: string | null;
+    rights_attestation?: boolean | null;
+  }
+) {
+  return apiFetch<UpdateCaptureResponse>(`/v1/captures/${captureId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body)
+  });
+}
+
+export async function publishCapture(captureId: string) {
+  return apiFetch<PublishCaptureResponse>(`/v1/captures/${captureId}/publish`, { method: "POST" });
 }
 
 export async function listNodeCaptures(nodeId: string, init?: RequestInit) {

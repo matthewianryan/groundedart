@@ -23,6 +23,7 @@ from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
 from groundedart_api.db.models import Capture, CheckinChallenge, CheckinToken, Node
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.abuse_events import record_abuse_event
+from groundedart_api.domain.attribution_rights import is_capture_publicly_visible
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.gating import (
     assert_can_access_node,
@@ -121,7 +122,8 @@ async def list_node_captures(
     admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
     settings: Settings = Depends(get_settings),
 ) -> CapturesResponse:
-    if state != CaptureState.verified and admin_token != settings.admin_api_token:
+    is_admin = admin_token == settings.admin_api_token
+    if state != CaptureState.verified and not is_admin:
         raise AppError(
             code="admin_auth_required",
             message="Admin authentication required",
@@ -142,6 +144,8 @@ async def list_node_captures(
             .order_by(Capture.created_at.desc())
         )
     ).all()
+    if not is_admin:
+        captures = [capture for capture in captures if is_capture_publicly_visible(capture)]
     return CapturesResponse(captures=[capture_to_public(capture) for capture in captures])
 
 

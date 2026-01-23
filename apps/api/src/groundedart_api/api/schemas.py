@@ -104,6 +104,15 @@ class CreateCaptureRequest(BaseModel):
     rights_attestation: bool | None = None
 
 
+class UpdateCaptureRequest(BaseModel):
+    attribution_artist_name: str | None = None
+    attribution_artwork_title: str | None = None
+    attribution_source: str | None = None
+    attribution_source_url: str | None = None
+    rights_basis: str | None = None
+    rights_attestation: bool | None = None
+
+
 class CapturePublic(BaseModel):
     id: uuid.UUID
     node_id: uuid.UUID

@@ -120,8 +120,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
     - Add an owner-only endpoint to update attribution/consent fields post-capture:
       - Recommended: `PATCH /v1/captures/{capture_id}` (owner only).
     - Add an owner-only “request public” endpoint or field transition:
-      - Option A: `POST /v1/captures/{capture_id}/publish` (clear intent; easy to audit).
-      - Option B: allow `PATCH` to set `visibility="public"` and validate server-side.
+ Decision: `POST /v1/captures/{capture_id}/publish` (clear intent; easy to audit).
     - Implement server-side validation that blocks publishing unless:
       - capture is `verified` (or matches the chosen policy in M5-01),
       - required attribution fields are present and non-empty,

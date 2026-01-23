@@ -63,6 +63,12 @@ export function CaptureFlow({
   const [isEnqueued, setIsEnqueued] = useState(false);
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [attributionArtistName, setAttributionArtistName] = useState("");
+  const [attributionArtworkTitle, setAttributionArtworkTitle] = useState("");
+  const [attributionSource, setAttributionSource] = useState("");
+  const [attributionSourceUrl, setAttributionSourceUrl] = useState("");
+  const [rightsBasis, setRightsBasis] = useState("");
+  const [rightsAttestation, setRightsAttestation] = useState(false);
   const submitLock = useRef(false);
   const uploadQueue = useUploadQueue();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -127,6 +133,12 @@ export function CaptureFlow({
     setFailureStage(null);
     setIsEnqueued(false);
     setDraftWarning(null);
+    setAttributionArtistName("");
+    setAttributionArtworkTitle("");
+    setAttributionSource("");
+    setAttributionSourceUrl("");
+    setRightsBasis("");
+    setRightsAttestation(false);
     submitLock.current = false;
     void clearActiveCaptureDraft().catch(() => undefined);
   }
@@ -275,9 +287,20 @@ export function CaptureFlow({
 
     setStatus("submitting");
     try {
+      const normalizedArtist = attributionArtistName.trim() || undefined;
+      const normalizedTitle = attributionArtworkTitle.trim() || undefined;
+      const normalizedSource = attributionSource.trim() || undefined;
+      const normalizedSourceUrl = attributionSourceUrl.trim() || undefined;
+      const normalizedRightsBasis = rightsBasis || undefined;
       const created = await createCapture({
         node_id: nodeId,
-        checkin_token: checkinToken
+        checkin_token: checkinToken,
+        attribution_artist_name: normalizedArtist,
+        attribution_artwork_title: normalizedTitle,
+        attribution_source: normalizedSource,
+        attribution_source_url: normalizedSourceUrl,
+        rights_basis: normalizedRightsBasis,
+        rights_attestation: rightsAttestation || undefined
       });
       setCaptureId(created.capture.id);
       onCaptureCreated?.(created.capture.id);
@@ -508,6 +531,69 @@ export function CaptureFlow({
           {previewUrl ? <img src={previewUrl} alt="Capture preview" className="capture-preview" /> : null}
           <div className="muted" style={{ marginTop: 8 }}>
             {asset.size ? `${Math.round(asset.size / 1024)} KB` : null}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <div className="muted">Attribution (required for publish)</div>
+            <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+              <label>
+                <div className="muted">Artist name</div>
+                <input
+                  type="text"
+                  value={attributionArtistName}
+                  onChange={(event) => setAttributionArtistName(event.target.value)}
+                  placeholder="Artist name"
+                />
+              </label>
+              <label>
+                <div className="muted">Artwork title</div>
+                <input
+                  type="text"
+                  value={attributionArtworkTitle}
+                  onChange={(event) => setAttributionArtworkTitle(event.target.value)}
+                  placeholder="Artwork title"
+                />
+              </label>
+              <label>
+                <div className="muted">Attribution source</div>
+                <input
+                  type="text"
+                  value={attributionSource}
+                  onChange={(event) => setAttributionSource(event.target.value)}
+                  placeholder="On-site signage, artist website, gallery placard"
+                />
+              </label>
+              <label>
+                <div className="muted">Source URL (optional)</div>
+                <input
+                  type="url"
+                  value={attributionSourceUrl}
+                  onChange={(event) => setAttributionSourceUrl(event.target.value)}
+                  placeholder="https://"
+                />
+              </label>
+            </div>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <div className="muted">Rights & consent (required for publish)</div>
+            <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+              <label>
+                <div className="muted">Rights basis</div>
+                <select value={rightsBasis} onChange={(event) => setRightsBasis(event.target.value)}>
+                  <option value="">Select a basis</option>
+                  <option value="i_took_photo">I took the photo</option>
+                  <option value="permission_granted">Permission granted</option>
+                  <option value="public_domain">Public domain</option>
+                </select>
+              </label>
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={rightsAttestation}
+                  onChange={(event) => setRightsAttestation(event.target.checked)}
+                />
+                <span>I attest I have the rights to share this capture publicly.</span>
+              </label>
+            </div>
           </div>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={handleUploadFromPreview} disabled={(!checkinToken && !captureId) || submitLock.current}>
