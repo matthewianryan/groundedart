@@ -16,6 +16,7 @@ The long-term intent is a trustable public map of local art that:
 
 ## Documentation
 - Start here: `docs/README.md`
+- Repo reality snapshot (what’s integrated now): `docs/M0.md`
 - Product intent: `docs/PRODUCT.md`
 - System architecture: `docs/ARCHITECTURE.md`
 - Domain/data model: `docs/DATA_MODEL.md`

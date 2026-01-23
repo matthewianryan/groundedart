@@ -6,6 +6,7 @@ Grounded Art is a location-based art discovery app built around *proof-of-presen
 Users start with a sparse map of starter nodes. By physically visiting real-world art and submitting verified captures (with attribution), they gain curator rank and unlock richer discovery and contribution features. Over time the product can route value back to artists (tips/receipts) while preserving low-friction onboarding and privacy.
 
 ## Read next (recommended order)
+0. `docs/M0.md` — what’s integrated now + decisions encoded in code
 1. `docs/PRODUCT.md` — north star, core mechanic, constraints
 2. `docs/ARCHITECTURE.md` — system intent, trust model, core flows
 3. `docs/DATA_MODEL.md` — shared vocabulary and entity relationships
