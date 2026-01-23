@@ -6,7 +6,7 @@ Grounded Art’s “proof-of-presence” design creates inherent sensitivity: lo
 - **Do not track trails**: avoid storing continuous location histories.
 - **Store only what you need**: keep the minimum fields required for verification and abuse prevention.
 - **Separate evidence from identity**: do not require real-world identity for trust; use progressive reputation instead.
-- **Be explicit about visibility**: distinguish private capture, limited share, and public post.
+- **Be explicit about visibility**: distinguish private capture, limited share, and public post (policy in `docs/ATTRIBUTION_RIGHTS.md`).
 - **Strip image metadata**: client-side preprocessing re-encodes uploads to remove EXIF (including GPS) by default.
 
 ## Image uploads (client posture)
@@ -27,6 +27,6 @@ Grounded Art’s “proof-of-presence” design creates inherent sensitivity: lo
 - **Harassment/copyright**: report + takedown path; keep moderation state machine from day one.
 
 ## Open questions to decide explicitly
-- What is the default visibility of a capture: private until verified, or public with “unverified”?
+- Default visibility is `private`; verified captures require explicit publish (see `docs/ATTRIBUTION_RIGHTS.md`).
 - Are nodes community-created at MVP, or admin-curated only?
 - Do we ever store raw GPS accuracy/altitude, or only derived “inside/outside” evidence?

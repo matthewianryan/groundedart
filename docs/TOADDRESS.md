@@ -23,3 +23,8 @@ Rank derivation + gating as a computed system is Milestone 4 in ROADMAP.md.
 Rights/consent + attribution enforcement is Milestone 5 in ROADMAP.md.
 Observability (logs/metrics/tracing) is Milestone 6 in ROADMAP.md.
 Object storage + signed URLs are explicitly deferred (see FUTUREOPTIONS.md).
+
+
+## Nodes do not load
+
+Consistent bug or error where nodes are not present.

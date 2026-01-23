@@ -4,8 +4,15 @@ export type CapturePublic = {
   id: string;
   node_id: string;
   state: string;
+  visibility: string;
   created_at: string;
   image_url: string | null;
+  attribution_artist_name: string | null;
+  attribution_artwork_title: string | null;
+  attribution_source: string | null;
+  attribution_source_url: string | null;
+  rights_basis: string | null;
+  rights_attested_at: string | null;
 };
 
 export type CapturesResponse = {
@@ -29,7 +36,10 @@ export type CaptureErrorCode =
   | "upload_incomplete"
   | "capture_rate_limited"
   | "insufficient_rank"
-  | "pending_verification_cap_reached";
+  | "pending_verification_cap_reached"
+  | "capture_not_verified"
+  | "capture_missing_attribution"
+  | "capture_missing_rights";
 
 export type CaptureErrorResponse = {
   error: { code: CaptureErrorCode; message: string; details: Record<string, unknown> };
@@ -40,6 +50,10 @@ export async function createCapture(body: {
   checkin_token: string;
   attribution_artist_name?: string;
   attribution_artwork_title?: string;
+  attribution_source?: string;
+  attribution_source_url?: string;
+  rights_basis?: string;
+  rights_attestation?: boolean;
 }) {
   return apiFetch<CreateCaptureResponse>("/v1/captures", { method: "POST", body: JSON.stringify(body) });
 }

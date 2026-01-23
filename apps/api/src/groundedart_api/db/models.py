@@ -192,6 +192,7 @@ class Capture(Base):
         default=CaptureState.draft.value,
         nullable=False,
     )
+    visibility: Mapped[str] = mapped_column(String(16), default="private", nullable=False)
     state_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
@@ -199,6 +200,12 @@ class Capture(Base):
 
     attribution_artist_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     attribution_artwork_title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    attribution_source: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    attribution_source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    rights_basis: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    rights_attested_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     image_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)

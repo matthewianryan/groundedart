@@ -7,11 +7,16 @@
     "node_id",
     "user_id",
     "state",
+    "visibility",
     "state_reason",
     "created_at",
     "image_url",
     "attribution_artist_name",
-    "attribution_artwork_title"
+    "attribution_artwork_title",
+    "attribution_source",
+    "attribution_source_url",
+    "rights_basis",
+    "rights_attested_at"
   ],
   "properties": {
     "id": { "type": "string", "format": "uuid" },
@@ -21,10 +26,18 @@
       "type": "string",
       "enum": ["draft", "pending_verification", "verified", "rejected", "hidden"]
     },
+    "visibility": { "type": "string", "enum": ["private", "public"] },
     "state_reason": { "type": ["string", "null"] },
     "created_at": { "type": "string", "format": "date-time" },
     "image_url": { "type": ["string", "null"] },
     "attribution_artist_name": { "type": ["string", "null"] },
-    "attribution_artwork_title": { "type": ["string", "null"] }
+    "attribution_artwork_title": { "type": ["string", "null"] },
+    "attribution_source": { "type": ["string", "null"] },
+    "attribution_source_url": { "type": ["string", "null"] },
+    "rights_basis": {
+      "type": ["string", "null"],
+      "enum": ["i_took_photo", "permission_granted", "public_domain", null]
+    },
+    "rights_attested_at": { "type": ["string", "null"], "format": "date-time" }
   }
 }

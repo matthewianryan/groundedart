@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CaptureRightsBasis",
+  "type": "string",
+  "enum": ["i_took_photo", "permission_granted", "public_domain"]
+}

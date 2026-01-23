@@ -89,7 +89,7 @@ Exit criteria:
 
 Deliverables:
 - Required attribution + consent fields for public visibility.
-- Default visibility policy that is conservative until verified (decide explicitly).
+- Default visibility policy that is conservative and explicit (see `docs/ATTRIBUTION_RIGHTS.md`).
 - Reporting/takedown primitives (can be manual initially).
 - Optional tip receipt integration behind an adapter boundary (later).
 

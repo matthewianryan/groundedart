@@ -40,6 +40,6 @@ This is a shared vocabulary for product + engineering. It is intentionally imple
 - `Capture` 1—* `Verification`
 
 ## Policy fields to design early
-- **Attribution policy**: what fields are required to publish/show publicly.
-- **Consent/rights flags**: default rules (e.g., “personal capture” vs “public post”).
+- **Attribution policy**: required fields for public visibility (see `docs/ATTRIBUTION_RIGHTS.md`).
+- **Consent/rights flags**: `rights_basis` + attestation required for public visibility (see `docs/ATTRIBUTION_RIGHTS.md`).
 - **Moderation state**: `draft`, `pending`, `verified`, `rejected`, `hidden`.

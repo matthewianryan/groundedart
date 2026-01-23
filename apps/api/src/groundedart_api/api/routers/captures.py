@@ -35,8 +35,15 @@ def capture_to_public(capture: Capture, base_media_url: str = "/media") -> Captu
         id=capture.id,
         node_id=capture.node_id,
         state=capture.state,
+        visibility=capture.visibility,
         created_at=capture.created_at,
         image_url=image_url,
+        attribution_artist_name=capture.attribution_artist_name,
+        attribution_artwork_title=capture.attribution_artwork_title,
+        attribution_source=capture.attribution_source,
+        attribution_source_url=capture.attribution_source_url,
+        rights_basis=capture.rights_basis,
+        rights_attested_at=capture.rights_attested_at,
     )
 
 
@@ -116,6 +123,11 @@ async def create_capture(
         node_id=body.node_id,
         attribution_artist_name=body.attribution_artist_name,
         attribution_artwork_title=body.attribution_artwork_title,
+        attribution_source=body.attribution_source,
+        attribution_source_url=body.attribution_source_url,
+        rights_basis=body.rights_basis,
+        rights_attested_at=now_time if body.rights_attestation else None,
+        visibility="private",
         state=CaptureState.draft.value,
         state_reason=validate_capture_state_reason(CaptureState.draft, "geo_passed"),
     )

@@ -16,6 +16,9 @@
     "pending_verification_cap_reached",
     "capture_state_reason_required",
     "invalid_capture_state_reason",
-    "invalid_capture_state_transition"
+    "invalid_capture_state_transition",
+    "capture_not_verified",
+    "capture_missing_attribution",
+    "capture_missing_rights"
   ]
 }

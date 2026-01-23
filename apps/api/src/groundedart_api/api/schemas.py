@@ -98,14 +98,25 @@ class CreateCaptureRequest(BaseModel):
     checkin_token: str
     attribution_artist_name: str | None = None
     attribution_artwork_title: str | None = None
+    attribution_source: str | None = None
+    attribution_source_url: str | None = None
+    rights_basis: str | None = None
+    rights_attestation: bool | None = None
 
 
 class CapturePublic(BaseModel):
     id: uuid.UUID
     node_id: uuid.UUID
     state: str
+    visibility: str
     created_at: dt.datetime
     image_url: str | None = None
+    attribution_artist_name: str | None = None
+    attribution_artwork_title: str | None = None
+    attribution_source: str | None = None
+    attribution_source_url: str | None = None
+    rights_basis: str | None = None
+    rights_attested_at: dt.datetime | None = None
 
 
 class CreateCaptureResponse(BaseModel):
@@ -121,11 +132,16 @@ class AdminCapture(BaseModel):
     node_id: uuid.UUID
     user_id: uuid.UUID
     state: str
+    visibility: str
     state_reason: str | None = None
     created_at: dt.datetime
     image_url: str | None = None
     attribution_artist_name: str | None = None
     attribution_artwork_title: str | None = None
+    attribution_source: str | None = None
+    attribution_source_url: str | None = None
+    rights_basis: str | None = None
+    rights_attested_at: dt.datetime | None = None
 
 
 class AdminCapturesResponse(BaseModel):

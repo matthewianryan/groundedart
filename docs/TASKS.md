@@ -1,216 +1,205 @@
 # Tasks
 
-This file is the **active milestone task checklist**.
+This file is a living checklist of buildable work items. It is intentionally explicit about **what changes**, **where**, and **how we’ll know it’s done**.
 
-- Milestones **0–3** are implemented in this repo; see `docs/M0.md`, `docs/M1.md`, `docs/M2.md`, `docs/M3.md`.
-- The next milestone is **Milestone 4 — Rank + gating (MVP)** from `docs/ROADMAP.md`.
-
----
-
-## Milestone 4 — Rank + gating (MVP)
-
-Goal (per `docs/ROADMAP.md`): users unlock nodes/features based on verified contributions; discovery improves as trust grows.
-
-### M4-01 — Decide rank rules + gating policy (design + contracts)
-
-**Context (what/why)**
-- M4 requires rank to be **derived from verified actions only** and to be explainable/auditable.
-- The repo currently stores `curator_profiles.rank`, but there is **no rank event log** and no documented rank computation rules (`docs/TOADDRESS.md`).
-- Without a clear policy, the system can’t honestly explain unlocks (“why can/can’t I see/do this?”) and we can’t write stable tests.
-
-**Decision points (pick explicitly; do not “let code decide”)**
-- Rank computation model (choose one for MVP; can evolve later):
-Decision: Simple Points System: +N per verified capture (with per-node/day caps).
-     - Pros: simplest; easy to audit; low product ambiguity.
-     - Cons: can incentivize spam unless caps/anti-abuse are strong.
-- What happens when verified content is later moderated (e.g., `verified → hidden`)?
-Decision: rank is **recomputed** from current “still-verified” content (rank can go down).
-- Gating surface (minimum required by ROADMAP):
-  - Discovery read path: already filters by `nodes.min_rank`, but must be driven by the new rank system.
-  - “Who can create captures / how often”: decide which actions are rank-tiered (capture create frequency, check-in issuance limits, per-node caps).
-
-**Change plan (specific files)**
-- Add policy doc:
-  - `docs/RANK_GATING.md` (new): computation rules, examples, tier table, and “why” language guidelines.
-  - Update cross-references in `docs/ROADMAP.md` and/or `docs/ARCHITECTURE.md` (small link-only change).
-- Define new shared contract primitives (names may vary, but must be versioned and testable):
-  - `packages/domain/schemas/rank_event.json` (new)
-  - `packages/domain/schemas/rank_event_type.json` (new enum)
-  - `packages/domain/schemas/rank_events_response.json` (new)
-  - `packages/domain/schemas/me_response.json` (new or update existing `MeResponse` contract approach)
-
-**Contracts (must be explicit)**
-- Decide whether `/v1/me` is expanded or a new endpoint is introduced:
-Decision: extend `GET /v1/me` to include rank breakdown + next unlock.
-
-**Acceptance criteria**
-- `docs/RANK_GATING.md` explains:
-  - exactly which verified actions generate rank,
-  - how rank is computed from the event log,
-  - how rank changes (or doesn’t) after moderation,
-  - at least 3 concrete examples (“rank 0 → 1”, “repeat captures at same node”, “moderated content”),
-  - the specific gating rules/tier thresholds applied by the API.
-
-**Non-goals**
-- No “perfect” scoring model; MVP should optimize for clarity + auditability.
-- No new “quality scoring” features (belongs to verification/scoring upgrades; see `docs/FUTUREOPTIONS.md`).
+## Task template (use for new tasks)
+- **Context (what/why):** what this enables and why it matters.
+- **Change plan (files):** concrete file-level plan (DB, API, web, docs).
+- **Contracts:** API endpoints + payload shapes + shared schemas to update.
+- **Acceptance criteria:** objective outcomes; call out tests and manual checks.
+- **Non-goals:** explicitly deferred scope (when relevant).
 
 ---
 
-### M4-02 — Add an append-only rank event log (DB + domain model)
+## Milestone 5 — Attribution + rights (MVP → upgrade)
 
-**Context (what/why)**
-- M4 requires an **auditable event log** so rank can be derived, debugged, and explained.
-- The existing capture audit log (`capture_events`) shows verification transitions, but there is no rank-side ledger.
+Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 
-**Change plan (specific files)**
-- DB model + migration:
-  - `apps/api/src/groundedart_api/db/models.py`: add `CuratorRankEvent` (name TBD) model.
-  - `apps/api/src/groundedart_api/db/migrations/versions/*_rank_events.py` (new Alembic migration).
-- Domain service:
-  - `apps/api/src/groundedart_api/domain/rank_events.py` (new): append-only write helpers + idempotency guard.
-- API schemas:
-  - `apps/api/src/groundedart_api/api/schemas.py`: add `RankEvent`/`RankEventsResponse` models (or wire via separate module if preferred).
-- Shared JSON schemas:
-  - `packages/domain/schemas/rank_event*.json` (from M4-01).
+**Goal:** the product cannot become a scrape/repost machine; attribution and consent are first-class.
 
-**Contract sketch (minimum fields; align with shared schemas)**
-- `rank_events` (table):
-  - `id` (uuid), `user_id` (uuid), `event_type` (string enum), `delta` (int), `created_at` (timestamptz)
-  - linkage fields for auditability: `capture_id` (uuid, nullable), `node_id` (uuid, nullable)
-  - `details` (jsonb, nullable) for explainability without schema churn
-- Idempotency:
-  - A uniqueness constraint to prevent duplicate events for the same underlying trigger, e.g.:
-    - `(event_type, capture_id)` if capture verification is the only source in MVP, or
-    - `(event_type, source_kind, source_id)` for extensibility.
+### M5-01 — Decide and document the visibility + rights policy
+- **Context (what/why):**
+  - We need a single, explicit policy for (a) when a capture is visible to others, (b) what attribution/consent fields are required, and (c) how “verified” interacts with visibility.
+  - Without this decision, downstream API and UI work will drift and “public post” bypasses will appear.
+- **Change plan (files):**
+  - Add a dedicated policy doc (recommended): `docs/ATTRIBUTION_RIGHTS.md`.
+  - Cross-link from: `docs/ROADMAP.md`, `docs/PRIVACY_SECURITY.md`, `docs/DATA_MODEL.md`.
+  - Capture the final field list and enum values that will become shared contracts in `packages/domain/schemas/`.
+- **Contracts (decision outputs that become source of truth):**
+  - **Default visibility policy**
+    - Decision: `visibility = private` by default; verification does **not** auto-promote.
+    - Public visibility requires explicit publish (`visibility = public`) **and** all attribution + rights requirements.
+  - **Attribution required for public visibility** (final):
+    - Required: `attribution_artist_name`, `attribution_artwork_title`, `attribution_source` (freeform).
+    - Optional: `attribution_source_url` (URL when the source is online).
+  - **Consent/rights required for public visibility** (final):
+    - `rights_basis` enum: `i_took_photo`, `permission_granted`, `public_domain`
+    - `rights_attestation` (boolean) with `rights_attested_at` persisted.
+- **Acceptance criteria:**
+  - `docs/ATTRIBUTION_RIGHTS.md` states the rules in “if/then” form and includes at least 3 examples (private draft, verified-but-not-public, public verified).
+  - The doc names the exact fields/enums that must be added to shared schemas and DB.
+- **Non-goals:**
+  - A complete legal framework (DMCA automation, jurisdiction-specific terms, creator claims workflows).
 
-**Acceptance criteria**
-- A rank event can be written for a user with stable linkage to the triggering capture/node.
-- Duplicate writes for the same trigger are rejected (or treated as a no-op) deterministically.
-- Events are queryable by user in chronological order with a stable response schema.
+### M5-02 — Add capture visibility + consent fields to DB and shared contracts
+- **Context (what/why):**
+  - We can’t enforce “no public visibility without attribution/consent” without persisted, queryable fields and shared contract definitions.
+- **Change plan (files):**
+  - DB + models:
+    - Add new columns to `captures` via Alembic migration under `apps/api/src/groundedart_api/db/migrations/versions/`.
+    - Update `apps/api/src/groundedart_api/db/models.py` (`Capture`) to include rememberable, explicit fields (no overloading `state`).
+  - API schemas:
+    - Update `apps/api/src/groundedart_api/api/schemas.py` capture payload types to include visibility + attribution + consent fields where needed.
+    - Update `apps/api/src/groundedart_api/api/routers/admin.py` admin capture mapping if admin payloads should expose the new fields.
+  - Shared domain schemas:
+    - Add enums in `packages/domain/schemas/`:
+      - `capture_visibility.json` (e.g., `private`, `public`)
+      - `capture_rights_basis.json` (`i_took_photo`, `permission_granted`, `public_domain`)
+    - Update existing request/response schemas:
+      - `packages/domain/schemas/create_capture_request.json`
+      - `packages/domain/schemas/capture_public.json` (or add a new “public listing” schema if we don’t want to expand `CapturePublic`)
+      - `packages/domain/schemas/capture_error_code.json` (new enforcement-related codes)
+      - `packages/domain/schemas/admin_capture.json` (if admin views must include new rights/visibility fields)
+  - Web types:
+    - Update `apps/web/src/features/captures/api.ts` types to match the chosen contract(s).
+- **Contracts:**
+  - DB (minimum):
+    - `captures.visibility` (`private|public`)
+    - `captures.rights_basis` (enum)
+    - `captures.rights_attested_at` (timestamp)
+    - `captures.attribution_source` (string)
+    - `captures.attribution_source_url` (optional string)
+  - API payload(s) must carry enough data for UI to:
+    - show why a capture is not public (missing fields / not verified),
+    - show attribution alongside any publicly visible image.
+- **Acceptance criteria:**
+  - Alembic migration applies cleanly on a fresh DB and on an existing dev DB.
+  - Shared schemas in `packages/domain/schemas/` and API Pydantic models in `apps/api/src/groundedart_api/api/schemas.py` agree on field names and allowed enum values.
+- **Non-goals:**
+  - Introducing Artwork/Artist tables or claim flows (those are separate domain expansions).
 
-**Non-goals**
-- No background workers required for MVP; rank events can be emitted inline with verification transitions.
+### M5-03 — Enforce “public visibility requires attribution + consent” on the read path
+- **Context (what/why):**
+  - The roadmap exit criterion is specifically about **bypasses**: if any discovery/detail endpoint can return an image to non-owners without required fields, we’ve failed M5.
+- **Change plan (files):**
+  - Implement a single policy function used everywhere:
+    - New module: `apps/api/src/groundedart_api/domain/attribution_rights.py`
+      - `is_capture_publicly_visible(capture: Capture) -> bool`
+      - `missing_public_requirements(capture: Capture) -> list[str]` (for explainability)
+  - Apply the policy to node detail capture listings:
+    - Update `apps/api/src/groundedart_api/api/routers/nodes.py:list_node_captures` to:
+      - keep admin override behavior for `state != verified`,
+      - for non-admin/verified listings, filter to captures that are both:
+        - `state == verified`, and
+        - `is_capture_publicly_visible(...) == True`.
+  - Prevent accidental URL leakage:
+    - Update `apps/api/src/groundedart_api/api/routers/captures.py:capture_to_public` (or a new mapping function) to avoid returning `image_url` for captures that are not meant to be visible to the requesting principal.
+      - If needed, introduce an “owner view” vs “public view” mapping, rather than overloading one type.
+  - Tests:
+    - Add API tests under `apps/api/tests/` that cover visibility enforcement on `GET /v1/nodes/{node_id}/captures`.
+- **Contracts:**
+  - `GET /v1/nodes/{node_id}/captures` (non-admin) must never return an `image_url` for a capture that:
+    - is not `verified`, or
+    - does not satisfy attribution + consent requirements per M5-01, or
+    - is explicitly `private` (if `visibility` exists).
+  - If we add new error codes for “publish” actions, they must be reflected in:
+    - `packages/domain/schemas/capture_error_code.json`
+    - `apps/web/src/features/captures/api.ts:CaptureErrorCode`
+- **Acceptance criteria:**
+  - A verified capture with missing attribution/consent does not appear in node capture listings for normal users.
+  - Admin listing behavior is unchanged (admin can still review non-verified states via existing admin auth).
+  - Tests demonstrate the bypass is closed (at least one positive and one negative case).
+- **Non-goals:**
+  - Fully access-controlled media delivery (signed URLs / auth-checked media routes). M5 should avoid *API-disclosed* leaks; storage hardening is a follow-on.
 
----
+### M5-04 — Add an explicit “publish” path (and keep default conservative)
+- **Context (what/why):**
+  - Today, attribution fields exist but are optional and there is no explicit “publish” concept; we need a server-enforced way to keep captures private by default, while allowing creators to make them visible once requirements are met.
+- **Change plan (files):**
+  - API:
+    - Add an owner-only endpoint to update attribution/consent fields post-capture:
+      - Recommended: `PATCH /v1/captures/{capture_id}` (owner only).
+    - Add an owner-only “request public” endpoint or field transition:
+      - Option A: `POST /v1/captures/{capture_id}/publish` (clear intent; easy to audit).
+      - Option B: allow `PATCH` to set `visibility="public"` and validate server-side.
+    - Implement server-side validation that blocks publishing unless:
+      - capture is `verified` (or matches the chosen policy in M5-01),
+      - required attribution fields are present and non-empty,
+      - consent/rights fields are present per M5-01.
+  - Shared schemas:
+    - Add/update request/response schemas in `packages/domain/schemas/` for the new endpoint(s).
+  - Web:
+    - Update `apps/web/src/features/captures/CaptureFlow.tsx` to collect attribution + consent in-flow (before publish or as part of publish).
+    - Update `apps/web/src/routes/NodeDetailRoute.tsx` to display attribution next to any capture that’s visible.
+  - Tests:
+    - API tests for publish validation and for the “default is private” behavior.
+- **Contracts:**
+  - New endpoint(s) (final names decided in this task) must return stable error codes for:
+    - “not verified yet”
+    - “missing attribution”
+    - “missing consent/rights”
+  - The “publish” mechanism must be auditable (either via capture events or a new event type).
+- **Acceptance criteria:**
+  - A newly created capture remains non-public by default (per M5-01).
+  - Publishing fails with explainable errors until requirements are met; once met, the capture becomes visible in `GET /v1/nodes/{node_id}/captures`.
+  - Node detail UI shows attribution for visible captures.
+- **Non-goals:**
+  - Social sharing links, public web pages, SEO/indexing, or any “feed” concept.
 
-### M4-03 — Implement rank projection (derive rank from events) + backfill
+### M5-05 — Reporting + takedown primitives (manual-first)
+- **Context (what/why):**
+  - Even with conservative defaults, the system needs a first-class way to report problematic content and to take it down quickly with an audit trail.
+- **Change plan (files):**
+  - DB + models:
+    - Add a `content_reports` table (or similarly named) via Alembic migration:
+      - references `capture_id` (and optionally `node_id`)
+      - reporter `user_id` (nullable if we decide to allow unauthenticated reports)
+      - `reason` enum/string + freeform `details`
+      - `created_at`, `resolved_at`, `resolution` fields
+    - Update `apps/api/src/groundedart_api/db/models.py` with the new model.
+  - API (user-facing):
+    - Add `POST /v1/captures/{capture_id}/reports` (or `POST /v1/reports`) to create a report.
+    - Rate limit and record abuse events if spammy (reuse `apps/api/src/groundedart_api/domain/abuse_events.py` patterns).
+  - API (admin-facing):
+    - Extend `apps/api/src/groundedart_api/api/routers/admin.py` with:
+      - `GET /v1/admin/reports` (queue)
+      - `POST /v1/admin/reports/{report_id}/resolve`
+    - On resolution, admins can hide a capture via existing moderation transition machinery.
+  - Domain:
+    - Extend reason codes to include rights/reporting outcomes:
+      - `packages/domain/schemas/capture_state_reason_code.json`
+      - `apps/api/src/groundedart_api/domain/capture_state_reason_code.py`
+  - Web:
+    - Add a minimal “Report” action from the node detail capture UI (`apps/web/src/routes/NodeDetailRoute.tsx`).
+  - Tests:
+    - API tests for report creation, admin listing, and resolution that hides a capture.
+- **Contracts:**
+  - Add reporting schemas in `packages/domain/schemas/` (exact names to decide in this task), e.g.:
+    - `report_reason_code.json`
+    - `create_report_request.json`, `create_report_response.json`
+    - `admin_reports_response.json`, `admin_report_resolve_request.json`
+  - Takedown should map to `CaptureState.hidden` with a distinct reason code (e.g., `report_hide`, `rights_takedown`) to keep auditability.
+- **Acceptance criteria:**
+  - Users can file a report against a capture they can see.
+  - Admin can review reports, mark them resolved, and hide the referenced capture.
+  - A hidden capture no longer appears in `GET /v1/nodes/{node_id}/captures` and its `image_url` is not disclosed through public listing payloads.
+- **Non-goals:**
+  - Automated detection (copyright matching, ML moderation), creator self-serve takedowns, or legal intake workflows.
 
-**Context (what/why)**
-- Gating must rely on rank derived from rank events, not a manually-updated integer.
-- Projection is needed to efficiently answer “current rank” during node discovery and write gates.
-
-**Change plan (specific files)**
-- Projection logic:
-  - `apps/api/src/groundedart_api/domain/rank_projection.py` (new): compute rank from events and/or maintain a cached snapshot.
-  - `apps/api/src/groundedart_api/db/models.py`: optionally extend `CuratorProfile` to store snapshot metadata (e.g., `rank_updated_at`, `rank_version`).
-- API integration:
-  - `apps/api/src/groundedart_api/api/routers/me.py`: return rank derived from projection; optionally include “next unlock” info.
-  - `apps/api/src/groundedart_api/api/routers/nodes.py`: use projected rank for read gating.
-- Backfill tooling:
-  - `apps/api/scripts/backfill_rank_events.py` (new): create rank events from existing verified captures (and/or state events) in a safe, idempotent way.
-
-**Contracts**
-- If a “rank explanation” UX is in-scope, decide and expose:
-  - breakdown summary (e.g., total verified contributions counted, caps applied),
-  - next unlock threshold and what it unlocks (at least in generic terms).
-
-**Acceptance criteria**
-- Rank returned by the API is reproducible by recomputing from the rank event log.
-- Running backfill twice does not create duplicates and does not change computed rank.
-- Node discovery read gating continues to function with projected rank (no regression to anonymous rank=0 behavior).
-
-**Non-goals**
-- No real-time push updates; polling/refresh is acceptable for MVP.
-
----
-
-### M4-04 — Emit rank events from verified actions (verification → rank)
-
-**Context (what/why)**
-- Rank must be derived from **verified actions only**. In the current system, the most concrete verified action is a capture transitioning to `verified`.
-
-**Change plan (specific files)**
-- Hook points (choose the authoritative emission point and keep it centralized):
-  - `apps/api/src/groundedart_api/domain/capture_moderation.py`: emit rank event when `target_state=verified` succeeds.
-  - `apps/api/src/groundedart_api/api/routers/admin.py`: ensure admin transitions flow through the same domain function (already does).
-  - (Optional) `apps/api/src/groundedart_api/domain/verification_events.py`: if rank should also be emitted by async hooks later, define the boundary now but keep MVP inline.
-- Tests:
-  - `apps/api/tests/test_rank_events.py` (new): verifying a capture creates exactly one rank event and updates projected rank.
-
-**Contracts**
-- Rank event type(s) for MVP:
-  - `capture_verified` (required)
-  - Decide whether `capture_unverified`/`capture_hidden` exists for moderation reversals (from M4-01).
-
-**Acceptance criteria**
-- Transitioning a capture to `verified` results in:
-  - a new rank event row (idempotent),
-  - updated rank projection output for that user.
-- If moderation reversal affects rank (per M4-01), reversing the state updates rank deterministically and is auditable.
-
-**Non-goals**
-- No user-to-user endorsements, likes, or social reputation signals in MVP.
-
----
-
-### M4-05 — Rank-based gating enforcement (read + write paths)
-
-**Context (what/why)**
-- ROADMAP requires gating at the API level for:
-  - which nodes are visible in discovery (read path),
-  - who can create captures / how often (write path),
-  - with UX support that can explain requirements without relying on client-side hiding.
-
-**Change plan (specific files)**
-- Centralize gating rules:
-  - `apps/api/src/groundedart_api/domain/gating.py` (new): helpers like `assert_can_view_node(...)`, `assert_can_checkin(...)`, `assert_can_create_capture(...)`.
-- Apply to endpoints:
-  - `apps/api/src/groundedart_api/api/routers/nodes.py`: list/detail gating uses projected rank (retain current “filtered out” behavior for locked nodes).
-  - `apps/api/src/groundedart_api/api/routers/nodes.py`: check-in challenge + check-in should enforce node gating policy (decision from M4-01).
-  - `apps/api/src/groundedart_api/api/routers/captures.py`: capture creation should enforce rank-tiered frequency limits and/or per-node requirements (decision from M4-01).
-- Contracts + error codes:
-  - Extend existing error enums (preferred) or add a new gating enum:
-    - `packages/domain/schemas/capture_error_code.json` (add codes like `insufficient_rank`, `feature_locked`, if applicable)
-    - `packages/domain/schemas/node_error_code.json` (if any new node gating codes are exposed)
-  - Mirror in API/web error handling.
-
-**Acceptance criteria**
-- Gating is enforced on the discovery read path (existing `min_rank` behavior continues, driven by projected rank).
-- At least one write-path gate is rank-dependent (not just time-window rate limiting), and is enforced server-side with stable error codes/details.
-- Anonymous users remain supported (rank defaults to 0; gating is consistent).
-
-**Non-goals**
-- No client-only gating; the client may *explain*, but the server must *enforce*.
-
----
-
-### M4-06 — “Unlock” UX: explain rank and requirements in plain language (web)
-
-**Context (what/why)**
-- Users must understand why discovery is sparse and what actions unlock more access.
-- The UI already displays `node.min_rank` on node detail, but it does not expose current user rank, progress, or “next unlock”.
-
-**Change plan (specific files)**
-- API client + types:
-  - `apps/web/src/features/me/api.ts` (new or extend existing patterns): fetch rank/progress endpoint(s).
-  - `apps/web/src/features/me/types.ts` (new): `MeResponse` (and progress payload if added).
-- UI:
-  - `apps/web/src/routes/MapRoute.tsx`: show current rank + next unlock guidance (non-intrusive, map-first).
-  - `apps/web/src/routes/NodeDetailRoute.tsx`: show “You are rank X; this node requires Y” when available (without leaking locked nodes beyond what’s already visible).
-  - `apps/web/src/routes/CaptureRoute.tsx` / `apps/web/src/features/captures/CaptureFlow.tsx` (as applicable): show rank-based restrictions when capture creation is blocked.
-
-**Contracts**
-- Copy requirements (keep it consistent):
-  - “Current rank”
-  - “To unlock more, verify N more captures” or “verify at a new node” (depends on rank model)
-  - “Why can’t I post?” messaging maps to stable API reason codes.
-
-**Acceptance criteria**
-- A user can see:
-  - their current rank,
-  - what they need to do to unlock the next tier (in plain language),
-  - when an action is blocked, the UI explains the requirement without vague errors.
-
-**Non-goals**
-- No gamified leaderboards or social feeds in MVP.
+### M5-06 — (Optional) Tip receipt integration behind an adapter boundary
+- **Context (what/why):**
+  - We want to support “proof of tip” later without coupling the core capture pipeline to any specific payments/on-chain system.
+- **Change plan (files):**
+  - Define an adapter boundary:
+    - New protocol/module: `apps/api/src/groundedart_api/domain/tip_receipts.py` (interface + data model).
+    - Dependency injection wiring similar to `apps/api/src/groundedart_api/domain/verification_events.py`.
+  - Add optional capture fields only if we need persistence in MVP:
+    - DB migration + `apps/api/src/groundedart_api/db/models.py` fields such as `tip_receipt_provider`, `tip_receipt_ref` (names to be decided).
+  - Add docs:
+    - `docs/ATTRIBUTION_RIGHTS.md` should note the adapter and that it’s off by default.
+- **Contracts:**
+  - No external provider contract is committed in MVP; any provider-specific payload must be encapsulated behind the adapter and be feature-flagged.
+- **Acceptance criteria:**
+  - The codebase has a clear adapter seam where tip receipts could be integrated later without changing capture core flows.
+- **Non-goals:**
+  - Implementing or deploying a real tip provider integration in MVP.

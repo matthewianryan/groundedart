@@ -38,11 +38,16 @@ def capture_to_admin(capture: Capture, base_media_url: str = "/media") -> AdminC
         node_id=capture.node_id,
         user_id=capture.user_id,
         state=capture.state,
+        visibility=capture.visibility,
         state_reason=capture.state_reason,
         created_at=capture.created_at,
         image_url=image_url,
         attribution_artist_name=capture.attribution_artist_name,
         attribution_artwork_title=capture.attribution_artwork_title,
+        attribution_source=capture.attribution_source,
+        attribution_source_url=capture.attribution_source_url,
+        rights_basis=capture.rights_basis,
+        rights_attested_at=capture.rights_attested_at,
     )
 
 
