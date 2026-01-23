@@ -17,7 +17,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ..
       dockerfile: apps/api/Dockerfile
     environment:
       DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
@@ -27,7 +27,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - ..:/app
       - api_media:/app/.local_media
     working_dir: /app/apps/api
     depends_on:
@@ -39,7 +39,7 @@ services:
 
   web:
     build:
-      context: .
+      context: ..
       dockerfile: apps/web/Dockerfile
     environment:
       VITE_API_ORIGIN: http://localhost:8000
@@ -47,7 +47,7 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/web:/app/apps/web
+      - ../apps/web:/app/apps/web
       - web_node_modules:/app/apps/web/node_modules
     working_dir: /app/apps/web
     depends_on:
