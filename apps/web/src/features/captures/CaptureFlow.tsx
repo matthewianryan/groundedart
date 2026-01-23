@@ -1,14 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { isApiError } from "../../api/http";
-import { createCapture, uploadCaptureImage } from "./api";
+import { createCapture } from "./api";
 import {
-  buildCaptureAsset,
   buildCaptureIntent,
   type CaptureAsset,
   type CaptureFailure,
   type CaptureFlowStatus,
   type CaptureIntent
 } from "./captureFlowState";
+import {
+  ImagePreprocessError,
+  IMAGE_PREPROCESS_MAX_BYTES,
+  preprocessCaptureImage
+} from "./imagePreprocess";
+import { useUploadQueue } from "./useUploadQueue";
 
 type CaptureFlowProps = {
   nodeId: string;
@@ -18,7 +23,7 @@ type CaptureFlowProps = {
   onCancel?: () => void;
 };
 
-type FailureStage = "submitting" | "uploading" | null;
+type FailureStage = "submitting" | "persisting" | "uploading" | null;
 
 export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }: CaptureFlowProps) {
   const [status, setStatus] = useState<CaptureFlowStatus>("capturing");
@@ -27,8 +32,16 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
   const [captureId, setCaptureId] = useState<string | null>(null);
   const [failure, setFailure] = useState<CaptureFailure | null>(null);
   const [failureStage, setFailureStage] = useState<FailureStage>(null);
+  const [isEnqueued, setIsEnqueued] = useState(false);
+  const submitLock = useRef(false);
+  const uploadQueue = useUploadQueue();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const preprocessToken = useRef(0);
   const previewUrl = useMemo(() => (asset ? URL.createObjectURL(asset.blob) : null), [asset]);
+  const queuedItem = useMemo(
+    () => (captureId ? uploadQueue.items.find((i) => i.captureId === captureId) ?? null : null),
+    [captureId, uploadQueue.items]
+  );
 
   useEffect(() => {
     return () => {
@@ -53,6 +66,8 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
     setCaptureId(null);
     setFailure(null);
     setFailureStage(null);
+    setIsEnqueued(false);
+    submitLock.current = false;
   }
 
   function handleTriggerCamera() {
@@ -61,28 +76,59 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
     inputRef.current.click();
   }
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const nextAsset = buildCaptureAsset(file);
-    setAsset(nextAsset);
-    if (checkinToken) setIntent(buildCaptureIntent(nodeId, checkinToken));
+    preprocessToken.current += 1;
+    const token = preprocessToken.current;
     setFailure(null);
     setFailureStage(null);
-    setStatus("preview");
+    setStatus("processing");
+    try {
+      const processed = await preprocessCaptureImage(file);
+      if (token !== preprocessToken.current) return;
+      setAsset({
+        blob: processed.blob,
+        file: processed.file,
+        fileName: processed.fileName,
+        contentType: processed.mimeType,
+        size: processed.size
+      });
+      if (checkinToken) setIntent(buildCaptureIntent(nodeId, checkinToken));
+      setStatus("preview");
+    } catch (err) {
+      if (token !== preprocessToken.current) return;
+      setStatus("failure");
+      setFailureStage(null);
+      if (err instanceof ImagePreprocessError) {
+        const detail =
+          err.code === "unsupported_type"
+            ? "Use a JPG, PNG, or WebP photo."
+            : err.code === "decode_failed"
+              ? "Retake the photo or choose a different image."
+              : err.code === "too_large"
+                ? `Try again with a smaller photo (target ${Math.round(
+                    IMAGE_PREPROCESS_MAX_BYTES / 1024
+                  )} KB or less).`
+                : "Please retake the photo.";
+        setFailure({
+          title: "Photo processing failed",
+          detail: err.message,
+          nextStep: detail
+        });
+        return;
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      setFailure({
+        title: "Photo processing failed",
+        detail: message,
+        nextStep: "Retake the photo or choose another image."
+      });
+    }
   }
 
   function handleRetake() {
     resetToCapture();
-  }
-
-  async function handleUploadWithCapture(existingCaptureId: string, file: File) {
-    setStatus("uploading");
-    await uploadCaptureImage(existingCaptureId, file);
-    setStatus("success");
-    setFailure(null);
-    setFailureStage(null);
-    if (onDone) onDone(existingCaptureId);
   }
 
   async function handleSubmit() {
@@ -103,6 +149,8 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
       return;
     }
 
+    if (submitLock.current) return;
+    submitLock.current = true;
     setFailure(null);
     setFailureStage(null);
     setStatus("submitting");
@@ -112,23 +160,34 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
         checkin_token: checkinToken
       });
       setCaptureId(created.capture.id);
-      setFailureStage("uploading");
+      setStatus("uploading");
+      setFailureStage("persisting");
       try {
-        await handleUploadWithCapture(created.capture.id, asset.file);
+        await uploadQueue.enqueue({
+          captureId: created.capture.id,
+          blob: asset.blob,
+          fileName: asset.fileName,
+          mimeType: asset.contentType,
+          createdAt: new Date().toISOString()
+        });
+        setIsEnqueued(true);
+        setFailureStage("uploading");
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setStatus("failure");
-        setFailureStage("uploading");
+        setFailureStage("persisting");
         setFailure({
-          title: "Upload failed",
+          title: "Could not save upload intent",
           detail: message,
-          nextStep: "Retry the upload or retake the photo."
+          nextStep: "Free up storage (or exit private browsing) and retry."
         });
+        submitLock.current = false;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setStatus("failure");
       setFailureStage("submitting");
+      submitLock.current = false;
       if (isApiError(err)) {
         setFailure({
           title: "Capture creation failed",
@@ -151,18 +210,33 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
       resetToCapture();
       return;
     }
-    if (failureStage === "uploading" && captureId) {
+    if ((failureStage === "persisting" || failureStage === "uploading") && captureId) {
+      setStatus("uploading");
+      setFailure(null);
+      setFailureStage("uploading");
+      submitLock.current = true;
       try {
-        await handleUploadWithCapture(captureId, asset.file);
+        if (!isEnqueued && asset) {
+          await uploadQueue.enqueue({
+            captureId,
+            blob: asset.blob,
+            fileName: asset.fileName,
+            mimeType: asset.contentType,
+            createdAt: new Date().toISOString()
+          });
+          setIsEnqueued(true);
+        }
+        await uploadQueue.retryNow(captureId);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setStatus("failure");
         setFailureStage("uploading");
         setFailure({
-          title: "Upload failed",
+          title: "Retry failed",
           detail: message,
-          nextStep: "Retry the upload or retake the photo."
+          nextStep: "Try again once you have a stable connection."
         });
+        submitLock.current = false;
       }
       return;
     }
@@ -170,35 +244,43 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
   }
 
   async function handleUploadFromPreview() {
-    if (!asset) return;
-    if (!checkinToken) {
-      setFailure({
-        title: "Missing check-in token",
-        detail: "Return to the map and check in before submitting."
-      });
-      setStatus("failure");
-      return;
-    }
-    if (captureId) {
-      try {
-        await handleUploadWithCapture(captureId, asset.file);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        setStatus("failure");
-        setFailureStage("uploading");
-        setFailure({
-          title: "Upload failed",
-          detail: message,
-          nextStep: "Retry the upload or retake the photo."
-        });
-      }
-      return;
-    }
+    if (status !== "preview") return;
     await handleSubmit();
   }
 
+  useEffect(() => {
+    if (!captureId || !isEnqueued) return;
+
+    if (!queuedItem) {
+      setStatus("success");
+      setFailure(null);
+      setFailureStage(null);
+      return;
+    }
+
+    if (queuedItem.status === "failed") {
+      const detail = queuedItem.lastError?.code
+        ? `${queuedItem.lastError.code}: ${queuedItem.lastError.message}`
+        : queuedItem.lastError?.message;
+      setStatus("failure");
+      setFailureStage("uploading");
+      setFailure({
+        title: "Upload failed",
+        detail: detail ?? "Upload failed.",
+        nextStep: "Retry the upload once you have a stable connection."
+      });
+      submitLock.current = false;
+      return;
+    }
+
+    setStatus("uploading");
+    setFailure(null);
+    setFailureStage("uploading");
+  }, [captureId, isEnqueued, queuedItem]);
+
   function describeState() {
     if (status === "capturing") return "Ready to capture";
+    if (status === "processing") return "Processing photo";
     if (status === "preview") return "Review your photo";
     if (status === "submitting") return "Creating capture";
     if (status === "uploading") return "Uploading photo";
@@ -258,12 +340,19 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
             {asset.size ? `${Math.round(asset.size / 1024)} KB` : null}
           </div>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={handleUploadFromPreview} disabled={!checkinToken}>
+            <button onClick={handleUploadFromPreview} disabled={!checkinToken || submitLock.current}>
               Submit
             </button>
             <button onClick={handleRetake}>Retake</button>
             {onCancel ? <button onClick={onCancel}>Cancel</button> : null}
           </div>
+        </div>
+      ) : null}
+
+      {status === "processing" ? (
+        <div style={{ marginTop: 12 }}>
+          <div>Processing your photo…</div>
+          <div className="muted">We resize and strip metadata before upload.</div>
         </div>
       ) : null}
 
@@ -276,8 +365,23 @@ export function CaptureFlow({ nodeId, nodeName, checkinToken, onDone, onCancel }
 
       {status === "uploading" ? (
         <div style={{ marginTop: 12 }}>
-          <div>Uploading your photo…</div>
-          <div className="muted">Uploads can take longer on weak networks.</div>
+          <div>
+            {queuedItem?.status === "pending"
+              ? "Queued for upload…"
+              : queuedItem?.status === "uploading"
+                ? "Uploading your photo…"
+                : "Preparing upload…"}
+          </div>
+          {queuedItem?.status === "pending" && queuedItem.nextAttemptAt ? (
+            <div className="muted">Next retry: {new Date(queuedItem.nextAttemptAt).toLocaleTimeString()}</div>
+          ) : queuedItem?.progress?.total ? (
+            <div className="muted">
+              {Math.min(100, Math.round((queuedItem.progress.loaded / queuedItem.progress.total) * 100))}% uploaded
+            </div>
+          ) : (
+            <div className="muted">Uploads can take longer on weak networks.</div>
+          )}
+          {!navigator.onLine ? <div className="muted">Offline — upload will resume when you reconnect.</div> : null}
         </div>
       ) : null}
 

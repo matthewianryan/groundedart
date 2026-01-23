@@ -1,4 +1,11 @@
-export type CaptureFlowStatus = "capturing" | "preview" | "submitting" | "uploading" | "success" | "failure";
+export type CaptureFlowStatus =
+  | "capturing"
+  | "processing"
+  | "preview"
+  | "submitting"
+  | "uploading"
+  | "success"
+  | "failure";
 
 export type CaptureIntent = {
   nodeId: string;

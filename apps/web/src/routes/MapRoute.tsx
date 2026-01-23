@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { ensureAnonymousSession } from "../auth/session";
 import { isApiError } from "../api/http";
 import { createCheckinChallenge, checkIn } from "../features/checkin/api";
+import { useUploadQueue } from "../features/captures/useUploadQueue";
 import { listNodes } from "../features/nodes/api";
 import type { NodePublic } from "../features/nodes/types";
 
@@ -41,6 +42,13 @@ function formatMeters(value?: number): string {
   return `${Math.round(value)}m`;
 }
 
+function formatSeconds(seconds: number): string {
+  if (seconds <= 0) return "now";
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  return `${minutes}m`;
+}
+
 export function MapRoute() {
   const [nodes, setNodes] = useState<NodePublic[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -69,6 +77,7 @@ export function MapRoute() {
   const lastBboxRef = useRef<string | undefined>(undefined);
   const mapRef = useRef<google.maps.Map | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const uploadQueue = useUploadQueue();
 
   useEffect(() => {
     ensureAnonymousSession()
@@ -380,6 +389,78 @@ export function MapRoute() {
       <div className="panel">
         <h1>Grounded Art (MVP scaffold)</h1>
         <div className="muted">{status}</div>
+
+        {uploadQueue.persistenceError ? (
+          <div className="alert">
+            <div>Upload persistence unavailable</div>
+            <div className="muted">{uploadQueue.persistenceError}</div>
+          </div>
+        ) : null}
+
+        {uploadQueue.items.length ? (
+          <div className="node">
+            <div className="node-header">
+              <div>
+                <div className="muted">Pending uploads</div>
+                <div>
+                  {uploadQueue.uploadingCount ? `${uploadQueue.uploadingCount} uploading` : null}
+                  {uploadQueue.uploadingCount && (uploadQueue.pendingCount || uploadQueue.failedCount) ? " • " : null}
+                  {uploadQueue.pendingCount ? `${uploadQueue.pendingCount} queued` : null}
+                  {uploadQueue.pendingCount && uploadQueue.failedCount ? " • " : null}
+                  {uploadQueue.failedCount ? `${uploadQueue.failedCount} failed` : null}
+                </div>
+              </div>
+              <div className="node-actions">
+                <button
+                  onClick={() => uploadQueue.items.filter((i) => i.status === "failed").forEach((i) => void uploadQueue.retryNow(i.captureId))}
+                  disabled={!uploadQueue.failedCount}
+                >
+                  Retry failed
+                </button>
+              </div>
+            </div>
+            {!isOnline ? <div className="muted" style={{ marginTop: 4 }}>Offline — uploads resume when you reconnect.</div> : null}
+            <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
+              {uploadQueue.items.map((item) => {
+                const nextAttemptMs = item.nextAttemptAt ? Date.parse(item.nextAttemptAt) : null;
+                const secondsUntilRetry =
+                  nextAttemptMs && Number.isFinite(nextAttemptMs) ? Math.max(0, Math.round((nextAttemptMs - Date.now()) / 1000)) : null;
+                const progressPct =
+                  item.progress?.total && item.progress.total > 0
+                    ? Math.min(100, Math.round((item.progress.loaded / item.progress.total) * 100))
+                    : null;
+
+                return (
+                  <div key={item.captureId} style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                    <div>
+                      <div>Capture {item.captureId.slice(0, 8)}…</div>
+                      <div className="muted">
+                        {item.status === "uploading"
+                          ? progressPct !== null
+                            ? `Uploading (${progressPct}%)`
+                            : "Uploading"
+                          : item.status === "pending"
+                            ? secondsUntilRetry && secondsUntilRetry > 0
+                              ? `Retrying in ${formatSeconds(secondsUntilRetry)}`
+                              : "Queued"
+                            : "Failed"}
+                        {item.lastError?.code ? ` • ${item.lastError.code}` : null}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {item.status === "failed" ? (
+                        <button onClick={() => void uploadQueue.retryNow(item.captureId)} disabled={!isOnline}>
+                          Retry
+                        </button>
+                      ) : null}
+                      <button onClick={() => void uploadQueue.remove(item.captureId)}>Remove</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         <div className="node">
           <div className="node-header">

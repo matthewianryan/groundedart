@@ -63,6 +63,7 @@ Deliverables:
 - Capture states: `draft` → `pending_verification` → `verified` / `rejected` / `hidden` (+ reason codes).
 - Basic anti-abuse (rate limits, per-node caps, suspicious behavior tracking).
 - Async hooks for future scoring/similarity (can be no-op at first, but the boundary exists).
+- Minimal moderation interface or admin endpoint to transition states with audit log.
 
 Exit criteria:
 - State transitions are server-enforced, testable, and explainable.
