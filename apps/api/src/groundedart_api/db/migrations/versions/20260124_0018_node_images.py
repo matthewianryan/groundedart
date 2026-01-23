@@ -1,7 +1,7 @@
 """Add node image metadata.
 
 Revision ID: 20260124_0018
-Revises: 20260124_0017_seed_nodes_refresh
+Revises: 20260124_0017
 Create Date: 2026-01-24 00:32:00.000000
 """
 
@@ -16,7 +16,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "20260124_0018"
-down_revision = "20260124_0017_seed_nodes_refresh"
+down_revision = "20260124_0017"
 branch_labels = None
 depends_on = None
 
