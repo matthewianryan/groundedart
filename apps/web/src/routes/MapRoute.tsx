@@ -22,6 +22,86 @@ const MAP_OPTIONS: google.maps.MapOptions = {
   zoomControl: true,
   gestureHandling: "greedy"
 };
+const MAP_STYLE_STORAGE_KEY = "groundedart.mapStylePreset";
+
+type MapStylePresetKey = "default" | "ultra-minimal" | "canvas" | "streets" | "context";
+type MapStylePreset = {
+  label: string;
+  description: string;
+  styles: google.maps.MapTypeStyle[] | null;
+};
+
+const MAP_STYLE_PRESETS: Record<MapStylePresetKey, MapStylePreset> = {
+  default: {
+    label: "Default",
+    description: "Standard Google map styling.",
+    styles: null
+  },
+  "ultra-minimal": {
+    label: "Ultra Minimal",
+    description: "Road geometry only, with labels and POI removed.",
+    styles: [
+      { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "poi", stylers: [{ visibility: "off" }] },
+      { featureType: "transit", stylers: [{ visibility: "off" }] },
+      { featureType: "administrative", stylers: [{ visibility: "off" }] },
+      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ color: "#000000" }, { visibility: "on" }] },
+      { featureType: "road", elementType: "geometry.stroke", stylers: [{ visibility: "off" }] }
+    ]
+  },
+  canvas: {
+    label: "Canvas",
+    description: "Highways and arterials only, drawn as bold strokes.",
+    styles: [
+      { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "poi", stylers: [{ visibility: "off" }] },
+      { featureType: "transit", stylers: [{ visibility: "off" }] },
+      { featureType: "administrative", stylers: [{ visibility: "off" }] },
+      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ visibility: "off" }] },
+      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 2.0 }] },
+      { featureType: "road.arterial", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 1.4 }] },
+      { featureType: "road.local", stylers: [{ visibility: "off" }] }
+    ]
+  },
+  streets: {
+    label: "Streets",
+    description: "All road classes visible with minimal context.",
+    styles: [
+      { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "poi", stylers: [{ visibility: "off" }] },
+      { featureType: "transit", stylers: [{ visibility: "off" }] },
+      { featureType: "administrative", stylers: [{ visibility: "off" }] },
+      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ visibility: "off" }] },
+      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 2.0 }] },
+      { featureType: "road.arterial", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 1.4 }] },
+      { featureType: "road.local", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 0.9 }] }
+    ]
+  },
+  context: {
+    label: "Context",
+    description: "Major roads plus locality and neighborhood labels.",
+    styles: [
+      { featureType: "all", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "poi", stylers: [{ visibility: "off" }] },
+      { featureType: "transit", stylers: [{ visibility: "off" }] },
+      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#FFFFF0" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ visibility: "off" }] },
+      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 2.0 }] },
+      { featureType: "road.arterial", elementType: "geometry.stroke", stylers: [{ color: "#000000" }, { weight: 1.4 }] },
+      { featureType: "administrative.locality", elementType: "labels.text", stylers: [{ visibility: "on" }, { color: "#000000" }] },
+      { featureType: "administrative.neighborhood", elementType: "labels.text", stylers: [{ visibility: "on" }, { color: "#000000" }] }
+    ]
+  }
+};
+
+const MAP_STYLE_ORDER: MapStylePresetKey[] = ["default", "ultra-minimal", "canvas", "streets", "context"];
 type CheckinState = "idle" | "requesting_location" | "challenging" | "verifying" | "success" | "failure";
 
 function bboxString(bounds: google.maps.LatLngBounds): string {
@@ -49,6 +129,29 @@ function formatSeconds(seconds: number): string {
   return `${minutes}m`;
 }
 
+function isMapStylePresetKey(value: string): value is MapStylePresetKey {
+  return Object.prototype.hasOwnProperty.call(MAP_STYLE_PRESETS, value);
+}
+
+function getStoredMapStylePreset(): MapStylePresetKey {
+  if (typeof window === "undefined") return "default";
+  try {
+    const stored = window.localStorage.getItem(MAP_STYLE_STORAGE_KEY);
+    if (stored && isMapStylePresetKey(stored)) return stored;
+  } catch {
+    // Ignore storage failures.
+  }
+  return "default";
+}
+
+function persistMapStylePreset(preset: MapStylePresetKey) {
+  try {
+    window.localStorage.setItem(MAP_STYLE_STORAGE_KEY, preset);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 export function MapRoute() {
   const [nodes, setNodes] = useState<NodePublic[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -72,6 +175,7 @@ export function MapRoute() {
   const [directionsRequest, setDirectionsRequest] = useState<google.maps.DirectionsRequest | null>(null);
   const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
   const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null);
+  const [mapStylePreset, setMapStylePreset] = useState<MapStylePresetKey>(() => getStoredMapStylePreset());
   const nodeFetchAbortRef = useRef<AbortController | null>(null);
   const nodeFetchDebounceRef = useRef<number | null>(null);
   const lastBboxRef = useRef<string | undefined>(undefined);
@@ -96,6 +200,23 @@ export function MapRoute() {
       setStatus(`Map load error: ${loadError.message ?? "unknown error"}`);
     }
   }, [loadError]);
+
+  useEffect(() => {
+    persistMapStylePreset(mapStylePreset);
+  }, [mapStylePreset]);
+
+  const mapOptions = useMemo<google.maps.MapOptions>(
+    () => ({
+      ...MAP_OPTIONS,
+      styles: MAP_STYLE_PRESETS[mapStylePreset].styles
+    }),
+    [mapStylePreset]
+  );
+
+  const handleMapStyleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextPreset = event.target.value;
+    if (isMapStylePresetKey(nextPreset)) setMapStylePreset(nextPreset);
+  }, []);
 
   const scheduleNodesRefresh = useCallback((bbox?: string) => {
     lastBboxRef.current = bbox;
@@ -390,6 +511,30 @@ export function MapRoute() {
         <h1>Grounded Art (MVP scaffold)</h1>
         <div className="muted">{status}</div>
 
+        <details className="settings">
+          <summary>Global settings</summary>
+          <div className="settings-body">
+            <div className="settings-group">
+              <div className="settings-label">Map style preset</div>
+              <div className="settings-options">
+                {MAP_STYLE_ORDER.map((presetKey) => (
+                  <label key={presetKey} className="settings-option">
+                    <input
+                      type="radio"
+                      name="map-style-preset"
+                      value={presetKey}
+                      checked={mapStylePreset === presetKey}
+                      onChange={handleMapStyleChange}
+                    />
+                    <span>{MAP_STYLE_PRESETS[presetKey].label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="muted">{MAP_STYLE_PRESETS[mapStylePreset].description}</div>
+            </div>
+          </div>
+        </details>
+
         {uploadQueue.persistenceError ? (
           <div className="alert">
             <div>Upload persistence unavailable</div>
@@ -588,7 +733,7 @@ export function MapRoute() {
             onLoad={handleMapLoad}
             onUnmount={handleMapUnmount}
             onIdle={handleMapIdle}
-            options={MAP_OPTIONS}
+            options={mapOptions}
           >
             {nodes.map((n) => (
               <Marker key={n.id} position={{ lat: n.lat, lng: n.lng }} onClick={() => setSelectedNodeId(n.id)} />
