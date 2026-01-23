@@ -19,9 +19,30 @@ class AnonymousSessionResponse(BaseModel):
     session_expires_at: dt.datetime
 
 
+class RankBreakdownCaps(BaseModel):
+    per_node_per_day: int = 0
+    per_day_total: int = 0
+
+
+class RankBreakdown(BaseModel):
+    points_total: int = 0
+    verified_captures_total: int = 0
+    verified_captures_counted: int = 0
+    caps_applied: RankBreakdownCaps
+
+
+class NextUnlock(BaseModel):
+    min_rank: int
+    summary: str
+    unlocks: list[str]
+
+
 class MeResponse(BaseModel):
     user_id: uuid.UUID
     rank: int = 0
+    rank_version: str
+    rank_breakdown: RankBreakdown
+    next_unlock: NextUnlock | None = None
 
 
 class RankEvent(BaseModel):

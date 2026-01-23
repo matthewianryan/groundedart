@@ -8,8 +8,15 @@ from geoalchemy2.elements import WKTElement
 from httpx import AsyncClient
 
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import CuratorProfile, Node, Session, User
+from groundedart_api.db.models import Capture, CuratorProfile, CuratorRankEvent, Node, Session, User
+from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.settings import get_settings
+
+
+def _rank_event_timestamp(base_time: dt.datetime, index: int) -> dt.datetime:
+    day_offset = index // 3
+    minute_offset = index % 3
+    return base_time + dt.timedelta(days=day_offset, minutes=minute_offset)
 
 
 async def create_user_session(
@@ -27,6 +34,43 @@ async def create_user_session(
         session.add(user)
         await session.flush()
         session.add(CuratorProfile(user_id=user.id, rank=rank))
+        if rank > 0:
+            now = dt.datetime.now(dt.UTC)
+            for idx in range(rank):
+                node_id = uuid.uuid4()
+                capture_id = uuid.uuid4()
+                session.add(
+                    Node(
+                        id=node_id,
+                        name=f"Rank Node {idx}",
+                        category="mural",
+                        description=None,
+                        location=WKTElement("POINT(-122.40 37.78)", srid=4326),
+                        radius_m=25,
+                        min_rank=0,
+                    )
+                )
+                session.add(
+                    Capture(
+                        id=capture_id,
+                        user_id=user.id,
+                        node_id=node_id,
+                        state=CaptureState.verified.value,
+                    )
+                )
+                session.add(
+                    CuratorRankEvent(
+                        id=uuid.uuid4(),
+                        user_id=user.id,
+                        event_type="capture_verified",
+                        delta=1,
+                        rank_version="v1_points",
+                        capture_id=capture_id,
+                        node_id=node_id,
+                        created_at=_rank_event_timestamp(now, idx),
+                        details={"source": "test_seed"},
+                    )
+                )
         session.add(
             Session(
                 user_id=user.id,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import uuid
 from typing import Any
 
@@ -22,9 +23,10 @@ async def append_rank_event(
     node_id: uuid.UUID | None = None,
     details: dict[str, Any] | None = None,
     rank_version: str = DEFAULT_RANK_VERSION,
+    created_at: dt.datetime | None = None,
 ) -> CuratorRankEvent:
     event_id = uuid.uuid4()
-    created_at = utcnow()
+    created_at = created_at or utcnow()
     insert_stmt = (
         insert(CuratorRankEvent)
         .values(

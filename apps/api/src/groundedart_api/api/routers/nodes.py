@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import logging
 import uuid
 from typing import Any
 
@@ -9,8 +10,6 @@ from geoalchemy2 import Geography
 from sqlalchemy import cast, func, select
 
 from groundedart_api.api.routers.captures import capture_to_public
-import logging
-
 from groundedart_api.api.schemas import (
     CapturesResponse,
     CheckinChallengeResponse,
@@ -21,11 +20,12 @@ from groundedart_api.api.schemas import (
 )
 from groundedart_api.auth.deps import CurrentUser, OptionalUser
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import Capture, CheckinChallenge, CheckinToken, CuratorProfile, Node
+from groundedart_api.db.models import Capture, CheckinChallenge, CheckinToken, Node
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.abuse_events import record_abuse_event
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
+from groundedart_api.domain.rank_projection import get_rank_for_user
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.time import UtcNow, get_utcnow
 
@@ -50,8 +50,7 @@ async def _get_user_rank(db: DbSessionDep, user: OptionalUser) -> int:
     if user is None:
         return 0
 
-    profile = await db.scalar(select(CuratorProfile).where(CuratorProfile.user_id == user.id))
-    return profile.rank if profile else 0
+    return await get_rank_for_user(db=db, user_id=user.id)
 
 
 def _row_to_node_public(row: Any) -> NodePublic:
