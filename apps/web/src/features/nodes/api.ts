@@ -1,5 +1,5 @@
 import { apiFetch } from "../../api/http";
-import type { NodePublic, NodesResponse } from "./types";
+import type { NodeGetResponse, NodesResponse } from "./types";
 
 export function listNodes(bbox?: string, init?: RequestInit) {
   const qs = bbox ? `?bbox=${encodeURIComponent(bbox)}` : "";
@@ -7,5 +7,5 @@ export function listNodes(bbox?: string, init?: RequestInit) {
 }
 
 export function getNode(nodeId: string, init?: RequestInit) {
-  return apiFetch<NodePublic>(`/v1/nodes/${nodeId}`, init);
+  return apiFetch<NodeGetResponse>(`/v1/nodes/${nodeId}`, init);
 }

@@ -10,7 +10,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    "types": ["vite/client", "google.maps"]
+    "types": ["vite/client", "google.maps", "node"]
   },
   "include": ["src"]
 }

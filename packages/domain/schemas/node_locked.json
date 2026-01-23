@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeLocked",
+  "type": "object",
+  "required": ["id", "visibility", "min_rank", "current_rank", "required_rank"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "visibility": { "type": "string", "enum": ["locked"] },
+    "min_rank": { "type": "integer", "minimum": 0 },
+    "current_rank": { "type": "integer", "minimum": 0 },
+    "required_rank": { "type": "integer", "minimum": 0 }
+  }
+}

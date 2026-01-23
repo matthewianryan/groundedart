@@ -335,7 +335,7 @@ export function CaptureFlow({
       setFailureStage("submitting");
       submitLock.current = false;
       if (isApiError(err)) {
-        if (err.code === "insufficient_rank") {
+        if (err.code === "rank_locked") {
           const details = err.details ?? {};
           const currentRank = getNumberDetail(details, "current_rank");
           const requiredRank =

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -63,6 +64,7 @@ class RankEventsResponse(BaseModel):
 
 class NodePublic(BaseModel):
     id: uuid.UUID
+    visibility: Literal["visible"] = "visible"
     name: str
     description: str | None = None
     category: str
@@ -74,6 +76,18 @@ class NodePublic(BaseModel):
 
 class NodesResponse(BaseModel):
     nodes: list[NodePublic]
+
+
+class NodeLocked(BaseModel):
+    id: uuid.UUID
+    visibility: Literal["locked"] = "locked"
+    min_rank: int
+    current_rank: int = Field(ge=0)
+    required_rank: int = Field(ge=0)
+
+
+class NodeGetResponse(BaseModel):
+    node: NodePublic | NodeLocked
 
 
 class CheckinChallengeResponse(BaseModel):
@@ -133,6 +147,11 @@ class CreateCaptureResponse(BaseModel):
 
 
 class CapturesResponse(BaseModel):
+    captures: list[CapturePublic]
+
+
+class NodeCapturesResponse(BaseModel):
+    node: NodePublic | NodeLocked
     captures: list[CapturePublic]
 
 

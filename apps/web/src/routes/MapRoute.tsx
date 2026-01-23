@@ -441,6 +441,17 @@ export function MapRoute() {
               : "Wait for a stronger GPS fix before retrying.",
             nextStep: "Stay still for a moment and retry."
           });
+        } else if (err.code === "rank_locked") {
+          const currentRank = getNumberDetail(details, "current_rank") ?? me?.rank;
+          const requiredRank = getNumberDetail(details, "required_rank") ?? getNumberDetail(details, "node_min_rank");
+          const detailParts: string[] = [];
+          if (currentRank !== undefined) detailParts.push(`Your rank: ${currentRank}.`);
+          if (requiredRank !== undefined) detailParts.push(`Unlock at rank ${requiredRank}.`);
+          setCheckinFailure({
+            title: "Node locked",
+            detail: detailParts.length ? detailParts.join(" ") : err.message,
+            nextStep: "Verify more captures to increase your rank."
+          });
         } else if (err.code === "outside_geofence") {
           const distance = getNumberDetail(details, "distance_m");
           const radius = getNumberDetail(details, "radius_m");

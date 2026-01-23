@@ -211,8 +211,11 @@ async def test_nodes_rank_filtering_for_list_and_detail(
     assert str(restricted_id) not in anonymous_ids
 
     anonymous_detail = await client.get(f"/v1/nodes/{restricted_id}")
-    assert anonymous_detail.status_code == 404
-    assert anonymous_detail.json()["error"]["code"] == "node_not_found"
+    assert anonymous_detail.status_code == 200
+    payload = anonymous_detail.json()
+    assert payload["node"]["visibility"] == "locked"
+    assert payload["node"]["id"] == str(restricted_id)
+    assert payload["node"]["required_rank"] == 2
 
     settings = get_settings()
     _, token = await create_user_session(
@@ -230,7 +233,9 @@ async def test_nodes_rank_filtering_for_list_and_detail(
 
     authed_detail = await client.get(f"/v1/nodes/{restricted_id}")
     assert authed_detail.status_code == 200
-    assert authed_detail.json()["id"] == str(restricted_id)
+    payload = authed_detail.json()
+    assert payload["node"]["visibility"] == "visible"
+    assert payload["node"]["id"] == str(restricted_id)
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,5 @@
 import { ApiError, type ApiErrorPayload, apiFetch } from "../../api/http";
+import type { NodeView } from "../nodes/types";
 
 export type CapturePublic = {
   id: string;
@@ -15,7 +16,8 @@ export type CapturePublic = {
   rights_attested_at: string | null;
 };
 
-export type CapturesResponse = {
+export type NodeCapturesResponse = {
+  node: NodeView;
   captures: CapturePublic[];
 };
 
@@ -51,11 +53,11 @@ export type CaptureErrorCode =
   | "capture_not_found"
   | "forbidden"
   | "auth_required"
+  | "rank_locked"
   | "file_too_large"
   | "invalid_media_type"
   | "upload_incomplete"
   | "capture_rate_limited"
-  | "insufficient_rank"
   | "pending_verification_cap_reached"
   | "capture_not_verified"
   | "capture_missing_attribution"
@@ -114,7 +116,7 @@ export async function publishCapture(captureId: string) {
 }
 
 export async function listNodeCaptures(nodeId: string, init?: RequestInit) {
-  return apiFetch<CapturesResponse>(`/v1/nodes/${nodeId}/captures`, init);
+  return apiFetch<NodeCapturesResponse>(`/v1/nodes/${nodeId}/captures`, init);
 }
 
 export type UploadCaptureImageOptions = {

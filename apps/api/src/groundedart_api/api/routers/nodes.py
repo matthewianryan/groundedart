@@ -11,10 +11,12 @@ from sqlalchemy import cast, func, select
 
 from groundedart_api.api.routers.captures import capture_to_public
 from groundedart_api.api.schemas import (
-    CapturesResponse,
     CheckinChallengeResponse,
     CheckinRequest,
     CheckinResponse,
+    NodeCapturesResponse,
+    NodeGetResponse,
+    NodeLocked,
     NodePublic,
     NodesResponse,
 )
@@ -30,7 +32,6 @@ from groundedart_api.domain.gating import (
     assert_can_access_node,
     assert_can_checkin,
     assert_can_checkin_challenge,
-    assert_can_view_node,
 )
 from groundedart_api.domain.rank_projection import get_rank_for_user
 from groundedart_api.observability.ops import observe_operation
@@ -119,22 +120,30 @@ async def list_nodes(
         return NodesResponse(nodes=[_row_to_node_public(row) for row in rows])
 
 
-@router.get("/nodes/{node_id}", response_model=NodePublic)
+@router.get("/nodes/{node_id}", response_model=NodeGetResponse)
 async def get_node(
     node_id: uuid.UUID,
     db: DbSessionDep,
     user: OptionalUser,
-) -> NodePublic:
+) -> NodeGetResponse:
     rank = await _get_user_rank(db, user)
     query = _node_select_with_coords().where(Node.id == node_id)
     row = (await db.execute(query)).one_or_none()
     if row is None:
         raise AppError(code="node_not_found", message="Node not found", status_code=404)
-    assert_can_view_node(rank=rank, node_min_rank=row.min_rank)
-    return _row_to_node_public(row)
+    if rank < row.min_rank:
+        return NodeGetResponse(
+            node=NodeLocked(
+                id=row.id,
+                min_rank=row.min_rank,
+                current_rank=rank,
+                required_rank=row.min_rank,
+            )
+        )
+    return NodeGetResponse(node=_row_to_node_public(row))
 
 
-@router.get("/nodes/{node_id}/captures", response_model=CapturesResponse)
+@router.get("/nodes/{node_id}/captures", response_model=NodeCapturesResponse)
 async def list_node_captures(
     node_id: uuid.UUID,
     db: DbSessionDep,
@@ -142,7 +151,7 @@ async def list_node_captures(
     state: CaptureState = Query(default=CaptureState.verified),
     admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
     settings: Settings = Depends(get_settings),
-) -> CapturesResponse:
+) -> NodeCapturesResponse:
     is_admin = admin_token == settings.admin_api_token
     if state != CaptureState.verified and not is_admin:
         raise AppError(
@@ -156,7 +165,16 @@ async def list_node_captures(
     node_row = (await db.execute(node_query)).one_or_none()
     if node_row is None:
         raise AppError(code="node_not_found", message="Node not found", status_code=404)
-    assert_can_view_node(rank=rank, node_min_rank=node_row.min_rank)
+    if rank < node_row.min_rank:
+        return NodeCapturesResponse(
+            node=NodeLocked(
+                id=node_row.id,
+                min_rank=node_row.min_rank,
+                current_rank=rank,
+                required_rank=node_row.min_rank,
+            ),
+            captures=[],
+        )
 
     captures = (
         await db.scalars(
@@ -167,7 +185,10 @@ async def list_node_captures(
     ).all()
     if not is_admin:
         captures = [capture for capture in captures if is_capture_publicly_visible(capture)]
-    return CapturesResponse(captures=[capture_to_public(capture) for capture in captures])
+    return NodeCapturesResponse(
+        node=_row_to_node_public(node_row),
+        captures=[capture_to_public(capture) for capture in captures],
+    )
 
 
 @router.post("/nodes/{node_id}/checkins/challenge", response_model=CheckinChallengeResponse)

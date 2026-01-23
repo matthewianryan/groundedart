@@ -134,11 +134,14 @@ describe("MapRoute", () => {
       nodes: [
         {
           id: "node_1",
+          visibility: "visible",
           name: "Test node",
           category: "Mural",
           description: "",
           lat: 1,
-          lng: 2
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
         }
       ]
     });
@@ -165,11 +168,14 @@ describe("MapRoute", () => {
       nodes: [
         {
           id: "node_1",
+          visibility: "visible",
           name: "Test node",
           category: "Mural",
           description: "",
           lat: 1,
-          lng: 2
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
         }
       ]
     });
@@ -203,11 +209,14 @@ describe("MapRoute", () => {
       nodes: [
         {
           id: "node_1",
+          visibility: "visible",
           name: "Test node",
           category: "Mural",
           description: "",
           lat: 1,
-          lng: 2
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
         }
       ]
     });

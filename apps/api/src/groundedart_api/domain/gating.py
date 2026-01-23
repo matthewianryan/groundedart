@@ -84,18 +84,13 @@ def _rate_limit_details(
     }
 
 
-def assert_can_view_node(*, rank: int, node_min_rank: int) -> None:
-    if rank < node_min_rank:
-        raise AppError(code="node_not_found", message="Node not found", status_code=404)
-
-
 def _assert_rank_for_node(*, rank: int, node_min_rank: int, feature: str) -> RankTier:
     tier = get_rank_tier(rank)
     if rank < node_min_rank:
         raise AppError(
-            code="insufficient_rank",
-            message="Insufficient rank",
-            status_code=403,
+            code="rank_locked",
+            message="Rank locked",
+            status_code=409,
             details=_insufficient_rank_details(
                 rank=rank,
                 tier=tier,

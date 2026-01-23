@@ -5,19 +5,21 @@ export type CheckinRequest = { challenge_id: string; lat: number; lng: number; a
 export type CheckinResponse = { checkin_token: string; expires_at: string };
 export type CheckinErrorCode =
   | "node_not_found"
+  | "rank_locked"
   | "invalid_challenge"
   | "challenge_used"
   | "challenge_expired"
   | "checkin_challenge_rate_limited"
   | "location_accuracy_too_low"
   | "outside_geofence"
-  | "capture_rate_limited"
-  | "insufficient_rank";
+  | "capture_rate_limited";
 export type CheckinErrorDetails = {
   accuracy_m?: number;
   max_allowed_m?: number;
   radius_m?: number;
   distance_m?: number;
+  current_rank?: number;
+  required_rank?: number;
 };
 
 export function createCheckinChallenge(nodeId: string) {
