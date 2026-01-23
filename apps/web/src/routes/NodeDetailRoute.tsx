@@ -151,6 +151,80 @@ export function NodeDetailRoute() {
 
   return (
     <div className="detail-layout">
+      {/* Left Panel - Image */}
+      <motion.div
+        initial="initial"
+        animate="animate"
+        variants={fadeInUp}
+        transition={defaultTransition}
+        className="detail-image-panel"
+      >
+        <div className="h-full flex flex-col relative">
+          {/* Image Container - Takes up available space, leaving room for credit */}
+          <div className="flex-1 min-h-0 relative overflow-hidden bg-grounded-charcoal/5 dark:bg-grounded-parchment/5">
+            {node ? (
+              <img
+                src={getNodeImageUrl(node)}
+                alt={node.visibility === "visible" ? (node as NodePublic).name : "Node image"}
+                loading="lazy"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // If the image fails to load, try a fallback placeholder
+                  const target = e.currentTarget;
+                  const fallback = getPlaceholderImage(node.id);
+                  if (!target.src.includes("artworks")) {
+                    target.src = fallback;
+                  }
+                }}
+              />
+            ) : nodeId ? (
+              <img
+                src={getPlaceholderImage(nodeId)}
+                alt="Loading node image"
+                loading="lazy"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-grounded-charcoal/5 dark:bg-grounded-parchment/5">
+                <div className="text-grounded-charcoal/40 dark:text-grounded-parchment/40 text-sm uppercase tracking-wide">
+                  No image available
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Image Credit - Fixed at bottom, separate from image with proper spacing */}
+          {node && node.visibility === "visible" ? (
+            <div className="flex-shrink-0 p-6 bg-white dark:bg-grounded-charcoal border-t-2 border-grounded-charcoal/20 dark:border-grounded-parchment/20 shadow-sm">
+              <p className="text-sm font-medium text-grounded-charcoal dark:text-grounded-parchment uppercase tracking-wide leading-relaxed">
+                IMAGE CREDIT:{" "}
+                {(node as NodePublic).image_attribution ? (
+                  <>
+                    {(node as NodePublic).image_source_url ? (
+                      <a
+                        href={(node as NodePublic).image_source_url!}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-grounded-copper hover:text-grounded-clay dark:text-grounded-copper dark:hover:text-grounded-clay transition-colors underline decoration-1 underline-offset-2"
+                      >
+                        {(node as NodePublic).image_attribution}
+                      </a>
+                    ) : (
+                      <span className="text-grounded-charcoal dark:text-grounded-parchment">{(node as NodePublic).image_attribution}</span>
+                    )}
+                    {(node as NodePublic).image_license ? (
+                      <span className="ml-2 text-grounded-charcoal/70 dark:text-grounded-parchment/70">— {(node as NodePublic).image_license}</span>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="text-grounded-copper font-semibold">UNKNOWN</span>
+                )}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </motion.div>
+
+      {/* Right Panel - Content */}
       <motion.div
         initial="initial"
         animate="animate"
@@ -203,48 +277,6 @@ export function NodeDetailRoute() {
               </motion.div>
             ) : (
               <>
-                {/* Node Image */}
-                {node.visibility === "visible" ? (
-                  <motion.div variants={staggerItem}>
-                    <Card variant="light" padding="none" className="overflow-hidden mb-6">
-                      <div className="relative w-full aspect-video overflow-hidden bg-grounded-charcoal/5 dark:bg-grounded-parchment/5 min-h-[200px]">
-                        <img
-                          src={getNodeImageUrl(node)}
-                          alt={node.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // If the image fails to load, try a fallback placeholder
-                            const target = e.currentTarget;
-                            const fallback = getPlaceholderImage(node.id);
-                            if (!target.src.includes("artworks")) {
-                              target.src = fallback;
-                            }
-                          }}
-                        />
-                      </div>
-                      {node.visibility === "visible" && (node as NodePublic).image_attribution ? (
-                        <div className="p-4 border-t border-grounded-charcoal/10 dark:border-grounded-parchment/10">
-                          <p className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60 uppercase tracking-wide">
-                            Image credit:{" "}
-                            {(node as NodePublic).image_source_url ? (
-                              <a
-                                href={(node as NodePublic).image_source_url!}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-grounded-copper hover:text-grounded-clay dark:text-grounded-copper dark:hover:text-grounded-clay transition-colors"
-                              >
-                                {(node as NodePublic).image_attribution}
-                              </a>
-                            ) : (
-                              <span>{(node as NodePublic).image_attribution}</span>
-                            )}
-                          </p>
-                        </div>
-                      ) : null}
-                    </Card>
-                  </motion.div>
-                ) : null}
 
                 {/* Node Information Card */}
                 <motion.div variants={staggerItem}>
