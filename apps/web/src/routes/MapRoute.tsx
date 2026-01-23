@@ -14,6 +14,8 @@ import { useUploadQueue } from "../features/captures/useUploadQueue";
 import { formatNextUnlockLine, formatRankCapsNotes } from "../features/me/copy";
 import { getMe } from "../features/me/api";
 import type { MeResponse } from "../features/me/types";
+import { listNotifications, markNotificationRead } from "../features/notifications/api";
+import type { NotificationPublic } from "../features/notifications/types";
 import { listNodes } from "../features/nodes/api";
 import type { NodePublic } from "../features/nodes/types";
 
@@ -121,6 +123,14 @@ function bboxString(bounds: google.maps.LatLngBounds): string {
 
 type CheckinFailure = { title: string; detail?: string; nextStep?: string };
 
+const MISSING_FIELD_LABELS: Record<string, string> = {
+  attribution_artist_name: "artist name",
+  attribution_artwork_title: "artwork title",
+  attribution_source: "attribution source",
+  rights_basis: "rights basis",
+  rights_attested_at: "rights attestation"
+};
+
 function getNumberDetail(details: Record<string, unknown>, key: string): number | undefined {
   const value = details[key];
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -136,6 +146,18 @@ function formatSeconds(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.round(seconds / 60);
   return `${minutes}m`;
+}
+
+function formatNotificationTimestamp(value: string): string {
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return value;
+  return new Date(parsed).toLocaleString();
+}
+
+function formatMissingFields(fields?: string[] | null): string | null {
+  if (!fields?.length) return null;
+  const labels = fields.map((field) => MISSING_FIELD_LABELS[field] ?? field);
+  return labels.join(", ");
 }
 
 function isMapStylePresetKey(value: string): value is MapStylePresetKey {
@@ -176,6 +198,9 @@ export function MapRoute() {
   const [checkinRadiusM, setCheckinRadiusM] = useState<number | undefined>(undefined);
   const [me, setMe] = useState<MeResponse | null>(null);
   const [meStatus, setMeStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [notifications, setNotifications] = useState<NotificationPublic[]>([]);
+  const [notificationsStatus, setNotificationsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const navigate = useNavigate();
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
@@ -224,6 +249,24 @@ export function MapRoute() {
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setMeStatus("error");
+      });
+    return () => controller.abort();
+  }, [sessionReady]);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    const controller = new AbortController();
+    setNotificationsStatus("loading");
+    setNotificationsError(null);
+    listNotifications({ signal: controller.signal })
+      .then((res) => {
+        setNotifications(res.notifications);
+        setNotificationsStatus("ready");
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setNotificationsStatus("error");
+        setNotificationsError(err instanceof Error ? err.message : String(err));
       });
     return () => controller.abort();
   }, [sessionReady]);
@@ -555,8 +598,31 @@ export function MapRoute() {
     []
   );
 
+  async function handleRefreshNotifications() {
+    setNotificationsStatus("loading");
+    setNotificationsError(null);
+    try {
+      const res = await listNotifications();
+      setNotifications(res.notifications);
+      setNotificationsStatus("ready");
+    } catch (err) {
+      setNotificationsStatus("error");
+      setNotificationsError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleMarkNotificationRead(notificationId: string) {
+    try {
+      const updated = await markNotificationRead(notificationId);
+      setNotifications((prev) => prev.map((item) => (item.id === notificationId ? updated : item)));
+    } catch {
+      // ignore
+    }
+  }
+
   const nextUnlockLine = me ? formatNextUnlockLine(me) : null;
   const capsNotes = me ? formatRankCapsNotes(me.rank_breakdown) : [];
+  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
 
   return (
     <div className="layout">
@@ -595,6 +661,64 @@ export function MapRoute() {
             Rank unavailable.
           </div>
         ) : null}
+
+        <div className="node">
+          <div className="node-header">
+            <div>
+              <div className="muted">Notifications</div>
+              <div>
+                {notificationsStatus === "loading"
+                  ? "Loading…"
+                  : notificationsStatus === "error"
+                    ? "Unavailable"
+                    : unreadCount
+                      ? `${unreadCount} unread`
+                      : "All caught up"}
+              </div>
+            </div>
+            <div className="node-actions">
+              <button onClick={handleRefreshNotifications} disabled={notificationsStatus === "loading"}>
+                {notificationsStatus === "error" ? "Retry" : "Refresh"}
+              </button>
+            </div>
+          </div>
+          {notificationsStatus === "error" ? (
+            <div className="alert">
+              <div>Could not load notifications.</div>
+              <div className="muted">{notificationsError ?? "Unknown error"}</div>
+            </div>
+          ) : null}
+          {notificationsStatus !== "loading" && notifications.length === 0 ? (
+            <div className="muted">No notifications yet.</div>
+          ) : null}
+          {notifications.length ? (
+            <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
+              {notifications.map((notification) => {
+                const missing = formatMissingFields(notification.details?.missing_fields);
+                return (
+                  <div key={notification.id} style={{ display: "grid", gap: 4 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <div>
+                        <strong>{notification.title}</strong>
+                        <div className="muted">{formatNotificationTimestamp(notification.created_at)}</div>
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => void handleMarkNotificationRead(notification.id)}
+                          disabled={Boolean(notification.read_at)}
+                        >
+                          {notification.read_at ? "Read" : "Mark read"}
+                        </button>
+                      </div>
+                    </div>
+                    {notification.body ? <div className="muted">{notification.body}</div> : null}
+                    {missing ? <div className="muted">Missing: {missing}</div> : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
 
         <details className="settings">
           <summary>Global settings</summary>

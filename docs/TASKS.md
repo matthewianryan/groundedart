@@ -237,180 +237,6 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 - **Non-goals:**
   - Automated detection (copyright matching, ML moderation), creator self-serve takedowns, or legal intake workflows.
 
-## Milestone 5 — Attribution + rights (MVP → upgrade)
-
-Roadmap source: `docs/ROADMAP.md` (Milestone 5)
-
-**Goal:** the product cannot become a scrape/repost machine; attribution and consent are first-class.
-
-### M5-01 — Decide and document the visibility + rights policy
-- **Context (what/why):**
-  - We need a single, explicit policy for (a) when a capture is visible to others, (b) what attribution/consent fields are required, and (c) how “verified” interacts with visibility.
-  - Without this decision, downstream API and UI work will drift and “public post” bypasses will appear.
-- **Change plan (files):**
-  - Add a dedicated policy doc (recommended): `docs/ATTRIBUTION_RIGHTS.md`.
-  - Cross-link from: `docs/ROADMAP.md`, `docs/PRIVACY_SECURITY.md`, `docs/DATA_MODEL.md`.
-  - Capture the final field list and enum values that will become shared contracts in `packages/domain/schemas/`.
-- **Contracts (decision outputs that become source of truth):**
-  - **Default visibility policy**
-    - Decision: `visibility = private` by default; verification does **not** auto-promote.
-    - Public visibility requires explicit publish (`visibility = public`) **and** all attribution + rights requirements.
-  - **Attribution required for public visibility** (final):
-    - Required: `attribution_artist_name`, `attribution_artwork_title`, `attribution_source` (freeform).
-    - Optional: `attribution_source_url` (URL when the source is online).
-  - **Consent/rights required for public visibility** (final):
-    - `rights_basis` enum: `i_took_photo`, `permission_granted`, `public_domain`
-    - `rights_attestation` (boolean) with `rights_attested_at` persisted.
-- **Acceptance criteria:**
-  - `docs/ATTRIBUTION_RIGHTS.md` states the rules in “if/then” form and includes at least 3 examples (private draft, verified-but-not-public, public verified).
-  - The doc names the exact fields/enums that must be added to shared schemas and DB.
-- **Non-goals:**
-  - A complete legal framework (DMCA automation, jurisdiction-specific terms, creator claims workflows).
-
-### M5-02 — Add capture visibility + consent fields to DB and shared contracts
-- **Context (what/why):**
-  - We can’t enforce “no public visibility without attribution/consent” without persisted, queryable fields and shared contract definitions.
-- **Change plan (files):**
-  - DB + models:
-    - Add new columns to `captures` via Alembic migration under `apps/api/src/groundedart_api/db/migrations/versions/`.
-    - Update `apps/api/src/groundedart_api/db/models.py` (`Capture`) to include rememberable, explicit fields (no overloading `state`).
-  - API schemas:
-    - Update `apps/api/src/groundedart_api/api/schemas.py` capture payload types to include visibility + attribution + consent fields where needed.
-    - Update `apps/api/src/groundedart_api/api/routers/admin.py` admin capture mapping if admin payloads should expose the new fields.
-  - Shared domain schemas:
-    - Add enums in `packages/domain/schemas/`:
-      - `capture_visibility.json` (e.g., `private`, `public`)
-      - `capture_rights_basis.json` (`i_took_photo`, `permission_granted`, `public_domain`)
-    - Update existing request/response schemas:
-      - `packages/domain/schemas/create_capture_request.json`
-      - `packages/domain/schemas/capture_public.json` (or add a new “public listing” schema if we don’t want to expand `CapturePublic`)
-      - `packages/domain/schemas/capture_error_code.json` (new enforcement-related codes)
-      - `packages/domain/schemas/admin_capture.json` (if admin views must include new rights/visibility fields)
-  - Web types:
-    - Update `apps/web/src/features/captures/api.ts` types to match the chosen contract(s).
-- **Contracts:**
-  - DB (minimum):
-    - `captures.visibility` (`private|public`)
-    - `captures.rights_basis` (enum)
-    - `captures.rights_attested_at` (timestamp)
-    - `captures.attribution_source` (string)
-    - `captures.attribution_source_url` (optional string)
-  - API payload(s) must carry enough data for UI to:
-    - show why a capture is not public (missing fields / not verified),
-    - show attribution alongside any publicly visible image.
-- **Acceptance criteria:**
-  - Alembic migration applies cleanly on a fresh DB and on an existing dev DB.
-  - Shared schemas in `packages/domain/schemas/` and API Pydantic models in `apps/api/src/groundedart_api/api/schemas.py` agree on field names and allowed enum values.
-- **Non-goals:**
-  - Introducing Artwork/Artist tables or claim flows (those are separate domain expansions).
-
-### M5-03 — Enforce “public visibility requires attribution + consent” on the read path
-- **Context (what/why):**
-  - The roadmap exit criterion is specifically about **bypasses**: if any discovery/detail endpoint can return an image to non-owners without required fields, we’ve failed M5.
-- **Change plan (files):**
-  - Implement a single policy function used everywhere:
-    - New module: `apps/api/src/groundedart_api/domain/attribution_rights.py`
-      - `is_capture_publicly_visible(capture: Capture) -> bool`
-      - `missing_public_requirements(capture: Capture) -> list[str]` (for explainability)
-  - Apply the policy to node detail capture listings:
-    - Update `apps/api/src/groundedart_api/api/routers/nodes.py:list_node_captures` to:
-      - keep admin override behavior for `state != verified`,
-      - for non-admin/verified listings, filter to captures that are both:
-        - `state == verified`, and
-        - `is_capture_publicly_visible(...) == True`.
-  - Prevent accidental URL leakage:
-    - Update `apps/api/src/groundedart_api/api/routers/captures.py:capture_to_public` (or a new mapping function) to avoid returning `image_url` for captures that are not meant to be visible to the requesting principal.
-      - If needed, introduce an “owner view” vs “public view” mapping, rather than overloading one type.
-  - Tests:
-    - Add API tests under `apps/api/tests/` that cover visibility enforcement on `GET /v1/nodes/{node_id}/captures`.
-- **Contracts:**
-  - `GET /v1/nodes/{node_id}/captures` (non-admin) must never return an `image_url` for a capture that:
-    - is not `verified`, or
-    - does not satisfy attribution + consent requirements per M5-01, or
-    - is explicitly `private` (if `visibility` exists).
-  - If we add new error codes for “publish” actions, they must be reflected in:
-    - `packages/domain/schemas/capture_error_code.json`
-    - `apps/web/src/features/captures/api.ts:CaptureErrorCode`
-- **Acceptance criteria:**
-  - A verified capture with missing attribution/consent does not appear in node capture listings for normal users.
-  - Admin listing behavior is unchanged (admin can still review non-verified states via existing admin auth).
-  - Tests demonstrate the bypass is closed (at least one positive and one negative case).
-- **Non-goals:**
-  - Fully access-controlled media delivery (signed URLs / auth-checked media routes). M5 should avoid *API-disclosed* leaks; storage hardening is a follow-on.
-
-### M5-04 — Add an explicit “publish” path (and keep default conservative)
-- **Context (what/why):**
-  - Today, attribution fields exist but are optional and there is no explicit “publish” concept; we need a server-enforced way to keep captures private by default, while allowing creators to make them visible once requirements are met.
-- **Change plan (files):**
-  - API:
-    - Add an owner-only endpoint to update attribution/consent fields post-capture:
-      - Recommended: `PATCH /v1/captures/{capture_id}` (owner only).
-    - Add an owner-only “request public” endpoint or field transition:
- Decision: `POST /v1/captures/{capture_id}/publish` (clear intent; easy to audit).
-    - Implement server-side validation that blocks publishing unless:
-      - capture is `verified` (or matches the chosen policy in M5-01),
-      - required attribution fields are present and non-empty,
-      - consent/rights fields are present per M5-01.
-  - Shared schemas:
-    - Add/update request/response schemas in `packages/domain/schemas/` for the new endpoint(s).
-  - Web:
-    - Update `apps/web/src/features/captures/CaptureFlow.tsx` to collect attribution + consent in-flow (before publish or as part of publish).
-    - Update `apps/web/src/routes/NodeDetailRoute.tsx` to display attribution next to any capture that’s visible.
-  - Tests:
-    - API tests for publish validation and for the “default is private” behavior.
-- **Contracts:**
-  - New endpoint(s) (final names decided in this task) must return stable error codes for:
-    - “not verified yet”
-    - “missing attribution”
-    - “missing consent/rights”
-  - The “publish” mechanism must be auditable (either via capture events or a new event type).
-- **Acceptance criteria:**
-  - A newly created capture remains non-public by default (per M5-01).
-  - Publishing fails with explainable errors until requirements are met; once met, the capture becomes visible in `GET /v1/nodes/{node_id}/captures`.
-  - Node detail UI shows attribution for visible captures.
-- **Non-goals:**
-  - Social sharing links, public web pages, SEO/indexing, or any “feed” concept.
-
-### M5-05 — Reporting + takedown primitives (manual-first)
-- **Context (what/why):**
-  - Even with conservative defaults, the system needs a first-class way to report problematic content and to take it down quickly with an audit trail.
-- **Change plan (files):**
-  - DB + models:
-    - Add a `content_reports` table (or similarly named) via Alembic migration:
-      - references `capture_id` (and optionally `node_id`)
-      - reporter `user_id` (nullable if we decide to allow unauthenticated reports)
-      - `reason` enum/string + freeform `details`
-      - `created_at`, `resolved_at`, `resolution` fields
-    - Update `apps/api/src/groundedart_api/db/models.py` with the new model.
-  - API (user-facing):
-    - Add `POST /v1/captures/{capture_id}/reports` (or `POST /v1/reports`) to create a report.
-    - Rate limit and record abuse events if spammy (reuse `apps/api/src/groundedart_api/domain/abuse_events.py` patterns).
-  - API (admin-facing):
-    - Extend `apps/api/src/groundedart_api/api/routers/admin.py` with:
-      - `GET /v1/admin/reports` (queue)
-      - `POST /v1/admin/reports/{report_id}/resolve`
-    - On resolution, admins can hide a capture via existing moderation transition machinery.
-  - Domain:
-    - Extend reason codes to include rights/reporting outcomes:
-      - `packages/domain/schemas/capture_state_reason_code.json`
-      - `apps/api/src/groundedart_api/domain/capture_state_reason_code.py`
-  - Web:
-    - Add a minimal “Report” action from the node detail capture UI (`apps/web/src/routes/NodeDetailRoute.tsx`).
-  - Tests:
-    - API tests for report creation, admin listing, and resolution that hides a capture.
-- **Contracts:**
-  - Add reporting schemas in `packages/domain/schemas/` (exact names to decide in this task), e.g.:
-    - `report_reason_code.json`
-    - `create_report_request.json`, `create_report_response.json`
-    - `admin_reports_response.json`, `admin_report_resolve_request.json`
-  - Takedown should map to `CaptureState.hidden` with a distinct reason code (e.g., `report_hide`, `rights_takedown`) to keep auditability.
-- **Acceptance criteria:**
-  - Users can file a report against a capture they can see.
-  - Admin can review reports, mark them resolved, and hide the referenced capture.
-  - A hidden capture no longer appears in `GET /v1/nodes/{node_id}/captures` and its `image_url` is not disclosed through public listing payloads.
-- **Non-goals:**
-  - Automated detection (copyright matching, ML moderation), creator self-serve takedowns, or legal intake workflows.
-
 ### M5-06 — (Optional) Tip receipt integration behind an adapter boundary
 - **Context (what/why):**
   - We want “proof of tip” without coupling the core capture pipeline to any specific payments/on-chain system.
@@ -456,7 +282,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
   - Chain scanning/indexing beyond stored receipts.
   - Wallet↔user claim flows (beyond recording `from_pubkey` on receipts).
   
-### M5-06 — Solana-native tipping (hackathon TODO) — epic
+### M5-07 — Solana-native tipping (hackathon TODO) — epic
 - **Context (what/why):**
   - We want a credible “artist value loop” (tips) without deploying a custom on-chain program or turning the API into a chain indexer.
   - Canonical hackathon decisions (source of truth: `docs/FUTUREOPTIONS.md`):
@@ -465,7 +291,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
     - **On-chain integration**: one system transfer + one Memo instruction containing the `tip_intent_id`.
     - **Receipts**: API verifies receipts via Solana RPC; no client-trusted fields.
 - **Change plan (files):**
-  - Implement the work via the concrete tasks below (M5-06a…M5-06g), keeping tips feature-flagged at the web/UI layer.
+  - Implement the work via the concrete tasks below (M5-07a…M5-07g), keeping tips feature-flagged at the web/UI layer.
   - Cross-cutting doc + env updates:
     - `.env.example` (Solana RPC vars)
     - `docs/COMMANDS.md` (local dev + demo instructions)
@@ -480,7 +306,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 - **Non-goals:**
   - USDC/SPL tokens, custom Solana programs, chain scanning/indexing, wallet↔user claim flows.
 
-### M5-06a — Add artists + default tip target per node
+### M5-07a — Add artists + default tip target per node
 - **Context (what/why):**
   - Tips need an authoritative recipient that is not client-supplied. For hackathon, the recipient is the **default artist per node**.
 - **Change plan (files):**
@@ -495,14 +321,14 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
   - Define a canonical representation for a Solana pubkey in contracts:
     - base58 string, validated format, stored exactly as provided by admin/seed tooling.
   - Define failure behavior for nodes that don’t have a default artist:
-    - tip intent creation must fail with a stable error code (defined in M5-06b).
+    - tip intent creation must fail with a stable error code (defined in M5-07b).
 - **Acceptance criteria:**
   - At least one node in a fresh dev DB can be seeded with a `default_artist_id` that points at an `artists` row with a valid `solana_recipient_pubkey`.
   - The DB enforces referential integrity (FK) and prevents obviously invalid pubkey shapes at the API boundary (format validation).
 - **Non-goals:**
   - Artist claim/verification flows, multiple artists per node, or artworks/artist attribution expansions beyond the `artists` table.
 
-### M5-06b — Tip intents: persistence + `POST /v1/tips/intents`
+### M5-07b — Tip intents: persistence + `POST /v1/tips/intents`
 - **Context (what/why):**
   - Intents are the server-issued “payment plan” that the wallet must execute. The intent id must appear in the Memo to create a verifiable linkage.
 - **Change plan (files):**
@@ -539,7 +365,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 - **Non-goals:**
   - Multiple intents per node aggregation or any kind of “tip presets” UI (beyond a simple amount picker).
 
-### M5-06c — Tip confirmation: on-chain verification + receipt persistence
+### M5-07c — Tip confirmation: on-chain verification + receipt persistence
 - **Context (what/why):**
   - The server must authoritatively verify that a specific on-chain tx paid the canonical recipient the canonical lamports, and that the Memo links to the intent id.
 - **Change plan (files):**
@@ -586,7 +412,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 - **Non-goals:**
   - Supporting SPL tokens, splits/fees, or any “pay-to-post” gating in hackathon scope.
 
-### M5-06d — Receipt reconciliation job (finality upgrades)
+### M5-07d — Receipt reconciliation job (finality upgrades)
 - **Context (what/why):**
   - The API must not treat “seen once” as final; receipts should progress to `confirmed`/`finalized` and be marked `failed` if dropped.
 - **Change plan (files):**
@@ -610,7 +436,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 - **Non-goals:**
   - Chain-wide indexing or discovery of tips that were never confirmed via our API.
 
-### M5-06e — Node tips read API: `GET /v1/nodes/{node_id}/tips`
+### M5-07e — Node tips read API: `GET /v1/nodes/{node_id}/tips`
 - **Context (what/why):**
   - The UI needs a fast, server-authoritative way to show tip totals and recent receipts without scanning the chain.
 - **Change plan (files):**
@@ -632,7 +458,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 - **Non-goals:**
   - Leaderboards, historical analytics, or aggregations that require chain scanning.
 
-### M5-06f — Web: Solana Wallet Adapter + tip UX
+### M5-07f — Web: Solana Wallet Adapter + tip UX
 - **Context (what/why):**
   - Tips must be initiated from a wallet users already have (Phantom/Solflare), with minimal UI friction and a verifiable memo linkage.
 - **Change plan (files):**
@@ -657,7 +483,7 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 - **Non-goals:**
   - Multi-wallet account management, token selection, or cross-chain support.
 
-### M5-06g — Demo/ops: env vars, docs, and devnet funding checklist
+### M5-07g — Demo/ops: env vars, docs, and devnet funding checklist
 - **Context (what/why):**
   - Hackathon demos fail on setup friction. We need a documented, reproducible way to configure RPC, seed recipients, and fund wallets.
 - **Change plan (files):**

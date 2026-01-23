@@ -1,6 +1,8 @@
 import { ApiError, type ApiErrorPayload, apiFetch } from "../../api/http";
 import type { NodeView } from "../nodes/types";
 
+export type CaptureRightsBasis = "i_took_photo" | "permission_granted" | "public_domain";
+
 export type CapturePublic = {
   id: string;
   node_id: string;
@@ -12,7 +14,7 @@ export type CapturePublic = {
   attribution_artwork_title: string | null;
   attribution_source: string | null;
   attribution_source_url: string | null;
-  rights_basis: string | null;
+  rights_basis: CaptureRightsBasis | null;
   rights_attested_at: string | null;
 };
 
@@ -74,8 +76,9 @@ export async function createCapture(body: {
   attribution_artwork_title?: string;
   attribution_source?: string;
   attribution_source_url?: string;
-  rights_basis?: string;
+  rights_basis?: CaptureRightsBasis;
   rights_attestation?: boolean;
+  publish_requested?: boolean;
 }) {
   return apiFetch<CreateCaptureResponse>("/v1/captures", { method: "POST", body: JSON.stringify(body) });
 }
@@ -101,7 +104,7 @@ export async function updateCapture(
     attribution_artwork_title?: string | null;
     attribution_source?: string | null;
     attribution_source_url?: string | null;
-    rights_basis?: string | null;
+    rights_basis?: CaptureRightsBasis | null;
     rights_attestation?: boolean | null;
   }
 ) {

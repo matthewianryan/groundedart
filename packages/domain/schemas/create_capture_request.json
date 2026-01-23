@@ -14,6 +14,7 @@
       "type": ["string", "null"],
       "enum": ["i_took_photo", "permission_granted", "public_domain", null]
     },
-    "rights_attestation": { "type": ["boolean", "null"] }
+    "rights_attestation": { "type": ["boolean", "null"] },
+    "publish_requested": { "type": ["boolean", "null"] }
   }
 }

@@ -69,6 +69,7 @@ export function CaptureFlow({
   const [attributionSourceUrl, setAttributionSourceUrl] = useState("");
   const [rightsBasis, setRightsBasis] = useState("");
   const [rightsAttestation, setRightsAttestation] = useState(false);
+  const [publishRequested, setPublishRequested] = useState(false);
   const submitLock = useRef(false);
   const uploadQueue = useUploadQueue();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -139,6 +140,7 @@ export function CaptureFlow({
     setAttributionSourceUrl("");
     setRightsBasis("");
     setRightsAttestation(false);
+    setPublishRequested(false);
     submitLock.current = false;
     void clearActiveCaptureDraft().catch(() => undefined);
   }
@@ -300,7 +302,8 @@ export function CaptureFlow({
         attribution_source: normalizedSource,
         attribution_source_url: normalizedSourceUrl,
         rights_basis: normalizedRightsBasis,
-        rights_attestation: rightsAttestation || undefined
+        rights_attestation: rightsAttestation || undefined,
+        publish_requested: publishRequested || undefined
       });
       setCaptureId(created.capture.id);
       onCaptureCreated?.(created.capture.id);
@@ -594,6 +597,17 @@ export function CaptureFlow({
                 <span>I attest I have the rights to share this capture publicly.</span>
               </label>
             </div>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <div className="muted">Publish request</div>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+              <input
+                type="checkbox"
+                checked={publishRequested}
+                onChange={(event) => setPublishRequested(event.target.checked)}
+              />
+              <span>Publish automatically once verified (requires attribution + rights).</span>
+            </label>
           </div>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={handleUploadFromPreview} disabled={(!checkinToken && !captureId) || submitLock.current}>

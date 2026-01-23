@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NotificationPublic",
+  "type": "object",
+  "required": ["id", "event_type", "title", "body", "created_at", "read_at", "details"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "event_type": { "type": "string" },
+    "title": { "type": "string" },
+    "body": { "type": ["string", "null"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "read_at": { "type": ["string", "null"], "format": "date-time" },
+    "details": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    }
+  }
+}

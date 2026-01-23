@@ -78,6 +78,9 @@ class NodesResponse(BaseModel):
     nodes: list[NodePublic]
 
 
+CaptureRightsBasis = Literal["i_took_photo", "permission_granted", "public_domain"]
+
+
 class NodeLocked(BaseModel):
     id: uuid.UUID
     visibility: Literal["locked"] = "locked"
@@ -114,8 +117,9 @@ class CreateCaptureRequest(BaseModel):
     attribution_artwork_title: str | None = None
     attribution_source: str | None = None
     attribution_source_url: str | None = None
-    rights_basis: str | None = None
+    rights_basis: CaptureRightsBasis | None = None
     rights_attestation: bool | None = None
+    publish_requested: bool | None = None
 
 
 class UpdateCaptureRequest(BaseModel):
@@ -123,7 +127,7 @@ class UpdateCaptureRequest(BaseModel):
     attribution_artwork_title: str | None = None
     attribution_source: str | None = None
     attribution_source_url: str | None = None
-    rights_basis: str | None = None
+    rights_basis: CaptureRightsBasis | None = None
     rights_attestation: bool | None = None
 
 
@@ -138,7 +142,7 @@ class CapturePublic(BaseModel):
     attribution_artwork_title: str | None = None
     attribution_source: str | None = None
     attribution_source_url: str | None = None
-    rights_basis: str | None = None
+    rights_basis: CaptureRightsBasis | None = None
     rights_attested_at: dt.datetime | None = None
 
 
@@ -153,6 +157,20 @@ class CapturesResponse(BaseModel):
 class NodeCapturesResponse(BaseModel):
     node: NodePublic | NodeLocked
     captures: list[CapturePublic]
+
+
+class NotificationPublic(BaseModel):
+    id: uuid.UUID
+    event_type: str
+    title: str
+    body: str | None = None
+    created_at: dt.datetime
+    read_at: dt.datetime | None = None
+    details: dict[str, object] | None = None
+
+
+class NotificationsResponse(BaseModel):
+    notifications: list[NotificationPublic]
 
 
 class ReportPublic(BaseModel):
@@ -188,7 +206,7 @@ class AdminCapture(BaseModel):
     attribution_artwork_title: str | None = None
     attribution_source: str | None = None
     attribution_source_url: str | None = None
-    rights_basis: str | None = None
+    rights_basis: CaptureRightsBasis | None = None
     rights_attested_at: dt.datetime | None = None
 
 
