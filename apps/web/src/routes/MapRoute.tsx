@@ -294,6 +294,7 @@ export function MapRoute() {
   const [nodes, setNodes] = useState<NodePublic[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedNodeId) ?? null, [nodes, selectedNodeId]);
+  const [imageExpanded, setImageExpanded] = useState(false);
   const [status, setStatus] = useState<string>("Starting…");
   const [nodesStatus, setNodesStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [nodesError, setNodesError] = useState<string | null>(null);
@@ -447,6 +448,12 @@ export function MapRoute() {
   }, [refreshMe, sessionReady]);
 
   useEffect(() => {
+    if (!isCreatorSurface) {
+      setNotifications([]);
+      setNotificationsStatus("idle");
+      setNotificationsError(null);
+      return;
+    }
     if (!sessionReady) return;
     const controller = new AbortController();
     setNotificationsStatus("loading");
@@ -462,7 +469,7 @@ export function MapRoute() {
         setNotificationsError(err instanceof Error ? err.message : String(err));
       });
     return () => controller.abort();
-  }, [sessionReady]);
+  }, [isCreatorSurface, sessionReady]);
 
   useEffect(() => {
     if (!googleMapsApiKey) {
@@ -715,6 +722,10 @@ export function MapRoute() {
     setCheckinAccuracyM(undefined);
     setCheckinDistanceM(undefined);
     setCheckinRadiusM(undefined);
+  }, [selectedNodeId]);
+
+  useEffect(() => {
+    setImageExpanded(false);
   }, [selectedNodeId]);
 
   useEffect(() => {
@@ -975,8 +986,9 @@ export function MapRoute() {
     navigate(`/nodes/${selectedNode.id}${search}`, { state: { node: selectedNode } });
   }
 
-  async function handleRequestDirections() {
-    if (!selectedNode) return;
+  async function handleRequestDirections(nodeOverride?: NodePublic) {
+    const node = nodeOverride ?? selectedNode;
+    if (!node) return;
     if (!isLoaded || !googleMapsApiKey) {
       setStatus("Map not ready for directions (missing API key or still loading).");
       return;
@@ -988,7 +1000,7 @@ export function MapRoute() {
       const origin = { lat: fix.lat, lng: fix.lng };
       if (demoMode && puppetEnabled) setPuppetLocationFromLatLng(origin);
       else setUserLocation(origin);
-      const destination = { lat: selectedNode.lat, lng: selectedNode.lng };
+      const destination = { lat: node.lat, lng: node.lng };
       setDirectionsResult(null);
       setDirectionsRequest({
         origin,
@@ -1026,6 +1038,7 @@ export function MapRoute() {
   );
 
   const handleRefreshNotifications = useCallback(async () => {
+    if (!isCreatorSurface) return;
     setNotificationsStatus("loading");
     setNotificationsError(null);
     try {
@@ -1036,7 +1049,7 @@ export function MapRoute() {
       setNotificationsStatus("error");
       setNotificationsError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [isCreatorSurface]);
 
   async function handleMarkNotificationRead(notificationId: string) {
     try {
@@ -1050,7 +1063,7 @@ export function MapRoute() {
   const viewMe = useMemo(() => (me && demoRank !== null ? { ...me, rank: demoRank } : me), [demoRank, me]);
   const nextUnlockLine = viewMe ? formatNextUnlockLine(viewMe) : null;
   const capsNotes = viewMe ? formatRankCapsNotes(viewMe.rank_breakdown) : [];
-  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
+  const unreadCount = isCreatorSurface ? notifications.filter((notification) => !notification.read_at).length : 0;
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
   const directionsLeg = useMemo(() => directionsResult?.routes?.[0]?.legs?.[0] ?? null, [directionsResult]);
@@ -1086,7 +1099,9 @@ export function MapRoute() {
       if (!detail?.captureId) return;
       pushToast("Capture verified", [`Capture ${detail.captureId.slice(0, 8)}…`]);
       refreshMe(true);
-      void handleRefreshNotifications();
+      if (isCreatorSurface) {
+        void handleRefreshNotifications();
+      }
     };
 
     window.addEventListener(CAPTURE_UPLOADED_EVENT, handleUploaded as EventListener);
@@ -1095,7 +1110,7 @@ export function MapRoute() {
       window.removeEventListener(CAPTURE_UPLOADED_EVENT, handleUploaded as EventListener);
       window.removeEventListener(CAPTURE_VERIFIED_EVENT, handleVerified as EventListener);
     };
-  }, [demoAdminToken, demoAutoVerify, demoMode, handleRefreshNotifications, pushToast, refreshMe]);
+  }, [demoAdminToken, demoAutoVerify, demoMode, handleRefreshNotifications, isCreatorSurface, pushToast, refreshMe]);
 
   const handleNewDemoUser = useCallback(async () => {
     if (!demoMode) return;
@@ -1123,13 +1138,16 @@ export function MapRoute() {
     resetDeviceId();
     await bootSession();
     refreshMe(true);
-    void handleRefreshNotifications();
+    if (isCreatorSurface) {
+      void handleRefreshNotifications();
+    }
     scheduleNodesRefresh(lastBboxRef.current);
     pushToast("New demo user", ["Fresh device session created."]);
   }, [
     bootSession,
     demoMode,
     handleRefreshNotifications,
+    isCreatorSurface,
     pushToast,
     refreshMe,
     scheduleNodesRefresh,
