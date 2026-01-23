@@ -99,6 +99,8 @@ MANUAL_NODES = [
     },
 ]
 
+MANUAL_NAMES = {node["name"] for node in MANUAL_NODES}
+
 
 def _normalize_ascii(text: str) -> str:
     normalized = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
@@ -163,9 +165,12 @@ def _places_text_search(
     lat: float,
     lng: float,
     radius_m: int,
+    max_pages: int | None = None,
+    page_sleep_s: float = 2.0,
 ) -> list[dict[str, object]]:
     results: list[dict[str, object]] = []
     params = {"query": query, "location": f"{lat},{lng}", "radius": radius_m, "key": api_key}
+    page = 0
     while True:
         response = client.get(PLACES_TEXTSEARCH_URL, params=params, timeout=30)
         response.raise_for_status()
@@ -181,7 +186,10 @@ def _places_text_search(
         next_token = payload.get("next_page_token")
         if not next_token:
             break
-        time.sleep(2)
+        page += 1
+        if max_pages is not None and page >= max_pages:
+            break
+        time.sleep(page_sleep_s)
         params = {"pagetoken": next_token, "key": api_key}
     return results
 
@@ -205,6 +213,36 @@ def main() -> None:
         help="Output JSON path for nodes.",
     )
     parser.add_argument("--radius", type=int, default=DEFAULT_RADIUS_M, help="Search radius in meters.")
+    parser.add_argument(
+        "--max-centers",
+        type=int,
+        default=None,
+        help="Limit number of center points to query.",
+    )
+    parser.add_argument(
+        "--max-queries",
+        type=int,
+        default=None,
+        help="Limit number of search queries per center.",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Limit number of pages per Places query.",
+    )
+    parser.add_argument(
+        "--page-sleep",
+        type=float,
+        default=2.0,
+        help="Seconds to wait between Places pages.",
+    )
+    parser.add_argument(
+        "--max-nodes",
+        type=int,
+        default=None,
+        help="Stop after collecting this many nodes.",
+    )
     args = parser.parse_args()
 
     api_key = os.environ.get(PLACES_KEY_ENV, "").strip()
@@ -221,16 +259,34 @@ def main() -> None:
         existing_by_key[key] = node
 
     places: dict[str, dict[str, object]] = {}
+    centers = CAPETOWN_CENTERS[: args.max_centers] if args.max_centers else CAPETOWN_CENTERS
+    queries = SEARCH_QUERIES[: args.max_queries] if args.max_queries else SEARCH_QUERIES
+
+    reached_max_places = False
     with httpx.Client() as client:
-        for _, lat, lng in CAPETOWN_CENTERS:
-            for query in SEARCH_QUERIES:
+        for _, lat, lng in centers:
+            for query in queries:
                 for place in _places_text_search(
-                    client, api_key=api_key, query=query, lat=lat, lng=lng, radius_m=args.radius
+                    client,
+                    api_key=api_key,
+                    query=query,
+                    lat=lat,
+                    lng=lng,
+                    radius_m=args.radius,
+                    max_pages=args.max_pages,
+                    page_sleep_s=args.page_sleep,
                 ):
                     place_id = place.get("place_id")
                     if not place_id:
                         continue
                     places[str(place_id)] = place
+                    if args.max_nodes and len(places) >= args.max_nodes:
+                        reached_max_places = True
+                        break
+                if reached_max_places:
+                    break
+            if reached_max_places:
+                break
 
     nodes: list[dict[str, object]] = []
     seen_keys: set[str] = set()
@@ -250,7 +306,7 @@ def main() -> None:
         if not name or lat is None or lng is None:
             continue
         key = _dedupe_key(name, float(lat), float(lng))
-        if key in seen_keys:
+        if key in seen_keys or name in MANUAL_NAMES:
             continue
 
         existing = existing_by_key.get(key)
@@ -277,6 +333,8 @@ def main() -> None:
         }
         nodes.append(node)
         seen_keys.add(key)
+        if args.max_nodes and len(nodes) >= args.max_nodes:
+            break
 
     nodes.sort(key=lambda item: (int(item["min_rank"]), str(item["name"])))
     args.output.write_text(json.dumps(nodes, indent=2), encoding="utf-8")

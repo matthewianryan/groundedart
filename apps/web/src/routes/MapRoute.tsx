@@ -8,9 +8,17 @@ import {
   useJsApiLoader
 } from "@react-google-maps/api";
 import { useNavigate } from "react-router-dom";
+import { resetDeviceId } from "../auth/device";
 import { ensureAnonymousSession } from "../auth/session";
 import { isApiError } from "../api/http";
 import { createCheckinChallenge, checkIn } from "../features/checkin/api";
+import { clearActiveCaptureDraft } from "../features/captures/captureDraftStore";
+import {
+  CAPTURE_UPLOADED_EVENT,
+  CAPTURE_VERIFIED_EVENT,
+  type CaptureUploadedEventDetail,
+  type CaptureVerifiedEventDetail
+} from "../features/captures/uploadEvents";
 import { useUploadQueue } from "../features/captures/useUploadQueue";
 import { formatNextUnlockLine, formatRankCapsNotes } from "../features/me/copy";
 import { getMe } from "../features/me/api";
@@ -31,6 +39,14 @@ const MAP_OPTIONS: google.maps.MapOptions = {
   gestureHandling: "greedy"
 };
 const MAP_STYLE_STORAGE_KEY = "groundedart.mapStylePreset";
+const DEMO_ENABLED_STORAGE_KEY = "groundedart.demo.enabled";
+const DEMO_ADMIN_TOKEN_STORAGE_KEY = "groundedart.demo.adminToken";
+const DEMO_AUTO_VERIFY_STORAGE_KEY = "groundedart.demo.autoVerify";
+const DEMO_PUPPET_ENABLED_STORAGE_KEY = "groundedart.demo.puppetEnabled";
+const DEMO_PUPPET_LAT_STORAGE_KEY = "groundedart.demo.puppetLat";
+const DEMO_PUPPET_LNG_STORAGE_KEY = "groundedart.demo.puppetLng";
+const DEMO_PUPPET_ACCURACY_STORAGE_KEY = "groundedart.demo.puppetAccuracyM";
+const DEMO_CLICK_TO_MOVE_STORAGE_KEY = "groundedart.demo.clickToMove";
 
 type MapStylePresetKey = "default" | "ultra-minimal" | "streets" | "context";
 type MapStylePreset = {
@@ -186,6 +202,42 @@ function persistMapStylePreset(preset: MapStylePresetKey) {
   }
 }
 
+function stripHtml(input: string): string {
+  return input.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function readStoredBool(key: string, fallback: boolean): boolean {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+  } catch {
+    // ignore
+  }
+  return fallback;
+}
+
+function readStoredNumber(key: string, fallback: number): number {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  } catch {
+    // ignore
+  }
+  return fallback;
+}
+
+function readStoredString(key: string, fallback: string): string {
+  try {
+    return window.localStorage.getItem(key) ?? fallback;
+  } catch {
+    // ignore
+  }
+  return fallback;
+}
+
 export function MapRoute() {
   const [nodes, setNodes] = useState<NodePublic[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -225,6 +277,31 @@ export function MapRoute() {
   const demoMode = useMemo(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).has("demo") : false), []);
   const [demoRank, setDemoRank] = useState<number | null>(null);
   const prevDemoRankRef = useRef<number | null>(null);
+  const [demoAdminToken, setDemoAdminToken] = useState<string>(() => {
+    const fromEnv = import.meta.env.VITE_ADMIN_API_TOKEN as string | undefined;
+    if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+    if (!demoMode) return "";
+    return readStoredString(DEMO_ADMIN_TOKEN_STORAGE_KEY, "");
+  });
+  const [demoAutoVerify, setDemoAutoVerify] = useState<boolean>(() =>
+    demoMode ? readStoredBool(DEMO_AUTO_VERIFY_STORAGE_KEY, true) : false
+  );
+  const [puppetEnabled, setPuppetEnabled] = useState<boolean>(() =>
+    demoMode ? readStoredBool(DEMO_PUPPET_ENABLED_STORAGE_KEY, true) : false
+  );
+  const [puppetLocation, setPuppetLocation] = useState<google.maps.LatLngLiteral | null>(() => {
+    if (!demoMode) return null;
+    const lat = readStoredNumber(DEMO_PUPPET_LAT_STORAGE_KEY, Number.NaN);
+    const lng = readStoredNumber(DEMO_PUPPET_LNG_STORAGE_KEY, Number.NaN);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+  });
+  const [puppetAccuracyM, setPuppetAccuracyM] = useState<number>(() =>
+    demoMode ? readStoredNumber(DEMO_PUPPET_ACCURACY_STORAGE_KEY, 8) : 8
+  );
+  const [demoClickToMove, setDemoClickToMove] = useState<boolean>(() =>
+    demoMode ? readStoredBool(DEMO_CLICK_TO_MOVE_STORAGE_KEY, true) : false
+  );
 
   const meFetchAbortRef = useRef<AbortController | null>(null);
   const meRef = useRef<MeResponse | null>(null);
@@ -240,22 +317,21 @@ export function MapRoute() {
   const prevNodesRef = useRef<NodePublic[] | null>(null);
   const [mapRipples, setMapRipples] = useState<Array<{ id: string; position: google.maps.LatLngLiteral }>>([]);
 
-  useEffect(() => {
-    let cancelled = false;
-    ensureAnonymousSession()
-      .then(() => {
-        if (cancelled) return;
-        setStatus("Ready");
-        setSessionReady(true);
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        setStatus(`Session error: ${String(e)}`);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const bootSession = useCallback(async () => {
+    setStatus("Starting…");
+    setSessionReady(false);
+    try {
+      await ensureAnonymousSession();
+      setStatus("Ready");
+      setSessionReady(true);
+    } catch (e) {
+      setStatus(`Session error: ${String(e)}`);
+    }
   }, []);
+
+  useEffect(() => {
+    void bootSession();
+  }, [bootSession]);
 
   useEffect(() => {
     meRef.current = me;
@@ -325,6 +401,26 @@ export function MapRoute() {
   useEffect(() => {
     persistMapStylePreset(mapStylePreset);
   }, [mapStylePreset]);
+
+  useEffect(() => {
+    if (!demoMode) return;
+    try {
+      window.localStorage.setItem(DEMO_ENABLED_STORAGE_KEY, "true");
+      window.localStorage.setItem(DEMO_AUTO_VERIFY_STORAGE_KEY, String(Boolean(demoAutoVerify)));
+      window.localStorage.setItem(DEMO_PUPPET_ENABLED_STORAGE_KEY, String(Boolean(puppetEnabled)));
+      window.localStorage.setItem(DEMO_PUPPET_ACCURACY_STORAGE_KEY, String(Math.max(1, Math.round(puppetAccuracyM))));
+      window.localStorage.setItem(DEMO_CLICK_TO_MOVE_STORAGE_KEY, String(Boolean(demoClickToMove)));
+      if (demoAdminToken.trim() && !(import.meta.env.VITE_ADMIN_API_TOKEN as string | undefined)) {
+        window.localStorage.setItem(DEMO_ADMIN_TOKEN_STORAGE_KEY, demoAdminToken.trim());
+      }
+      if (puppetLocation) {
+        window.localStorage.setItem(DEMO_PUPPET_LAT_STORAGE_KEY, String(puppetLocation.lat));
+        window.localStorage.setItem(DEMO_PUPPET_LNG_STORAGE_KEY, String(puppetLocation.lng));
+      }
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [demoAdminToken, demoAutoVerify, demoClickToMove, demoMode, puppetAccuracyM, puppetEnabled, puppetLocation]);
 
   const mapOptions = useMemo<google.maps.MapOptions>(
     () => ({
@@ -520,6 +616,34 @@ export function MapRoute() {
     }
   }, [isOnline, checkinState]);
 
+  const getLocationFix = useCallback(async (): Promise<{ lat: number; lng: number; accuracy_m: number }> => {
+    if (demoMode && puppetEnabled) {
+      const fallback = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
+      const loc = puppetLocation ?? fallback;
+      const accuracy_m = Math.max(1, Math.round(puppetAccuracyM));
+      return { lat: loc.lat, lng: loc.lng, accuracy_m };
+    }
+    const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000 })
+    );
+    return { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: pos.coords.accuracy };
+  }, [demoMode, puppetAccuracyM, puppetEnabled, puppetLocation]);
+
+  const setPuppetLocationFromLatLng = useCallback(
+    (next: google.maps.LatLngLiteral) => {
+      setPuppetLocation(next);
+      setUserLocation(next);
+    },
+    [setPuppetLocation]
+  );
+
+  useEffect(() => {
+    if (!demoMode || !puppetEnabled) return;
+    if (userLocation) return;
+    const loc = puppetLocation ?? DEFAULT_CENTER;
+    setPuppetLocationFromLatLng(loc);
+  }, [demoMode, puppetEnabled, puppetLocation, setPuppetLocationFromLatLng, userLocation]);
+
   const handleMapLoad = useCallback(
     (map: google.maps.Map) => {
       mapRef.current = map;
@@ -560,11 +684,11 @@ export function MapRoute() {
 
     setCheckinState("requesting_location");
     try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000 })
-      );
-      setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      setCheckinAccuracyM(pos.coords.accuracy);
+      const fix = await getLocationFix();
+      const origin = { lat: fix.lat, lng: fix.lng };
+      if (demoMode && puppetEnabled) setPuppetLocationFromLatLng(origin);
+      else setUserLocation(origin);
+      setCheckinAccuracyM(fix.accuracy_m);
 
       setCheckinState("challenging");
       const challenge = await createCheckinChallenge(selectedNode.id);
@@ -572,9 +696,9 @@ export function MapRoute() {
       setCheckinState("verifying");
       const res = await checkIn(selectedNode.id, {
         challenge_id: challenge.challenge_id,
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy_m: pos.coords.accuracy
+        lat: fix.lat,
+        lng: fix.lng,
+        accuracy_m: fix.accuracy_m
       });
       setCheckinToken(res.checkin_token);
       setCheckinFailure(null);
@@ -711,11 +835,10 @@ export function MapRoute() {
 
     setStatus("Requesting location for directions…");
     try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000 })
-      );
-      const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      setUserLocation(origin);
+      const fix = await getLocationFix();
+      const origin = { lat: fix.lat, lng: fix.lng };
+      if (demoMode && puppetEnabled) setPuppetLocationFromLatLng(origin);
+      else setUserLocation(origin);
       const destination = { lat: selectedNode.lat, lng: selectedNode.lng };
       setDirectionsResult(null);
       setDirectionsRequest({
@@ -748,7 +871,7 @@ export function MapRoute() {
     []
   );
 
-  async function handleRefreshNotifications() {
+  const handleRefreshNotifications = useCallback(async () => {
     setNotificationsStatus("loading");
     setNotificationsError(null);
     try {
@@ -759,7 +882,7 @@ export function MapRoute() {
       setNotificationsStatus("error");
       setNotificationsError(err instanceof Error ? err.message : String(err));
     }
-  }
+  }, []);
 
   async function handleMarkNotificationRead(notificationId: string) {
     try {
@@ -774,6 +897,82 @@ export function MapRoute() {
   const nextUnlockLine = viewMe ? formatNextUnlockLine(viewMe) : null;
   const capsNotes = viewMe ? formatRankCapsNotes(viewMe.rank_breakdown) : [];
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
+  const directionsLeg = useMemo(() => directionsResult?.routes?.[0]?.legs?.[0] ?? null, [directionsResult]);
+  const directionsUrl = useMemo(() => {
+    if (!selectedNode || !userLocation) return null;
+    const origin = `${userLocation.lat},${userLocation.lng}`;
+    const destination = `${selectedNode.lat},${selectedNode.lng}`;
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(
+      destination
+    )}&travelmode=walking`;
+  }, [selectedNode, userLocation]);
+
+  useEffect(() => {
+    if (!demoMode) return;
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<CaptureUploadedEventDetail>).detail;
+      if (!detail?.captureId) return;
+      pushToast("Upload complete", [`Capture ${detail.captureId.slice(0, 8)}…`]);
+      if (!demoAutoVerify) return;
+      const token = demoAdminToken.trim();
+      if (!token) {
+        pushToast("Auto-verify skipped", ["Missing admin token (set in demo controls)."]);
+        return;
+      }
+      adminTransitionCapture(detail.captureId, token, { target_state: "verified" })
+        .then(() => {
+          pushToast("Capture verified", ["Rank + notifications updated."]);
+          refreshMe(true);
+          void handleRefreshNotifications();
+        })
+        .catch((err) => {
+          const message = err instanceof Error ? err.message : String(err);
+          pushToast("Verify failed", [message]);
+        });
+    };
+    window.addEventListener(CAPTURE_UPLOADED_EVENT, handler as EventListener);
+    return () => window.removeEventListener(CAPTURE_UPLOADED_EVENT, handler as EventListener);
+  }, [demoAdminToken, demoAutoVerify, demoMode, handleRefreshNotifications, pushToast, refreshMe]);
+
+  const handleNewDemoUser = useCallback(async () => {
+    if (!demoMode) return;
+    setStatus("Creating a new demo user…");
+    setSelectedNodeId(null);
+    setDirectionsRequest(null);
+    setDirectionsResult(null);
+    setCheckinToken(null);
+    setCheckinState("idle");
+    setCheckinFailure(null);
+    setCheckinAccuracyM(undefined);
+    setCheckinDistanceM(undefined);
+    setCheckinRadiusM(undefined);
+    setDemoRank(null);
+    setNotifications([]);
+    setNotificationsStatus("idle");
+    setNotificationsError(null);
+
+    try {
+      await Promise.all(uploadQueue.items.map((item) => uploadQueue.remove(item.captureId)));
+    } catch {
+      // ignore
+    }
+    void clearActiveCaptureDraft().catch(() => undefined);
+    resetDeviceId();
+    await bootSession();
+    refreshMe(true);
+    void handleRefreshNotifications();
+    scheduleNodesRefresh(lastBboxRef.current);
+    pushToast("New demo user", ["Fresh device session created."]);
+  }, [
+    bootSession,
+    demoMode,
+    handleRefreshNotifications,
+    pushToast,
+    refreshMe,
+    scheduleNodesRefresh,
+    uploadQueue.items,
+    uploadQueue.remove
+  ]);
 
   return (
     <div className="layout">
@@ -858,6 +1057,93 @@ export function MapRoute() {
                 </div>
                 <div className="muted" style={{ marginTop: 6 }}>
                   Tip: open `?demo=1` to show these controls.
+                </div>
+              </div>
+              <div className="settings-group">
+                <div className="settings-label">Puppet location</div>
+                <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={puppetEnabled}
+                    onChange={(event) => setPuppetEnabled(event.target.checked)}
+                  />
+                  <span>Use puppet location (no GPS prompts)</span>
+                </label>
+                <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={demoClickToMove}
+                    onChange={(event) => setDemoClickToMove(event.target.checked)}
+                  />
+                  <span>Click map to move puppet</span>
+                </label>
+                <div className="muted" style={{ marginTop: 6 }}>
+                  Puppet:{" "}
+                  {puppetLocation ? `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}` : "unset"} •
+                  Accuracy: {Math.max(1, Math.round(puppetAccuracyM))}m
+                </div>
+                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
+                      setPuppetLocationFromLatLng(center);
+                    }}
+                    disabled={!isLoaded}
+                  >
+                    Set to map center
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedNode) return;
+                      setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                    }}
+                    disabled={!selectedNode}
+                  >
+                    Set to selected node
+                  </button>
+                </div>
+                <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                  <label>
+                    <div className="muted">Puppet accuracy (meters)</div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      step={1}
+                      value={Math.max(1, Math.round(puppetAccuracyM))}
+                      onChange={(event) => setPuppetAccuracyM(Number(event.target.value))}
+                    />
+                  </label>
+                </div>
+              </div>
+              <div className="settings-group">
+                <div className="settings-label">Auto-verify (rank up)</div>
+                <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={demoAutoVerify}
+                    onChange={(event) => setDemoAutoVerify(event.target.checked)}
+                  />
+                  <span>After upload, verify capture as admin</span>
+                </label>
+                <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                  <div className="muted">Admin token (X-Admin-Token)</div>
+                  <input
+                    type="password"
+                    value={demoAdminToken}
+                    onChange={(event) => setDemoAdminToken(event.target.value)}
+                    placeholder="Paste ADMIN_API_TOKEN (or set VITE_ADMIN_API_TOKEN)"
+                  />
+                </label>
+              </div>
+              <div className="settings-group">
+                <div className="settings-label">Session</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" onClick={() => void handleNewDemoUser()}>
+                    New demo user
+                  </button>
                 </div>
               </div>
             </div>
@@ -1078,6 +1364,17 @@ export function MapRoute() {
               <button onClick={handleRequestDirections} disabled={!isLoaded}>
                 Directions
               </button>
+              {demoMode && puppetEnabled ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                    void handleCheckIn();
+                  }}
+                >
+                  Teleport & check in
+                </button>
+              ) : null}
             </div>
             <div style={{ marginTop: 8 }}>
               <div className="muted">Check-in status</div>
@@ -1114,6 +1411,29 @@ export function MapRoute() {
               Token: {checkinToken ? `${checkinToken.slice(0, 8)}…` : "none"} | Directions:{" "}
               {directionsResult ? "ready" : "not requested"}
             </div>
+            {directionsLeg ? (
+              <div style={{ marginTop: 10 }}>
+                <div className="muted">
+                  Route: {directionsLeg.distance?.text ?? "?"} • {directionsLeg.duration?.text ?? "?"}
+                </div>
+                {directionsUrl ? (
+                  <div className="muted" style={{ marginTop: 4 }}>
+                    <a href={directionsUrl} target="_blank" rel="noreferrer">
+                      Open in Google Maps
+                    </a>
+                  </div>
+                ) : null}
+                {directionsLeg.steps?.length ? (
+                  <ol style={{ marginTop: 8, paddingLeft: 18, display: "grid", gap: 6 }}>
+                    {directionsLeg.steps.slice(0, 8).map((step, idx) => (
+                      <li key={`${idx}-${step.instructions ?? ""}`} className="muted">
+                        {stripHtml(step.instructions ?? "")}
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+              </div>
+            ) : null}
             <div style={{ marginTop: 8 }}>
               <button onClick={handleStartCapture} disabled={!checkinToken}>
                 Take photo
@@ -1145,6 +1465,12 @@ export function MapRoute() {
             onUnmount={handleMapUnmount}
             onIdle={handleMapIdle}
             options={mapOptions}
+            onClick={(event) => {
+              if (!demoMode || !puppetEnabled || !demoClickToMove) return;
+              const latLng = event.latLng;
+              if (!latLng) return;
+              setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
+            }}
           >
             {mapRipples.map((ripple) => (
               <OverlayView
@@ -1162,6 +1488,13 @@ export function MapRoute() {
               <Marker
                 position={userLocation}
                 title="Your location"
+                draggable={demoMode && puppetEnabled}
+                onDragEnd={(event) => {
+                  if (!demoMode || !puppetEnabled) return;
+                  const latLng = event.latLng;
+                  if (!latLng) return;
+                  setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
+                }}
                 icon={{
                   path: google.maps.SymbolPath.CIRCLE,
                   scale: 6,

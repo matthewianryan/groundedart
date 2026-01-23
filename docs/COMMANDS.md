@@ -108,9 +108,22 @@ Env vars (for tips):
 - Cluster: devnet only (wallet adapter is configured for devnet).
 
 Seed a demo artist recipient pubkey:
-1. Create or copy a devnet wallet pubkey (Phantom/Solflare, or `solana-keygen new`).
-2. Update `data/seed/artists.json` with that pubkey and the node id(s) to receive tips (use ids from `data/seed/nodes.json`).
-3. Seed the DB:
+1. Bootstrap a devnet wallet + seed data (interactive):
+
+```bash
+./scripts/solana_devnet_bootstrap.sh
+```
+
+Non-interactive example:
+
+```bash
+./scripts/solana_devnet_bootstrap.sh --pubkey <DEVNET_PUBKEY> --artist-id <ARTIST_UUID> --seed-db
+```
+
+Alternative manual steps:
+- Create or copy a devnet wallet pubkey (Phantom/Solflare, or `solana-keygen new`).
+- Update `data/seed/artists.json` with that pubkey and the node id(s) to receive tips (use ids from `data/seed/nodes.json`).
+- Seed the DB:
 
 ```bash
 cd apps/api

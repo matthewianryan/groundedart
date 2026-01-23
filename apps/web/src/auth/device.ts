@@ -13,3 +13,8 @@ export function getOrCreateDeviceId(): string {
   return next;
 }
 
+export function resetDeviceId(): string {
+  const next = crypto.randomUUID();
+  localStorage.setItem(DEVICE_ID_KEY, next);
+  return next;
+}
