@@ -153,17 +153,7 @@ Note: a baseline M1 check-in flow exists in this repo already (see `docs/M0.md`)
 - The web app treats the API as the authority; it does not unlock capture UI based on local distance math.
 - UX maps stable `error.code` values (from M1-02) to stable UI states.
 
-**Decision point (intermittent connectivity)**
-Choose one approach and make it explicit in UX and code:
-1) **Online-only check-in** (simplest): show “Offline” state; user retries when online.
-   - Pros: simplest; no token/challenge edge cases.
-   - Cons: frustrating in flaky areas; can’t “stage” a check-in.
-2) **Prefetch challenge** (limited resilience): create a challenge when user selects a node; submit when location is available.
-   - Pros: reduces round trips at check-in moment.
-   - Cons: challenge TTL/expiry becomes a UX issue; still requires network to verify.
-3) **Queued check-in attempt** (more complex): record intent locally and retry verification automatically when connectivity returns.
-   - Pros: best UX in intermittent networks.
-   - Cons: easy to get wrong; must avoid issuing tokens long after the user left the geofence.
+Decision: **Online-only check-in** (simplest): show “Offline” state; user retries when online.
 
 **Acceptance criteria**
 - When check-in fails, the UI displays a clear reason and a next step (retry, move closer, improve accuracy, reconnect).

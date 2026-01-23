@@ -156,6 +156,7 @@ async def check_in(
             code="invalid_challenge",
             message="Invalid check-in challenge",
             status_code=400,
+            details={"challenge_id": str(body.challenge_id), "node_id": str(node_id)},
         )
     if challenge.used_at is not None:
         raise AppError(
@@ -195,10 +196,22 @@ async def check_in(
         ).where(Node.id == node.id)
     )
     if not within:
+        distance_m = await db.scalar(
+            select(
+                func.ST_Distance(
+                    cast(Node.location, Geography),
+                    cast(point, Geography),
+                )
+            ).where(Node.id == node.id)
+        )
+        details = {"radius_m": node.radius_m}
+        if distance_m is not None:
+            details["distance_m"] = float(distance_m)
         raise AppError(
             code="outside_geofence",
             message="You are not inside the node geofence",
             status_code=403,
+            details=details,
         )
 
     challenge.used_at = utcnow()

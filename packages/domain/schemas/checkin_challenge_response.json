@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckinChallengeResponse",
+  "type": "object",
+  "required": ["challenge_id", "expires_at"],
+  "properties": {
+    "challenge_id": { "type": "string", "format": "uuid" },
+    "expires_at": { "type": "string", "format": "date-time" }
+  }
+}

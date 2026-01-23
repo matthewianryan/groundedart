@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckinErrorCode",
+  "type": "string",
+  "enum": [
+    "node_not_found",
+    "invalid_challenge",
+    "challenge_used",
+    "challenge_expired",
+    "location_accuracy_too_low",
+    "outside_geofence"
+  ]
+}

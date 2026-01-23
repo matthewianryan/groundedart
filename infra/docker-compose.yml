@@ -9,7 +9,52 @@ services:
       - "5432:5432"
     volumes:
       - groundedart_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U groundedart -d groundedart"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
+      API_CORS_ORIGINS: http://localhost:5173
+      TOKEN_HASH_SECRET: dev-only-change-me
+      MEDIA_DIR: /app/.local_media
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - api_media:/app/.local_media
+    working_dir: /app/apps/api
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic -c alembic.ini upgrade head
+      && uvicorn groundedart_api.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      VITE_API_ORIGIN: http://localhost:8000
+      VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/web:/app/apps/web
+      - web_node_modules:/app/apps/web/node_modules
+    working_dir: /app/apps/web
+    depends_on:
+      - api
+    command: npm run dev -- --host 0.0.0.0 --port 5173
 
 volumes:
   groundedart_pgdata:
-
+  api_media:
+  web_node_modules:

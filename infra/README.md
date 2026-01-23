@@ -11,6 +11,5 @@ Product logic should not live in `infra`.
 
 ## Local development
 
-Start Postgres + PostGIS:
-- `docker compose -f infra/docker-compose.yml up -d db`
-
+Start Postgres + PostGIS + API + web:
+- `docker compose -f infra/docker-compose.yml up --build -d`

@@ -4,7 +4,7 @@ from pathlib import Path
 from functools import lru_cache
 from typing import Annotated
 
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,9 +37,15 @@ class Settings(BaseSettings):
     session_cookie_name: str = "ga_session"
     session_ttl_seconds: int = 60 * 60 * 24 * 30
 
-    checkin_challenge_ttl_seconds: int = 120
-    checkin_token_ttl_seconds: int = 10 * 60
-    max_location_accuracy_m: int = 50
+    checkin_challenge_ttl_seconds: int = Field(
+        default=120, description="Time-to-live for check-in challenges, in seconds."
+    )
+    checkin_token_ttl_seconds: int = Field(
+        default=10 * 60, description="Time-to-live for check-in tokens, in seconds."
+    )
+    max_location_accuracy_m: int = Field(
+        default=50, description="Maximum allowed reported location accuracy, in meters."
+    )
 
     media_dir: str = "./.local_media"
 

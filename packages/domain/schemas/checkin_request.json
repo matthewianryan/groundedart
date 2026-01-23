@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckinRequest",
+  "type": "object",
+  "required": ["challenge_id", "lat", "lng", "accuracy_m"],
+  "properties": {
+    "challenge_id": { "type": "string", "format": "uuid" },
+    "lat": { "type": "number" },
+    "lng": { "type": "number" },
+    "accuracy_m": { "type": "number", "minimum": 0 }
+  }
+}

@@ -7,6 +7,7 @@ This document describes *how* we implement the system described in `docs/ARCHITE
 - `apps/api` is the *authority* for: geofence checks, check-in token issuance, gating decisions, and state transitions.
 - `apps/web` is the *assistant* for: UX, location reads, capture UI, and resilient networking.
 - `packages/domain` holds shared **schemas and reason codes** (language-agnostic); do not put framework code here.
+- M1 check-in contracts live in `packages/domain/schemas/checkin_request.json`, `packages/domain/schemas/checkin_challenge_response.json`, `packages/domain/schemas/checkin_response.json`, and `packages/domain/schemas/checkin_error_code.json`.
 
 ## API conventions
 
@@ -39,4 +40,3 @@ MVP goal: remove login friction while still having a stable server-side identity
 
 - Unit test state machines and policy functions (pure, deterministic).
 - Keep API integration tests minimal and deterministic; avoid fragile geo dependence unless running against PostGIS.
-

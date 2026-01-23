@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckinResponse",
+  "type": "object",
+  "required": ["checkin_token", "expires_at"],
+  "properties": {
+    "checkin_token": { "type": "string" },
+    "expires_at": { "type": "string", "format": "date-time" }
+  }
+}

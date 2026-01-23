@@ -4,7 +4,7 @@ import datetime as dt
 import uuid
 
 from geoalchemy2 import Geometry
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -120,7 +120,15 @@ class Node(Base):
 
 class CheckinChallenge(Base):
     __tablename__ = "checkin_challenges"
-    __table_args__ = (UniqueConstraint("user_id", "node_id", "id"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "node_id", "id"),
+        Index(
+            "ix_checkin_challenges_user_node_expires",
+            "user_id",
+            "node_id",
+            "expires_at",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -140,6 +148,14 @@ class CheckinChallenge(Base):
 
 class CheckinToken(Base):
     __tablename__ = "checkin_tokens"
+    __table_args__ = (
+        Index(
+            "ix_checkin_tokens_user_node_expires",
+            "user_id",
+            "node_id",
+            "expires_at",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
