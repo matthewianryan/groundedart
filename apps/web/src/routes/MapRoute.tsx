@@ -291,6 +291,7 @@ export function MapRoute() {
   const [nodes, setNodes] = useState<NodePublic[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedNodeId) ?? null, [nodes, selectedNodeId]);
+  const [imageExpanded, setImageExpanded] = useState(false);
   const [status, setStatus] = useState<string>("Starting…");
   const [nodesStatus, setNodesStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [nodesError, setNodesError] = useState<string | null>(null);
@@ -443,6 +444,12 @@ export function MapRoute() {
   }, [refreshMe, sessionReady]);
 
   useEffect(() => {
+    if (!isCreatorSurface) {
+      setNotifications([]);
+      setNotificationsStatus("idle");
+      setNotificationsError(null);
+      return;
+    }
     if (!sessionReady) return;
     const controller = new AbortController();
     setNotificationsStatus("loading");
@@ -458,7 +465,7 @@ export function MapRoute() {
         setNotificationsError(err instanceof Error ? err.message : String(err));
       });
     return () => controller.abort();
-  }, [sessionReady]);
+  }, [isCreatorSurface, sessionReady]);
 
   useEffect(() => {
     if (!googleMapsApiKey) {
@@ -711,6 +718,10 @@ export function MapRoute() {
     setCheckinAccuracyM(undefined);
     setCheckinDistanceM(undefined);
     setCheckinRadiusM(undefined);
+  }, [selectedNodeId]);
+
+  useEffect(() => {
+    setImageExpanded(false);
   }, [selectedNodeId]);
 
   useEffect(() => {
@@ -971,8 +982,9 @@ export function MapRoute() {
     navigate(`/nodes/${selectedNode.id}${search}`, { state: { node: selectedNode } });
   }
 
-  async function handleRequestDirections() {
-    if (!selectedNode) return;
+  async function handleRequestDirections(nodeOverride?: NodePublic) {
+    const node = nodeOverride ?? selectedNode;
+    if (!node) return;
     if (!isLoaded || !googleMapsApiKey) {
       setStatus("Map not ready for directions (missing API key or still loading).");
       return;
@@ -984,7 +996,7 @@ export function MapRoute() {
       const origin = { lat: fix.lat, lng: fix.lng };
       if (demoMode && puppetEnabled) setPuppetLocationFromLatLng(origin);
       else setUserLocation(origin);
-      const destination = { lat: selectedNode.lat, lng: selectedNode.lng };
+      const destination = { lat: node.lat, lng: node.lng };
       setDirectionsResult(null);
       setDirectionsRequest({
         origin,
@@ -1022,6 +1034,7 @@ export function MapRoute() {
   );
 
   const handleRefreshNotifications = useCallback(async () => {
+    if (!isCreatorSurface) return;
     setNotificationsStatus("loading");
     setNotificationsError(null);
     try {
@@ -1032,7 +1045,7 @@ export function MapRoute() {
       setNotificationsStatus("error");
       setNotificationsError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [isCreatorSurface]);
 
   async function handleMarkNotificationRead(notificationId: string) {
     try {
@@ -1046,7 +1059,7 @@ export function MapRoute() {
   const viewMe = useMemo(() => (me && demoRank !== null ? { ...me, rank: demoRank } : me), [demoRank, me]);
   const nextUnlockLine = viewMe ? formatNextUnlockLine(viewMe) : null;
   const capsNotes = viewMe ? formatRankCapsNotes(viewMe.rank_breakdown) : [];
-  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
+  const unreadCount = isCreatorSurface ? notifications.filter((notification) => !notification.read_at).length : 0;
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
   const directionsLeg = useMemo(() => directionsResult?.routes?.[0]?.legs?.[0] ?? null, [directionsResult]);
@@ -1082,7 +1095,9 @@ export function MapRoute() {
       if (!detail?.captureId) return;
       pushToast("Capture verified", [`Capture ${detail.captureId.slice(0, 8)}…`]);
       refreshMe(true);
-      void handleRefreshNotifications();
+      if (isCreatorSurface) {
+        void handleRefreshNotifications();
+      }
     };
 
     window.addEventListener(CAPTURE_UPLOADED_EVENT, handleUploaded as EventListener);
@@ -1091,7 +1106,7 @@ export function MapRoute() {
       window.removeEventListener(CAPTURE_UPLOADED_EVENT, handleUploaded as EventListener);
       window.removeEventListener(CAPTURE_VERIFIED_EVENT, handleVerified as EventListener);
     };
-  }, [demoAdminToken, demoAutoVerify, demoMode, handleRefreshNotifications, pushToast, refreshMe]);
+  }, [demoAdminToken, demoAutoVerify, demoMode, handleRefreshNotifications, isCreatorSurface, pushToast, refreshMe]);
 
   const handleNewDemoUser = useCallback(async () => {
     if (!demoMode) return;
@@ -1119,13 +1134,16 @@ export function MapRoute() {
     resetDeviceId();
     await bootSession();
     refreshMe(true);
-    void handleRefreshNotifications();
+    if (isCreatorSurface) {
+      void handleRefreshNotifications();
+    }
     scheduleNodesRefresh(lastBboxRef.current);
     pushToast("New demo user", ["Fresh device session created."]);
   }, [
     bootSession,
     demoMode,
     handleRefreshNotifications,
+    isCreatorSurface,
     pushToast,
     refreshMe,
     scheduleNodesRefresh,
@@ -1135,106 +1153,230 @@ export function MapRoute() {
 
   return (
     <div className="layout">
-      <div className="panel">
-        <div className="panel-header">
-          <div>
-            <h1>Grounded Art (MVP scaffold)</h1>
-            <div className="muted">{status}</div>
+      <div className="map-area">
+        <div className="map-ui">
+          <button
+            type="button"
+            className="icon-button map-card"
+            onClick={handleOpenSettings}
+            aria-label="Open account and settings"
+          >
+            <span aria-hidden="true">{isCreatorSurface ? "🔔" : "⚙️"}</span>
+            {isCreatorSurface && unreadCount ? <span className="badge">{unreadCount}</span> : null}
+          </button>
+        </div>
+        {!googleMapsApiKey ? (
+          <div className="muted" style={{ padding: 12 }}>
+            Set VITE_GOOGLE_MAPS_API_KEY in .env to load the map.
           </div>
-          <div className="panel-actions">
+        ) : !isLoaded ? (
+          <div className="muted" style={{ padding: 12 }}>
+            Loading Google Maps…
+          </div>
+        ) : (
+          <GoogleMap
+            mapContainerStyle={MAP_CONTAINER_STYLE}
+            center={DEFAULT_CENTER}
+            zoom={13}
+            onLoad={handleMapLoad}
+            onUnmount={handleMapUnmount}
+            onIdle={handleMapIdle}
+            options={mapOptions}
+            onClick={(event) => {
+              if (!demoMode || !puppetEnabled || !demoClickToMove) return;
+              const latLng = event.latLng;
+              if (!latLng) return;
+              setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
+            }}
+          >
+            {mapRipples.map((ripple) => (
+              <OverlayView
+                key={ripple.id}
+                position={ripple.position}
+                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+              >
+                <div className="ga-map-ripple" />
+              </OverlayView>
+            ))}
+            {nodes.map((n) => (
+              <Marker
+                key={n.id}
+                position={{ lat: n.lat, lng: n.lng }}
+                onClick={() => {
+                  setSelectedNodeId(n.id);
+                  void handleRequestDirections(n);
+                }}
+              />
+            ))}
+            {userLocation ? (
+              <Marker
+                position={userLocation}
+                title={demoMode && puppetEnabled ? "Puppet location" : "Your location"}
+                draggable={demoMode && puppetEnabled}
+                onDragEnd={(event) => {
+                  if (!demoMode || !puppetEnabled) return;
+                  const latLng = event.latLng;
+                  if (!latLng) return;
+                  setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
+                }}
+                icon={puppetMarkerIcon ?? undefined}
+              />
+            ) : null}
+            {directionsRequest ? (
+              <DirectionsService options={directionsRequest} callback={handleDirectionsResponse} />
+            ) : null}
+            {directionsResult ? (
+              <DirectionsRenderer directions={directionsResult} options={{ suppressMarkers: true }} />
+            ) : null}
+          </GoogleMap>
+        )}
+      </div>
+
+      {selectedNode ? (
+        <div className="node-modal" role="dialog" aria-label={`${selectedNode.name} details`}>
+          <div className="node-modal-header">
+            <div>
+              <div className="node-modal-title">{selectedNode.name}</div>
+              <div className="muted">{selectedNode.category}</div>
+            </div>
             <button
               type="button"
-              className="icon-button"
-              onClick={handleOpenSettings}
-              aria-label="Open account and settings"
+              className="icon-button node-close"
+              onClick={() => setSelectedNodeId(null)}
+              aria-label="Close node details"
             >
-              <span aria-hidden="true">🔔</span>
-              {unreadCount ? <span className="badge">{unreadCount}</span> : null}
+              ✕
             </button>
           </div>
-        </div>
-
-        {settingsOpen ? (
-          <div className="modal-backdrop" onClick={handleCloseSettings} role="presentation">
-            <div className="modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
-              <div className="modal-header">
-                <div>
-                  <strong>Account & Settings</strong>
-                  <div className="muted">{isCreatorSurface ? "Creator surface" : "Explorer surface"}</div>
-                </div>
-                <button type="button" onClick={handleCloseSettings}>
-                  Close
-                </button>
+          {selectedNode.description ? <div className="node-modal-body">{selectedNode.description}</div> : null}
+          <div className="node-meta-grid">
+            <div>
+              <div className="node-meta-label">Radius</div>
+              <div>{formatMeters(selectedNode.radius_m)}</div>
+            </div>
+            <div>
+              <div className="node-meta-label">Min rank</div>
+              <div>{selectedNode.min_rank}</div>
+            </div>
+            <div>
+              <div className="node-meta-label">Coords</div>
+              <div>
+                {selectedNode.lat.toFixed(4)}, {selectedNode.lng.toFixed(4)}
               </div>
-              <div className="modal-body">
-                <div className="modal-section">
-                  <div className="modal-title">Navigation</div>
-                  <div className="modal-actions">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigate("/map");
-                        setSettingsOpen(false);
-                      }}
-                      disabled={!isCreatorSurface}
-                    >
-                      Explorer map
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigate("/creator");
-                        setSettingsOpen(false);
-                      }}
-                      disabled={isCreatorSurface}
-                    >
-                      Creator tools
-                    </button>
-                  </div>
-                </div>
+            </div>
+          </div>
+          {selectedNode.image_url ? (
+            <button
+              type="button"
+              className="node-image-preview"
+              onClick={() => setImageExpanded(true)}
+              aria-label="View node image"
+            >
+              <img src={selectedNode.image_url} alt={selectedNode.name} loading="lazy" />
+              <span>Tap to enlarge</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
-                <div className="modal-section">
-                  <div className="modal-title">Profile</div>
-                  {viewMe ? (
-                    <div className="node">
-                      <div className="node-header">
-                        <RankBadge rank={viewMe.rank} pulseKey={rankPulseKey} />
-                        <div className="node-actions">
-                          <button type="button" onClick={() => refreshMe(true)} disabled={meStatus === "loading"}>
-                            Refresh rank
-                          </button>
-                        </div>
+      {imageExpanded && selectedNode?.image_url ? (
+        <div className="modal-backdrop" onClick={() => setImageExpanded(false)} role="presentation">
+          <div className="image-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
+            <img src={selectedNode.image_url} alt={selectedNode.name} />
+            {selectedNode.image_attribution ? (
+              <div className="muted">Image credit: {selectedNode.image_attribution}</div>
+            ) : null}
+            {selectedNode.image_source_url ? (
+              <a href={selectedNode.image_source_url} target="_blank" rel="noreferrer">
+                View source
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {settingsOpen ? (
+        <div className="modal-backdrop" onClick={handleCloseSettings} role="presentation">
+          <div className="modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
+            <div className="modal-header">
+              <div>
+                <strong>Account & Settings</strong>
+                <div className="muted">{isCreatorSurface ? "Creator surface" : "Explorer surface"}</div>
+              </div>
+              <button type="button" onClick={handleCloseSettings}>
+                Close
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-section">
+                <div className="modal-title">Navigation</div>
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate("/map");
+                      setSettingsOpen(false);
+                    }}
+                    disabled={!isCreatorSurface}
+                  >
+                    Explorer map
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate("/creator");
+                      setSettingsOpen(false);
+                    }}
+                    disabled={isCreatorSurface}
+                  >
+                    Creator tools
+                  </button>
+                </div>
+              </div>
+
+              <div className="modal-section">
+                <div className="modal-title">Profile</div>
+                {viewMe ? (
+                  <div className="node">
+                    <div className="node-header">
+                      <RankBadge rank={viewMe.rank} pulseKey={rankPulseKey} />
+                      <div className="node-actions">
+                        <button type="button" onClick={() => refreshMe(true)} disabled={meStatus === "loading"}>
+                          Refresh rank
+                        </button>
                       </div>
-                      {demoRank !== null ? (
-                        <div className="muted" style={{ marginTop: 6 }}>
-                          Demo override: displaying rank {demoRank}.
-                        </div>
-                      ) : null}
-                      {viewMe.next_unlock ? (
-                        <>
-                          <div className="muted">Next unlock at rank {viewMe.next_unlock.min_rank}.</div>
-                          {nextUnlockLine ? <div className="muted">{nextUnlockLine}</div> : null}
-                        </>
-                      ) : (
-                        <div className="muted">Top tier unlocked.</div>
-                      )}
-                      {capsNotes.map((note) => (
-                        <div key={note} className="muted">
-                          {note}
-                        </div>
-                      ))}
                     </div>
-                  ) : meStatus === "loading" ? (
-                    <div className="muted" style={{ marginTop: 8 }}>
-                      Loading rank…
-                    </div>
-                  ) : meStatus === "error" ? (
-                    <div className="muted" style={{ marginTop: 8 }}>
-                      Rank unavailable.
-                    </div>
-                  ) : null}
-                </div>
+                    {demoRank !== null ? (
+                      <div className="muted" style={{ marginTop: 6 }}>
+                        Demo override: displaying rank {demoRank}.
+                      </div>
+                    ) : null}
+                    {viewMe.next_unlock ? (
+                      <>
+                        <div className="muted">Next unlock at rank {viewMe.next_unlock.min_rank}.</div>
+                        {nextUnlockLine ? <div className="muted">{nextUnlockLine}</div> : null}
+                      </>
+                    ) : (
+                      <div className="muted">Top tier unlocked.</div>
+                    )}
+                    {capsNotes.map((note) => (
+                      <div key={note} className="muted">
+                        {note}
+                      </div>
+                    ))}
+                  </div>
+                ) : meStatus === "loading" ? (
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    Loading rank…
+                  </div>
+                ) : meStatus === "error" ? (
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    Rank unavailable.
+                  </div>
+                ) : null}
+              </div>
 
+              {isCreatorSurface ? (
                 <div className="modal-section">
                   <div className="modal-title">Notifications</div>
                   <div className="node">
@@ -1295,451 +1437,176 @@ export function MapRoute() {
                     ) : null}
                   </div>
                 </div>
+              ) : null}
 
+              <div className="modal-section">
+                <div className="modal-title">Map settings</div>
+                <div className="settings-body">
+                  <div className="settings-group">
+                    <div className="settings-label">Map style preset</div>
+                    <div className="settings-options">
+                      {MAP_STYLE_ORDER.map((presetKey) => (
+                        <label key={presetKey} className="settings-option">
+                          <input
+                            type="radio"
+                            name="map-style-preset"
+                            value={presetKey}
+                            checked={mapStylePreset === presetKey}
+                            onChange={handleMapStyleChange}
+                          />
+                          <span>{MAP_STYLE_PRESETS[presetKey].label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="muted">{MAP_STYLE_PRESETS[mapStylePreset].description}</div>
+                  </div>
+                </div>
+              </div>
+
+              {demoMode ? (
                 <div className="modal-section">
-                  <div className="modal-title">Map settings</div>
-                  <div className="settings-body">
-                    <div className="settings-group">
-                      <div className="settings-label">Map style preset</div>
-                      <div className="settings-options">
-                        {MAP_STYLE_ORDER.map((presetKey) => (
-                          <label key={presetKey} className="settings-option">
-                            <input
-                              type="radio"
-                              name="map-style-preset"
-                              value={presetKey}
-                              checked={mapStylePreset === presetKey}
-                              onChange={handleMapStyleChange}
-                            />
-                            <span>{MAP_STYLE_PRESETS[presetKey].label}</span>
-                          </label>
-                        ))}
+                  <div className="modal-title">Creator tools</div>
+                  <details className="settings">
+                    <summary>Demo controls</summary>
+                    <div className="settings-body">
+                      <div className="settings-group">
+                        <div className="settings-label">Rank simulation</div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            onClick={() => setDemoRank((prev) => (prev ?? viewMe?.rank ?? 0) + 1)}
+                            disabled={!viewMe}
+                          >
+                            Rank up (+1)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDemoRank(viewMe?.next_unlock?.min_rank ?? null)}
+                            disabled={!viewMe?.next_unlock}
+                          >
+                            Jump to next unlock
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const sample = nodes.slice(0, 3);
+                              addMapRipples(sample);
+                              pushToast("New nodes available", sample.map((n) => n.name));
+                            }}
+                            disabled={!nodes.length}
+                          >
+                            Simulate node splash
+                          </button>
+                          <button type="button" onClick={() => setDemoRank(null)} disabled={demoRank === null}>
+                            Clear demo
+                          </button>
+                        </div>
+                        <div className="muted" style={{ marginTop: 6 }}>
+                          Tip: open `?demo=1` to show these controls.
+                        </div>
                       </div>
-                      <div className="muted">{MAP_STYLE_PRESETS[mapStylePreset].description}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {demoMode ? (
-                  <div className="modal-section">
-                    <div className="modal-title">Creator tools</div>
-                    <details className="settings">
-                      <summary>Demo controls</summary>
-                      <div className="settings-body">
-                        <div className="settings-group">
-                          <div className="settings-label">Rank simulation</div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button
-                              type="button"
-                              onClick={() => setDemoRank((prev) => (prev ?? viewMe?.rank ?? 0) + 1)}
-                              disabled={!viewMe}
-                            >
-                              Rank up (+1)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDemoRank(viewMe?.next_unlock?.min_rank ?? null)}
-                              disabled={!viewMe?.next_unlock}
-                            >
-                              Jump to next unlock
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const sample = nodes.slice(0, 3);
-                                addMapRipples(sample);
-                                pushToast("New nodes available", sample.map((n) => n.name));
-                              }}
-                              disabled={!nodes.length}
-                            >
-                              Simulate node splash
-                            </button>
-                            <button type="button" onClick={() => setDemoRank(null)} disabled={demoRank === null}>
-                              Clear demo
-                            </button>
-                          </div>
+                      <div className="settings-group">
+                        <div className="settings-label">Puppet location</div>
+                        <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input
+                            type="checkbox"
+                            checked={puppetEnabled}
+                            onChange={(event) => setPuppetEnabled(event.target.checked)}
+                          />
+                          <span>Use puppet location (no GPS prompts)</span>
+                        </label>
+                        <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input
+                            type="checkbox"
+                            checked={demoClickToMove}
+                            onChange={(event) => setDemoClickToMove(event.target.checked)}
+                          />
+                          <span>Click map to move puppet</span>
+                        </label>
+                        <div className="muted" style={{ marginTop: 6 }}>
+                          Puppet:{" "}
+                          {puppetLocation
+                            ? `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}`
+                            : "unset"}{" "}
+                          • Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
+                        </div>
+                        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
+                              setPuppetLocationFromLatLng(center);
+                            }}
+                            disabled={!isLoaded}
+                          >
+                            Set to map center
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!selectedNode) return;
+                              setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                            }}
+                            disabled={!selectedNode}
+                          >
+                            Set to selected node
+                          </button>
+                        </div>
+                        <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                          <label>
+                            <div className="muted">Puppet accuracy (meters)</div>
+                            <input
+                              type="number"
+                              min={1}
+                              max={50}
+                              step={1}
+                              value={normalizeAccuracyM(puppetAccuracyM)}
+                              onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                      <div className="settings-group">
+                        <div className="settings-label">Auto-verify (rank up)</div>
+                        <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input
+                            type="checkbox"
+                            checked={demoAutoVerify}
+                            onChange={(event) => setDemoAutoVerify(event.target.checked)}
+                          />
+                          <span>After upload, verify capture as admin</span>
+                        </label>
+                        <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                          <div className="muted">Admin token (X-Admin-Token)</div>
+                          <input
+                            type="password"
+                            value={demoAdminToken}
+                            onChange={(event) => setDemoAdminToken(event.target.value)}
+                            placeholder="Paste ADMIN_API_TOKEN (or set VITE_ADMIN_API_TOKEN)"
+                          />
+                        </label>
+                      </div>
+                      <div className="settings-group">
+                        <div className="settings-label">Session</div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button type="button" onClick={() => void handleNewDemoUser()} disabled={demoDeviceLocked}>
+                            New demo user
+                          </button>
+                        </div>
+                        {demoDeviceLocked ? (
                           <div className="muted" style={{ marginTop: 6 }}>
-                            Tip: open `?demo=1` to show these controls.
+                            Demo device is locked via VITE_DEMO_DEVICE_ID.
                           </div>
-                        </div>
-                        <div className="settings-group">
-                          <div className="settings-label">Puppet location</div>
-                          <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <input
-                              type="checkbox"
-                              checked={puppetEnabled}
-                              onChange={(event) => setPuppetEnabled(event.target.checked)}
-                            />
-                            <span>Use puppet location (no GPS prompts)</span>
-                          </label>
-                          <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <input
-                              type="checkbox"
-                              checked={demoClickToMove}
-                              onChange={(event) => setDemoClickToMove(event.target.checked)}
-                            />
-                            <span>Click map to move puppet</span>
-                          </label>
-                          <div className="muted" style={{ marginTop: 6 }}>
-                            Puppet:{" "}
-                            {puppetLocation
-                              ? `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}`
-                              : "unset"}{" "}
-                            • Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
-                          </div>
-                          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
-                                setPuppetLocationFromLatLng(center);
-                              }}
-                              disabled={!isLoaded}
-                            >
-                              Set to map center
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!selectedNode) return;
-                                setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
-                              }}
-                              disabled={!selectedNode}
-                            >
-                              Set to selected node
-                            </button>
-                          </div>
-                          <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-                            <label>
-                              <div className="muted">Puppet accuracy (meters)</div>
-                              <input
-                                type="number"
-                                min={1}
-                                max={50}
-                                step={1}
-                                value={normalizeAccuracyM(puppetAccuracyM)}
-                                onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
-                              />
-                            </label>
-                          </div>
-                        </div>
-                        <div className="settings-group">
-                          <div className="settings-label">Auto-verify (rank up)</div>
-                          <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <input
-                              type="checkbox"
-                              checked={demoAutoVerify}
-                              onChange={(event) => setDemoAutoVerify(event.target.checked)}
-                            />
-                            <span>After upload, verify capture as admin</span>
-                          </label>
-                          <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
-                            <div className="muted">Admin token (X-Admin-Token)</div>
-                            <input
-                              type="password"
-                              value={demoAdminToken}
-                              onChange={(event) => setDemoAdminToken(event.target.value)}
-                              placeholder="Paste ADMIN_API_TOKEN (or set VITE_ADMIN_API_TOKEN)"
-                            />
-                          </label>
-                        </div>
-                        <div className="settings-group">
-                          <div className="settings-label">Session</div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button type="button" onClick={() => void handleNewDemoUser()} disabled={demoDeviceLocked}>
-                              New demo user
-                            </button>
-                          </div>
-                          {demoDeviceLocked ? (
-                            <div className="muted" style={{ marginTop: 6 }}>
-                              Demo device is locked via VITE_DEMO_DEVICE_ID.
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </details>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {uploadQueue.persistenceError ? (
-          <div className="alert">
-            <div>Upload persistence unavailable</div>
-            <div className="muted">{uploadQueue.persistenceError}</div>
-          </div>
-        ) : null}
-
-        {uploadQueue.items.length ? (
-          <div className="node">
-            <div className="node-header">
-              <div>
-                <div className="muted">Pending uploads</div>
-                <div>
-                  {uploadQueue.uploadingCount ? `${uploadQueue.uploadingCount} uploading` : null}
-                  {uploadQueue.uploadingCount && (uploadQueue.pendingCount || uploadQueue.failedCount) ? " • " : null}
-                  {uploadQueue.pendingCount ? `${uploadQueue.pendingCount} queued` : null}
-                  {uploadQueue.pendingCount && uploadQueue.failedCount ? " • " : null}
-                  {uploadQueue.failedCount ? `${uploadQueue.failedCount} failed` : null}
-                </div>
-              </div>
-              <div className="node-actions">
-                <button
-                  onClick={() => uploadQueue.items.filter((i) => i.status === "failed").forEach((i) => void uploadQueue.retryNow(i.captureId))}
-                  disabled={!uploadQueue.failedCount}
-                >
-                  Retry failed
-                </button>
-              </div>
-            </div>
-            {!isOnline ? <div className="muted" style={{ marginTop: 4 }}>Offline — uploads resume when you reconnect.</div> : null}
-            <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
-              {uploadQueue.items.map((item) => {
-                const nextAttemptMs = item.nextAttemptAt ? Date.parse(item.nextAttemptAt) : null;
-                const secondsUntilRetry =
-                  nextAttemptMs && Number.isFinite(nextAttemptMs) ? Math.max(0, Math.round((nextAttemptMs - Date.now()) / 1000)) : null;
-                const progressPct =
-                  item.progress?.total && item.progress.total > 0
-                    ? Math.min(100, Math.round((item.progress.loaded / item.progress.total) * 100))
-                    : null;
-
-                return (
-                  <div key={item.captureId} style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
-                    <div>
-                      <div>Capture {item.captureId.slice(0, 8)}…</div>
-                      <div className="muted">
-                        {item.status === "uploading"
-                          ? progressPct !== null
-                            ? `Uploading (${progressPct}%)`
-                            : "Uploading"
-                          : item.status === "pending"
-                            ? secondsUntilRetry && secondsUntilRetry > 0
-                              ? `Retrying in ${formatSeconds(secondsUntilRetry)}`
-                              : "Queued"
-                            : "Failed"}
-                        {item.lastError?.code ? ` • ${item.lastError.code}` : null}
+                        ) : null}
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {item.status === "failed" ? (
-                        <button onClick={() => void uploadQueue.retryNow(item.captureId)} disabled={!isOnline}>
-                          Retry
-                        </button>
-                      ) : null}
-                      <button onClick={() => void uploadQueue.remove(item.captureId)}>Remove</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="node">
-          <div className="node-header">
-            <div>
-              <div className="muted">Nodes in view</div>
-              <div>
-                {nodesStatus === "loading"
-                  ? "Loading nodes…"
-                  : nodesStatus === "error"
-                  ? "Unable to load"
-                  : nodes.length}
-              </div>
-            </div>
-            <div className="node-actions">
-              <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)} disabled={nodesStatus === "loading"}>
-                {nodesStatus === "error" ? "Retry" : "Refresh"}
-              </button>
-            </div>
-          </div>
-          {nodesStatus === "loading" ? <div className="muted">Fetching the latest nodes…</div> : null}
-          {nodesStatus === "ready" && nodes.length === 0 ? (
-            <div className="muted">No nodes in this viewport yet.</div>
-          ) : null}
-          {nodesStatus === "error" ? (
-            <div className="alert">
-              <div>Could not load nodes.</div>
-              <div className="muted">{nodesError ?? "Unknown error"}</div>
-              <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)}>Try again</button>
-            </div>
-          ) : null}
-        </div>
-
-        {selectedNode ? (
-          <div className="node">
-            <div>
-              <strong>{selectedNode.name}</strong>
-            </div>
-            <div className="muted">{selectedNode.category}</div>
-            {selectedNode.description ? <div>{selectedNode.description}</div> : null}
-            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={handleOpenDetails}>Open detail</button>
-              <button
-                onClick={handleCheckIn}
-                disabled={
-                  !isOnline ||
-                  checkinState === "requesting_location" ||
-                  checkinState === "challenging" ||
-                  checkinState === "verifying"
-                }
-              >
-                {checkinState === "requesting_location"
-                  ? "Locating…"
-                  : checkinState === "challenging"
-                  ? "Creating challenge…"
-                  : checkinState === "verifying"
-                  ? "Verifying…"
-                  : "Check in"}
-              </button>
-              <button onClick={handleRequestDirections} disabled={!isLoaded}>
-                Directions
-              </button>
-              {demoMode && puppetEnabled ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
-                    void handleCheckIn();
-                  }}
-                >
-                  Teleport & check in
-                </button>
-                ) : null}
-            </div>
-            {directionsUrl ? (
-              <div className="muted" style={{ marginTop: 6 }}>
-                <a href={directionsUrl} target="_blank" rel="noreferrer">
-                  Open in Google Maps
-                </a>
-              </div>
-            ) : null}
-            <div style={{ marginTop: 8 }}>
-              <div className="muted">Check-in status</div>
-              <div>
-                {checkinState === "idle"
-                  ? "Not checked in yet."
-                  : checkinState === "success"
-                  ? "Checked in."
-                  : checkinState === "failure"
-                  ? "Check-in failed."
-                  : "Checking in…"}
-              </div>
-              <div className="muted" style={{ marginTop: 4 }}>
-                Accuracy: {formatMeters(checkinAccuracyM)} | Distance: {formatMeters(checkinDistanceM)} | Radius:{" "}
-                {formatMeters(checkinRadiusM)}
-              </div>
-              {checkinFailure ? (
-                <div className="alert" style={{ marginTop: 8 }}>
-                  <div>{checkinFailure.title}</div>
-                  {checkinFailure.detail ? <div className="muted">{checkinFailure.detail}</div> : null}
-                  {checkinFailure.nextStep ? <div className="muted">{checkinFailure.nextStep}</div> : null}
-                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={handleCheckIn} disabled={!isOnline}>
-                      Retry check-in
-                    </button>
-                    <button onClick={handleRequestDirections} disabled={!isLoaded}>
-                      Get directions
-                    </button>
-                  </div>
+                  </details>
                 </div>
               ) : null}
             </div>
-            <div className="muted" style={{ marginTop: 8 }}>
-              Token: {checkinToken ? `${checkinToken.slice(0, 8)}…` : "none"} | Directions:{" "}
-              {directionsResult ? "ready" : "not requested"}
-            </div>
-            {directionsLeg ? (
-              <div style={{ marginTop: 10 }}>
-                <div className="muted">
-                  Route: {directionsLeg.distance?.text ?? "?"} • {directionsLeg.duration?.text ?? "?"}
-                </div>
-                {directionsLeg.steps?.length ? (
-                  <ol style={{ marginTop: 8, paddingLeft: 18, display: "grid", gap: 6 }}>
-                    {directionsLeg.steps.slice(0, 8).map((step, idx) => (
-                      <li key={`${idx}-${step.instructions ?? ""}`} className="muted">
-                        {stripHtml(step.instructions ?? "")}
-                      </li>
-                    ))}
-                  </ol>
-                ) : null}
-              </div>
-            ) : null}
-            <div style={{ marginTop: 8 }}>
-              <button onClick={handleStartCapture} disabled={!checkinToken}>
-                Take photo
-              </button>
-            </div>
           </div>
-        ) : (
-          <div className="node">
-            <div className="muted">Select a node marker to check in.</div>
-          </div>
-        )}
-      </div>
-
-      <div className="map-area">
-        {!googleMapsApiKey ? (
-          <div className="muted" style={{ padding: 12 }}>
-            Set VITE_GOOGLE_MAPS_API_KEY in .env to load the map.
-          </div>
-        ) : !isLoaded ? (
-          <div className="muted" style={{ padding: 12 }}>
-            Loading Google Maps…
-          </div>
-        ) : (
-          <GoogleMap
-            mapContainerStyle={MAP_CONTAINER_STYLE}
-            center={DEFAULT_CENTER}
-            zoom={13}
-            onLoad={handleMapLoad}
-            onUnmount={handleMapUnmount}
-            onIdle={handleMapIdle}
-            options={mapOptions}
-            onClick={(event) => {
-              if (!demoMode || !puppetEnabled || !demoClickToMove) return;
-              const latLng = event.latLng;
-              if (!latLng) return;
-              setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
-            }}
-          >
-            {mapRipples.map((ripple) => (
-              <OverlayView
-                key={ripple.id}
-                position={ripple.position}
-                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-              >
-                <div className="ga-map-ripple" />
-              </OverlayView>
-            ))}
-            {nodes.map((n) => (
-              <Marker key={n.id} position={{ lat: n.lat, lng: n.lng }} onClick={() => setSelectedNodeId(n.id)} />
-            ))}
-            {userLocation ? (
-              <Marker
-                position={userLocation}
-                title={demoMode && puppetEnabled ? "Puppet location" : "Your location"}
-                draggable={demoMode && puppetEnabled}
-                onDragEnd={(event) => {
-                  if (!demoMode || !puppetEnabled) return;
-                  const latLng = event.latLng;
-                  if (!latLng) return;
-                  setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
-                }}
-                icon={puppetMarkerIcon ?? undefined}
-              />
-            ) : null}
-            {directionsRequest ? (
-              <DirectionsService options={directionsRequest} callback={handleDirectionsResponse} />
-            ) : null}
-            {directionsResult ? (
-              <DirectionsRenderer directions={directionsResult} options={{ suppressMarkers: true }} />
-            ) : null}
-          </GoogleMap>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <RankUpOverlay event={rankUpEvent} onDismiss={dismissRankUp} />
       <ToastStack toasts={toasts} onDismiss={(toastId) => setToasts((prev) => prev.filter((t) => t.id !== toastId))} />

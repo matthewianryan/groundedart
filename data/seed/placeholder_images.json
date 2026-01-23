@@ -1,0 +1,222 @@
+[
+  {
+    "placeholder_id": 1,
+    "image_title": "File:VanGogh-starry night ballance1.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AVanGogh-starry_night_ballance1.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/6/66/VanGogh-starry_night_ballance1.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/VanGogh-starry_night_ballance1.jpg/1280px-VanGogh-starry_night_ballance1.jpg",
+    "image_path": "nodes/placeholder-01.jpg",
+    "image_attribution": "Vincent van Gogh - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 2,
+    "image_title": "File:Mona Lisa, by Leonardo da Vinci, from C2RMF retouched.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AMona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/1280px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg",
+    "image_path": "nodes/placeholder-02.jpg",
+    "image_attribution": "Leonardo da Vinci - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 3,
+    "image_title": "File:Sandro Botticelli - La nascita di Venere - Google Art Project - edited.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ASandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg/1280px-Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg",
+    "image_path": "nodes/placeholder-03.jpg",
+    "image_attribution": "Sandro Botticelli - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 4,
+    "image_title": "File:1665 Girl with a Pearl Earring.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3A1665_Girl_with_a_Pearl_Earring.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/1665_Girl_with_a_Pearl_Earring.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/1280px-1665_Girl_with_a_Pearl_Earring.jpg",
+    "image_path": "nodes/placeholder-04.jpg",
+    "image_attribution": "Johannes Vermeer - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 5,
+    "image_title": "File:La ronda de noche, por Rembrandt van Rijn.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ALa_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg/1280px-La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg",
+    "image_path": "nodes/placeholder-05.jpg",
+    "image_attribution": "Rembrandt - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 6,
+    "image_title": "File:\"The School of Athens\" by Raffaello Sanzio da Urbino.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3A%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/4/49/%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg/1280px-%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg",
+    "image_path": "nodes/placeholder-06.jpg",
+    "image_attribution": "Raphael - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 7,
+    "image_title": "File:The Creation of Adam perspective fix.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AThe_Creation_of_Adam_perspective_fix.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/2/29/The_Creation_of_Adam_perspective_fix.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/The_Creation_of_Adam_perspective_fix.jpg/1280px-The_Creation_of_Adam_perspective_fix.jpg",
+    "image_path": "nodes/placeholder-07.jpg",
+    "image_attribution": "Michelangelo - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 8,
+    "image_title": "File:Las Meninas, by Diego Vel\u001ezquez, from Prado in Google Earth.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ALas_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/3/31/Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg/1280px-Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg",
+    "image_path": "nodes/placeholder-08.jpg",
+    "image_attribution": "Diego Vel\u001ezquez - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 9,
+    "image_title": "File:La Libert\u001e guidant le peuple - Eug\u001e8ne Delacroix - Mus\u001e9e du Louvre Peintures RF 129 - apr\u001e8s restauration 2024.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ALa_Libert%C3%A9_guidant_le_peuple_-_Eug%C3%A8ne_Delacroix_-_Mus%C3%A9e_du_Louvre_Peintures_RF_129_-_apr%C3%A8s_restauration_2024.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/0/02/La_Libert%C3%A9_guidant_le_peuple_-_Eug%C3%A8ne_Delacroix_-_Mus%C3%A9e_du_Louvre_Peintures_RF_129_-_apr%C3%A8s_restauration_2024.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/La_Libert%C3%A9_guidant_le_peuple_-_Eug%C3%A8ne_Delacroix_-_Mus%C3%A9e_du_Louvre_Peintures_RF_129_-_apr%C3%A8s_restauration_2024.jpg/1280px-La_Libert%C3%A9_guidant_le_peuple_-_Eug%C3%A8ne_Delacroix_-_Mus%C3%A9e_du_Louvre_Peintures_RF_129_-_apr%C3%A8s_restauration_2024.jpg",
+    "image_path": "nodes/placeholder-09.jpg",
+    "image_attribution": "Eug\u001e8ne Delacroix - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 10,
+    "image_title": "File:Tsunami by hokusai 19th century.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ATsunami_by_hokusai_19th_century.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Tsunami_by_hokusai_19th_century.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Tsunami_by_hokusai_19th_century.jpg/1280px-Tsunami_by_hokusai_19th_century.jpg",
+    "image_path": "nodes/placeholder-10.jpg",
+    "image_attribution": "Katsushika Hokusai - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 11,
+    "image_title": "File:Monet - Impression, Sunrise.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AMonet_-_Impression%2C_Sunrise.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/5/59/Monet_-_Impression%2C_Sunrise.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Monet_-_Impression%2C_Sunrise.jpg/1280px-Monet_-_Impression%2C_Sunrise.jpg",
+    "image_path": "nodes/placeholder-11.jpg",
+    "image_attribution": "Claude Monet - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 12,
+    "image_title": "File:Caspar David Friedrich - Wanderer above the sea of fog.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACaspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg/1280px-Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg",
+    "image_path": "nodes/placeholder-12.jpg",
+    "image_attribution": "Caspar David Friedrich - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 13,
+    "image_title": "File:John Constable - The Hay Wain (1821).jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AJohn_Constable_-_The_Hay_Wain_%281821%29.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/John_Constable_-_The_Hay_Wain_%281821%29.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/John_Constable_-_The_Hay_Wain_%281821%29.jpg/1280px-John_Constable_-_The_Hay_Wain_%281821%29.jpg",
+    "image_path": "nodes/placeholder-13.jpg",
+    "image_attribution": "John Constable - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 14,
+    "image_title": "File:Whistlers Mother high res.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWhistlers_Mother_high_res.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Whistlers_Mother_high_res.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Whistlers_Mother_high_res.jpg/1280px-Whistlers_Mother_high_res.jpg",
+    "image_path": "nodes/placeholder-14.jpg",
+    "image_attribution": "James McNeill Whistler - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 15,
+    "image_title": "File:A Sunday on La Grande Jatte, Georges Seurat, 1884.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AA_Sunday_on_La_Grande_Jatte%2C_Georges_Seurat%2C_1884.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/7/7d/A_Sunday_on_La_Grande_Jatte%2C_Georges_Seurat%2C_1884.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/A_Sunday_on_La_Grande_Jatte%2C_Georges_Seurat%2C_1884.jpg/1280px-A_Sunday_on_La_Grande_Jatte%2C_Georges_Seurat%2C_1884.jpg",
+    "image_path": "nodes/placeholder-15.jpg",
+    "image_attribution": "Georges Seurat - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 16,
+    "image_title": "File:The Garden of Earthly Delights by Bosch High Resolution.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AThe_Garden_of_Earthly_Delights_by_Bosch_High_Resolution.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/6/6d/The_Garden_of_Earthly_Delights_by_Bosch_High_Resolution.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/The_Garden_of_Earthly_Delights_by_Bosch_High_Resolution.jpg/1280px-The_Garden_of_Earthly_Delights_by_Bosch_High_Resolution.jpg",
+    "image_path": "nodes/placeholder-16.jpg",
+    "image_attribution": "Hieronymus Bosch - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 17,
+    "image_title": "File:Van Eyck - Arnolfini Portrait.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AVan_Eyck_-_Arnolfini_Portrait.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Van_Eyck_-_Arnolfini_Portrait.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Van_Eyck_-_Arnolfini_Portrait.jpg/1280px-Van_Eyck_-_Arnolfini_Portrait.jpg",
+    "image_path": "nodes/placeholder-17.jpg",
+    "image_attribution": "Jan van Eyck - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 18,
+    "image_title": "File:La Boh\u001e9mienne endormie.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ALa_Boh%C3%A9mienne_endormie.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/0/06/La_Boh%C3%A9mienne_endormie.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/La_Boh%C3%A9mienne_endormie.jpg/1280px-La_Boh%C3%A9mienne_endormie.jpg",
+    "image_path": "nodes/placeholder-18.jpg",
+    "image_attribution": "Henri Rousseau - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 19,
+    "image_title": "File:Jean-Fran\u001e7ois Millet - Gleaners - Google Art Project 2.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AJean-Fran%C3%A7ois_Millet_-_Gleaners_-_Google_Art_Project_2.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/1/1f/Jean-Fran%C3%A7ois_Millet_-_Gleaners_-_Google_Art_Project_2.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Jean-Fran%C3%A7ois_Millet_-_Gleaners_-_Google_Art_Project_2.jpg/1280px-Jean-Fran%C3%A7ois_Millet_-_Gleaners_-_Google_Art_Project_2.jpg",
+    "image_path": "nodes/placeholder-19.jpg",
+    "image_attribution": "Jean-Fran\u001e7ois Millet - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    "placeholder_id": 20,
+    "image_title": "File:The Fighting Temeraire, JMW Turner, National Gallery.jpg",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AThe_Fighting_Temeraire%2C_JMW_Turner%2C_National_Gallery.jpg",
+    "image_original_url": "https://upload.wikimedia.org/wikipedia/commons/3/30/The_Fighting_Temeraire%2C_JMW_Turner%2C_National_Gallery.jpg",
+    "image_thumb_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/The_Fighting_Temeraire%2C_JMW_Turner%2C_National_Gallery.jpg/1280px-The_Fighting_Temeraire%2C_JMW_Turner%2C_National_Gallery.jpg",
+    "image_path": "nodes/placeholder-20.jpg",
+    "image_attribution": "J. M. W. Turner - Public domain",
+    "image_license": "Public domain",
+    "image_license_url": "https://creativecommons.org/publicdomain/mark/1.0/"
+  }
+]
