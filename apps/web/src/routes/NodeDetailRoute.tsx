@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { isApiError } from "../api/http";
+import { listNodeCaptures, type CapturePublic } from "../features/captures/api";
 import type { NodePublic } from "../features/nodes/types";
 
 type NodeLocationState = {
@@ -9,6 +12,39 @@ export function NodeDetailRoute() {
   const { nodeId } = useParams();
   const location = useLocation();
   const node = (location.state as NodeLocationState)?.node ?? null;
+  const [captures, setCaptures] = useState<CapturePublic[]>([]);
+  const [capturesStatus, setCapturesStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [capturesError, setCapturesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!nodeId) {
+      setCaptures([]);
+      setCapturesStatus("idle");
+      setCapturesError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setCapturesStatus("loading");
+    setCapturesError(null);
+
+    listNodeCaptures(nodeId, { signal: controller.signal })
+      .then((res) => {
+        setCaptures(res.captures);
+        setCapturesStatus("ready");
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setCapturesStatus("error");
+        if (isApiError(err)) {
+          setCapturesError(err.message || "Unable to load verified captures.");
+        } else {
+          setCapturesError("Unable to load verified captures.");
+        }
+      });
+
+    return () => controller.abort();
+  }, [nodeId]);
 
   return (
     <div className="detail-layout">
@@ -44,7 +80,25 @@ export function NodeDetailRoute() {
             </dl>
             <div className="section">
               <h2>Verified captures</h2>
-              <div className="empty-state">No verified captures yet.</div>
+              {capturesStatus === "loading" ? (
+                <div className="empty-state">Loading verified captures...</div>
+              ) : capturesStatus === "error" ? (
+                <div className="alert">{capturesError ?? "Unable to load verified captures."}</div>
+              ) : captures.length === 0 ? (
+                <div className="empty-state">No verified captures yet.</div>
+              ) : (
+                <div className="captures-grid">
+                  {captures.map((capture) => (
+                    <div key={capture.id} className="capture-thumb">
+                      {capture.image_url ? (
+                        <img src={capture.image_url} alt="Verified capture" loading="lazy" />
+                      ) : (
+                        <div className="capture-thumb-fallback">Image pending</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (

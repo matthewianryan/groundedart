@@ -8,6 +8,10 @@ export type CapturePublic = {
   image_url: string | null;
 };
 
+export type CapturesResponse = {
+  captures: CapturePublic[];
+};
+
 export type CreateCaptureResponse = {
   capture: CapturePublic;
 };
@@ -41,6 +45,10 @@ export async function createCapture(body: {
 
 export async function getCapture(captureId: string) {
   return apiFetch<CapturePublic>(`/v1/captures/${captureId}`);
+}
+
+export async function listNodeCaptures(nodeId: string, init?: RequestInit) {
+  return apiFetch<CapturesResponse>(`/v1/nodes/${nodeId}/captures`, init);
 }
 
 export type UploadCaptureImageOptions = {
