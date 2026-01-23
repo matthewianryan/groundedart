@@ -9,6 +9,7 @@ from httpx import ASGITransport, AsyncClient
 
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
 from groundedart_api.db.models import CheckinToken, Node, utcnow
+from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.main import create_app
 from groundedart_api.settings import get_settings
 
@@ -166,3 +167,36 @@ async def test_upload_is_idempotent_overwrite(db_sessionmaker, monkeypatch, tmp_
     assert second_url == first_url
     media_path = tmp_path / second_url.split("/media/")[1]
     assert media_path.read_bytes() == b"second"
+
+
+@pytest.mark.asyncio
+async def test_upload_happy_path_keeps_pending_state(db_sessionmaker, client: AsyncClient) -> None:
+    capture_id = await create_capture(db_sessionmaker, client)
+
+    response = await client.post(
+        f"/v1/captures/{capture_id}/image",
+        files={"file": ("photo.jpg", b"hello", "image/jpeg")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == str(capture_id)
+    assert payload["state"] == CaptureState.pending_verification.value
+    assert payload["image_url"]
+
+
+@pytest.mark.asyncio
+async def test_upload_forbidden_for_other_user(db_sessionmaker, client: AsyncClient) -> None:
+    capture_id = await create_capture(db_sessionmaker, client)
+
+    other_app = create_app()
+    async with AsyncClient(transport=ASGITransport(app=other_app), base_url="http://test") as other_client:
+        await create_session(other_client)
+        response = await other_client.post(
+            f"/v1/captures/{capture_id}/image",
+            files={"file": ("photo.jpg", b"hello", "image/jpeg")},
+        )
+
+    assert response.status_code == 403
+    payload = response.json()
+    assert payload["error"]["code"] == "forbidden"

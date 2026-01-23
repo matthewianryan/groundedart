@@ -46,22 +46,35 @@ cd apps/web
 npm run dev
 ```
 
-## Manual M2 capture + upload testing (mobile + throttling)
+## Manual M2 weak-network checklist (mobile + throttling)
 
 Prereqs:
 - API + web app running.
 - `VITE_GOOGLE_MAPS_API_KEY` set (map loads).
 
-Happy path (desktop or mobile browser):
-1. Open the web app, select a node marker, and use browser location spoofing to move inside the node radius (Chrome: DevTools → Sensors → Location).
-2. Click **Check in** and confirm a token appears.
-3. Use the file input to select a photo (or take a photo on mobile).
-4. Confirm the UI reports “Uploaded.” and note the capture id.
+Checklist A — Happy path capture:
+1. Open the web app on mobile (or desktop with device emulation).
+2. Select a node marker and spoof location inside the node radius (Chrome: DevTools → Sensors → Location).
+3. Tap **Check in** and confirm the check-in succeeds.
+4. Tap **Take photo**, capture an image, and **Submit**.
+5. Confirm the UI shows "Upload complete" and the capture is marked pending review.
 
-Failure modes to verify:
-- **Retry-only upload**: start an upload with DevTools network throttling (e.g., “Slow 3G”), then toggle **Offline** mid-upload. The upload should fail. Go back online and re-select the same file to retry (full re-upload; no partial resume).
-- **Resume scope (not supported in M2)**: if the connection drops, the upload restarts from byte 0. There is no chunked or offset resume.
-- **Offline intent**: if you go offline before check-in or capture creation, the flow should fail immediately. If you go offline after creating the capture but before upload finishes, the capture exists without an image and must be re-uploaded manually once online (no persisted background resume in M2).
+Checklist B — Weak network recovery (failed upload without recapture):
+1. Start another capture and submit it.
+2. While the upload is in progress, enable network throttling (e.g., "Slow 3G") and toggle **Offline** mid-upload.
+3. Confirm the upload fails and the capture shows a retry prompt.
+4. Reload the page while still offline; verify a "Pending uploads" section lists the failed capture.
+5. Go back online and use **Retry** or **Retry failed**. Confirm the upload succeeds without taking a new photo.
+
+Checklist C — Intent survives reload/offline:
+1. Start a capture, submit it, and wait until the upload is queued (not yet complete).
+2. Immediately reload the page (or close/reopen the tab).
+3. Confirm the pending upload is still listed and resumes once you reconnect.
+4. Verify the capture completes with the same capture id (no duplicate capture created).
+
+Notes:
+- Uploads are retry-only in M2 (no chunked/offset resume; retries restart from byte 0).
+- Going offline before check-in or capture creation should fail immediately; going offline after capture creation leaves a pending upload that must be retried once online.
 
 ## Run API tests
 
