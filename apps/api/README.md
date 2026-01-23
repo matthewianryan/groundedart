@@ -27,6 +27,8 @@ Install the API (from repo root):
 
 Run migrations (includes seed nodes):
 - `cd apps/api && alembic upgrade head`
+  - Alembic reads `DATABASE_URL` from the repo root `.env` (default `localhost:5432`).
+  - If you’re using the top-level `docker-compose.yml` (default DB port `5433`), update `DATABASE_URL` to use `localhost:5433`.
 
 Run the API:
 - `uvicorn groundedart_api.main:app --reload --port 8000`

@@ -15,3 +15,19 @@ Recommended contents:
 Guidelines:
 - Avoid including personal location history or sensitive data.
 - Prefer anonymized/public reference sources and explicit licenses for any images.
+
+## Refreshing nodes from Google Places
+
+Use `apps/api/scripts/generate_seed_nodes_from_places.py` to refresh the dataset.
+
+Requirements:
+- `VITE_GOOGLE_MAPS_API_KEY` must be set in the environment.
+- The key must have the Places API enabled in Google Cloud Console.
+
+Example:
+```bash
+set -a; source .env; set +a
+./.venv311/bin/python apps/api/scripts/generate_seed_nodes_from_places.py
+```
+
+If you see `REQUEST_DENIED`, enable the Places API for the project that owns the key.
