@@ -11,6 +11,8 @@ from groundedart_api.auth.tokens import hash_opaque_token
 from groundedart_api.db.models import Capture, CheckinToken
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.capture_state import CaptureState
+from groundedart_api.domain.capture_state_events import apply_capture_transition_with_audit
+from groundedart_api.domain.capture_transitions import validate_capture_state_reason
 from groundedart_api.domain.errors import AppError
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.storage.deps import MediaStorageDep
@@ -65,7 +67,7 @@ async def create_capture(
         attribution_artist_name=body.attribution_artist_name,
         attribution_artwork_title=body.attribution_artwork_title,
         state=CaptureState.draft.value,
-        state_reason="geo_passed",
+        state_reason=validate_capture_state_reason(CaptureState.draft, "geo_passed"),
     )
     db.add(capture)
     await db.commit()
@@ -105,7 +107,14 @@ async def upload_capture_image(
     capture.image_path = stored.path
     capture.image_mime = stored.mime
     if capture.state == CaptureState.draft.value:
-        capture.state = CaptureState.pending_verification.value
+        apply_capture_transition_with_audit(
+            db=db,
+            capture=capture,
+            target_state=CaptureState.pending_verification,
+            reason_code="image_uploaded",
+            actor_type="user",
+            actor_user_id=user.id,
+        )
     await db.commit()
     await db.refresh(capture)
     return capture_to_public(capture)

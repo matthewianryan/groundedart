@@ -332,10 +332,7 @@ This section turns `docs/TESTS.md` into an implementable backlog. It is intentio
 
 **Why**: once schemas become a real contract (codegen, runtime validation, shared types), schema breakage is high-impact and should fail fast.
 
-**Change plan (specific files)**:
-- Decide where schema validation lives:
-  - **Option A (Python)**: add a pytest module under `apps/api/tests/` that validates every `*.json` schema with a JSON Schema library and ensures `$ref` resolution works relative to the folder.
-  - **Option B (Node)**: add a small `apps/web` (or repo-level) script using Ajv to validate all schemas (and wire it into CI).
+Decision: add a pytest module under `apps/api/tests/` that validates every `*.json` schema with a JSON Schema library and ensures `$ref` resolution works relative to the folder.
 - Ensure the validator runs in CI and is easy to run locally.
 
 **Acceptance criteria**:

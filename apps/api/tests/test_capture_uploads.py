@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from pathlib import Path
 import uuid
 
 import pytest
@@ -8,10 +9,12 @@ from geoalchemy2.elements import WKTElement
 from httpx import ASGITransport, AsyncClient
 
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import CheckinToken, Node, utcnow
+from groundedart_api.db.models import Capture, CheckinToken, Node, utcnow
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.main import create_app
 from groundedart_api.settings import get_settings
+
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
 
 @pytest.fixture(autouse=True)
@@ -101,8 +104,13 @@ async def create_capture(db_sessionmaker, client: AsyncClient) -> uuid.UUID:
     return uuid.UUID(response.json()["capture"]["id"])
 
 
+def load_fixture_bytes(name: str) -> bytes:
+    return (FIXTURES_DIR / name).read_bytes()
+
+
 @pytest.mark.asyncio
 async def test_upload_rejects_invalid_media_type(db_sessionmaker, monkeypatch, tmp_path) -> None:
+    fixture_bytes = load_fixture_bytes("tiny.png")
     async with make_client(
         monkeypatch,
         tmp_path,
@@ -112,7 +120,7 @@ async def test_upload_rejects_invalid_media_type(db_sessionmaker, monkeypatch, t
         capture_id = await create_capture(db_sessionmaker, client)
         response = await client.post(
             f"/v1/captures/{capture_id}/image",
-            files={"file": ("note.txt", b"hello", "text/plain")},
+            files={"file": ("note.txt", fixture_bytes, "text/plain")},
         )
 
     assert response.status_code == 415
@@ -123,6 +131,7 @@ async def test_upload_rejects_invalid_media_type(db_sessionmaker, monkeypatch, t
 
 @pytest.mark.asyncio
 async def test_upload_rejects_too_large_file(db_sessionmaker, monkeypatch, tmp_path) -> None:
+    fixture_bytes = load_fixture_bytes("tiny.png")
     async with make_client(
         monkeypatch,
         tmp_path,
@@ -132,7 +141,7 @@ async def test_upload_rejects_too_large_file(db_sessionmaker, monkeypatch, tmp_p
         capture_id = await create_capture(db_sessionmaker, client)
         response = await client.post(
             f"/v1/captures/{capture_id}/image",
-            files={"file": ("photo.jpg", b"12345", "image/jpeg")},
+            files={"file": ("photo.jpg", fixture_bytes, "image/jpeg")},
         )
 
     assert response.status_code == 413
@@ -143,6 +152,8 @@ async def test_upload_rejects_too_large_file(db_sessionmaker, monkeypatch, tmp_p
 
 @pytest.mark.asyncio
 async def test_upload_is_idempotent_overwrite(db_sessionmaker, monkeypatch, tmp_path) -> None:
+    fixture_bytes = load_fixture_bytes("tiny.png")
+    second_bytes = fixture_bytes + b"1"
     async with make_client(
         monkeypatch,
         tmp_path,
@@ -152,30 +163,31 @@ async def test_upload_is_idempotent_overwrite(db_sessionmaker, monkeypatch, tmp_
         capture_id = await create_capture(db_sessionmaker, client)
         first = await client.post(
             f"/v1/captures/{capture_id}/image",
-            files={"file": ("photo.jpg", b"first", "image/jpeg")},
+            files={"file": ("photo.jpg", fixture_bytes, "image/jpeg")},
         )
         assert first.status_code == 200
         first_url = first.json()["image_url"]
 
         second = await client.post(
             f"/v1/captures/{capture_id}/image",
-            files={"file": ("photo.jpg", b"second", "image/jpeg")},
+            files={"file": ("photo.jpg", second_bytes, "image/jpeg")},
         )
 
     assert second.status_code == 200
     second_url = second.json()["image_url"]
     assert second_url == first_url
     media_path = tmp_path / second_url.split("/media/")[1]
-    assert media_path.read_bytes() == b"second"
+    assert media_path.read_bytes() == second_bytes
 
 
 @pytest.mark.asyncio
 async def test_upload_happy_path_keeps_pending_state(db_sessionmaker, client: AsyncClient) -> None:
+    fixture_bytes = load_fixture_bytes("tiny.png")
     capture_id = await create_capture(db_sessionmaker, client)
 
     response = await client.post(
         f"/v1/captures/{capture_id}/image",
-        files={"file": ("photo.jpg", b"hello", "image/jpeg")},
+        files={"file": ("tiny.png", fixture_bytes, "image/png")},
     )
 
     assert response.status_code == 200
@@ -184,9 +196,17 @@ async def test_upload_happy_path_keeps_pending_state(db_sessionmaker, client: As
     assert payload["state"] == CaptureState.pending_verification.value
     assert payload["image_url"]
 
+    async with db_sessionmaker() as session:
+        capture = await session.get(Capture, capture_id)
+        assert capture is not None
+        assert capture.image_path
+        assert capture.image_mime == "image/png"
+        assert payload["image_url"].endswith(capture.image_path)
+
 
 @pytest.mark.asyncio
 async def test_upload_forbidden_for_other_user(db_sessionmaker, client: AsyncClient) -> None:
+    fixture_bytes = load_fixture_bytes("tiny.png")
     capture_id = await create_capture(db_sessionmaker, client)
 
     other_app = create_app()
@@ -194,12 +214,26 @@ async def test_upload_forbidden_for_other_user(db_sessionmaker, client: AsyncCli
         await create_session(other_client)
         response = await other_client.post(
             f"/v1/captures/{capture_id}/image",
-            files={"file": ("photo.jpg", b"hello", "image/jpeg")},
+            files={"file": ("tiny.png", fixture_bytes, "image/png")},
         )
 
     assert response.status_code == 403
     payload = response.json()
     assert payload["error"]["code"] == "forbidden"
+
+
+@pytest.mark.asyncio
+async def test_upload_capture_not_found(client: AsyncClient) -> None:
+    fixture_bytes = load_fixture_bytes("tiny.png")
+    await create_session(client)
+    response = await client.post(
+        f"/v1/captures/{uuid.uuid4()}/image",
+        files={"file": ("tiny.png", fixture_bytes, "image/png")},
+    )
+
+    assert response.status_code == 404
+    payload = response.json()
+    assert payload["error"]["code"] == "capture_not_found"
 
 
 @pytest.mark.asyncio

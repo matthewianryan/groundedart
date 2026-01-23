@@ -10,6 +10,9 @@
     "auth_required",
     "file_too_large",
     "invalid_media_type",
-    "upload_incomplete"
+    "upload_incomplete",
+    "capture_state_reason_required",
+    "invalid_capture_state_reason",
+    "invalid_capture_state_transition"
   ]
 }

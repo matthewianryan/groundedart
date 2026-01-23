@@ -3,6 +3,7 @@
   "title": "CheckinErrorCode",
   "type": "string",
   "enum": [
+    "auth_required",
     "node_not_found",
     "invalid_challenge",
     "challenge_used",

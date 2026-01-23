@@ -5,7 +5,7 @@ import uuid
 
 from geoalchemy2 import Geometry
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from groundedart_api.domain.capture_state import CaptureState
@@ -202,3 +202,24 @@ class Capture(Base):
 
     image_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+
+class CaptureStateEvent(Base):
+    __tablename__ = "capture_state_events"
+    __table_args__ = (Index("ix_capture_state_events_capture_created", "capture_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    capture_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("captures.id"), nullable=False
+    )
+    from_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    to_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    reason_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    actor_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    details: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
