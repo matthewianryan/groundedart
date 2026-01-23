@@ -237,20 +237,441 @@ Roadmap source: `docs/ROADMAP.md` (Milestone 5)
 - **Non-goals:**
   - Automated detection (copyright matching, ML moderation), creator self-serve takedowns, or legal intake workflows.
 
+## Milestone 5 — Attribution + rights (MVP → upgrade)
+
+Roadmap source: `docs/ROADMAP.md` (Milestone 5)
+
+**Goal:** the product cannot become a scrape/repost machine; attribution and consent are first-class.
+
+### M5-01 — Decide and document the visibility + rights policy
+- **Context (what/why):**
+  - We need a single, explicit policy for (a) when a capture is visible to others, (b) what attribution/consent fields are required, and (c) how “verified” interacts with visibility.
+  - Without this decision, downstream API and UI work will drift and “public post” bypasses will appear.
+- **Change plan (files):**
+  - Add a dedicated policy doc (recommended): `docs/ATTRIBUTION_RIGHTS.md`.
+  - Cross-link from: `docs/ROADMAP.md`, `docs/PRIVACY_SECURITY.md`, `docs/DATA_MODEL.md`.
+  - Capture the final field list and enum values that will become shared contracts in `packages/domain/schemas/`.
+- **Contracts (decision outputs that become source of truth):**
+  - **Default visibility policy**
+    - Decision: `visibility = private` by default; verification does **not** auto-promote.
+    - Public visibility requires explicit publish (`visibility = public`) **and** all attribution + rights requirements.
+  - **Attribution required for public visibility** (final):
+    - Required: `attribution_artist_name`, `attribution_artwork_title`, `attribution_source` (freeform).
+    - Optional: `attribution_source_url` (URL when the source is online).
+  - **Consent/rights required for public visibility** (final):
+    - `rights_basis` enum: `i_took_photo`, `permission_granted`, `public_domain`
+    - `rights_attestation` (boolean) with `rights_attested_at` persisted.
+- **Acceptance criteria:**
+  - `docs/ATTRIBUTION_RIGHTS.md` states the rules in “if/then” form and includes at least 3 examples (private draft, verified-but-not-public, public verified).
+  - The doc names the exact fields/enums that must be added to shared schemas and DB.
+- **Non-goals:**
+  - A complete legal framework (DMCA automation, jurisdiction-specific terms, creator claims workflows).
+
+### M5-02 — Add capture visibility + consent fields to DB and shared contracts
+- **Context (what/why):**
+  - We can’t enforce “no public visibility without attribution/consent” without persisted, queryable fields and shared contract definitions.
+- **Change plan (files):**
+  - DB + models:
+    - Add new columns to `captures` via Alembic migration under `apps/api/src/groundedart_api/db/migrations/versions/`.
+    - Update `apps/api/src/groundedart_api/db/models.py` (`Capture`) to include rememberable, explicit fields (no overloading `state`).
+  - API schemas:
+    - Update `apps/api/src/groundedart_api/api/schemas.py` capture payload types to include visibility + attribution + consent fields where needed.
+    - Update `apps/api/src/groundedart_api/api/routers/admin.py` admin capture mapping if admin payloads should expose the new fields.
+  - Shared domain schemas:
+    - Add enums in `packages/domain/schemas/`:
+      - `capture_visibility.json` (e.g., `private`, `public`)
+      - `capture_rights_basis.json` (`i_took_photo`, `permission_granted`, `public_domain`)
+    - Update existing request/response schemas:
+      - `packages/domain/schemas/create_capture_request.json`
+      - `packages/domain/schemas/capture_public.json` (or add a new “public listing” schema if we don’t want to expand `CapturePublic`)
+      - `packages/domain/schemas/capture_error_code.json` (new enforcement-related codes)
+      - `packages/domain/schemas/admin_capture.json` (if admin views must include new rights/visibility fields)
+  - Web types:
+    - Update `apps/web/src/features/captures/api.ts` types to match the chosen contract(s).
+- **Contracts:**
+  - DB (minimum):
+    - `captures.visibility` (`private|public`)
+    - `captures.rights_basis` (enum)
+    - `captures.rights_attested_at` (timestamp)
+    - `captures.attribution_source` (string)
+    - `captures.attribution_source_url` (optional string)
+  - API payload(s) must carry enough data for UI to:
+    - show why a capture is not public (missing fields / not verified),
+    - show attribution alongside any publicly visible image.
+- **Acceptance criteria:**
+  - Alembic migration applies cleanly on a fresh DB and on an existing dev DB.
+  - Shared schemas in `packages/domain/schemas/` and API Pydantic models in `apps/api/src/groundedart_api/api/schemas.py` agree on field names and allowed enum values.
+- **Non-goals:**
+  - Introducing Artwork/Artist tables or claim flows (those are separate domain expansions).
+
+### M5-03 — Enforce “public visibility requires attribution + consent” on the read path
+- **Context (what/why):**
+  - The roadmap exit criterion is specifically about **bypasses**: if any discovery/detail endpoint can return an image to non-owners without required fields, we’ve failed M5.
+- **Change plan (files):**
+  - Implement a single policy function used everywhere:
+    - New module: `apps/api/src/groundedart_api/domain/attribution_rights.py`
+      - `is_capture_publicly_visible(capture: Capture) -> bool`
+      - `missing_public_requirements(capture: Capture) -> list[str]` (for explainability)
+  - Apply the policy to node detail capture listings:
+    - Update `apps/api/src/groundedart_api/api/routers/nodes.py:list_node_captures` to:
+      - keep admin override behavior for `state != verified`,
+      - for non-admin/verified listings, filter to captures that are both:
+        - `state == verified`, and
+        - `is_capture_publicly_visible(...) == True`.
+  - Prevent accidental URL leakage:
+    - Update `apps/api/src/groundedart_api/api/routers/captures.py:capture_to_public` (or a new mapping function) to avoid returning `image_url` for captures that are not meant to be visible to the requesting principal.
+      - If needed, introduce an “owner view” vs “public view” mapping, rather than overloading one type.
+  - Tests:
+    - Add API tests under `apps/api/tests/` that cover visibility enforcement on `GET /v1/nodes/{node_id}/captures`.
+- **Contracts:**
+  - `GET /v1/nodes/{node_id}/captures` (non-admin) must never return an `image_url` for a capture that:
+    - is not `verified`, or
+    - does not satisfy attribution + consent requirements per M5-01, or
+    - is explicitly `private` (if `visibility` exists).
+  - If we add new error codes for “publish” actions, they must be reflected in:
+    - `packages/domain/schemas/capture_error_code.json`
+    - `apps/web/src/features/captures/api.ts:CaptureErrorCode`
+- **Acceptance criteria:**
+  - A verified capture with missing attribution/consent does not appear in node capture listings for normal users.
+  - Admin listing behavior is unchanged (admin can still review non-verified states via existing admin auth).
+  - Tests demonstrate the bypass is closed (at least one positive and one negative case).
+- **Non-goals:**
+  - Fully access-controlled media delivery (signed URLs / auth-checked media routes). M5 should avoid *API-disclosed* leaks; storage hardening is a follow-on.
+
+### M5-04 — Add an explicit “publish” path (and keep default conservative)
+- **Context (what/why):**
+  - Today, attribution fields exist but are optional and there is no explicit “publish” concept; we need a server-enforced way to keep captures private by default, while allowing creators to make them visible once requirements are met.
+- **Change plan (files):**
+  - API:
+    - Add an owner-only endpoint to update attribution/consent fields post-capture:
+      - Recommended: `PATCH /v1/captures/{capture_id}` (owner only).
+    - Add an owner-only “request public” endpoint or field transition:
+ Decision: `POST /v1/captures/{capture_id}/publish` (clear intent; easy to audit).
+    - Implement server-side validation that blocks publishing unless:
+      - capture is `verified` (or matches the chosen policy in M5-01),
+      - required attribution fields are present and non-empty,
+      - consent/rights fields are present per M5-01.
+  - Shared schemas:
+    - Add/update request/response schemas in `packages/domain/schemas/` for the new endpoint(s).
+  - Web:
+    - Update `apps/web/src/features/captures/CaptureFlow.tsx` to collect attribution + consent in-flow (before publish or as part of publish).
+    - Update `apps/web/src/routes/NodeDetailRoute.tsx` to display attribution next to any capture that’s visible.
+  - Tests:
+    - API tests for publish validation and for the “default is private” behavior.
+- **Contracts:**
+  - New endpoint(s) (final names decided in this task) must return stable error codes for:
+    - “not verified yet”
+    - “missing attribution”
+    - “missing consent/rights”
+  - The “publish” mechanism must be auditable (either via capture events or a new event type).
+- **Acceptance criteria:**
+  - A newly created capture remains non-public by default (per M5-01).
+  - Publishing fails with explainable errors until requirements are met; once met, the capture becomes visible in `GET /v1/nodes/{node_id}/captures`.
+  - Node detail UI shows attribution for visible captures.
+- **Non-goals:**
+  - Social sharing links, public web pages, SEO/indexing, or any “feed” concept.
+
+### M5-05 — Reporting + takedown primitives (manual-first)
+- **Context (what/why):**
+  - Even with conservative defaults, the system needs a first-class way to report problematic content and to take it down quickly with an audit trail.
+- **Change plan (files):**
+  - DB + models:
+    - Add a `content_reports` table (or similarly named) via Alembic migration:
+      - references `capture_id` (and optionally `node_id`)
+      - reporter `user_id` (nullable if we decide to allow unauthenticated reports)
+      - `reason` enum/string + freeform `details`
+      - `created_at`, `resolved_at`, `resolution` fields
+    - Update `apps/api/src/groundedart_api/db/models.py` with the new model.
+  - API (user-facing):
+    - Add `POST /v1/captures/{capture_id}/reports` (or `POST /v1/reports`) to create a report.
+    - Rate limit and record abuse events if spammy (reuse `apps/api/src/groundedart_api/domain/abuse_events.py` patterns).
+  - API (admin-facing):
+    - Extend `apps/api/src/groundedart_api/api/routers/admin.py` with:
+      - `GET /v1/admin/reports` (queue)
+      - `POST /v1/admin/reports/{report_id}/resolve`
+    - On resolution, admins can hide a capture via existing moderation transition machinery.
+  - Domain:
+    - Extend reason codes to include rights/reporting outcomes:
+      - `packages/domain/schemas/capture_state_reason_code.json`
+      - `apps/api/src/groundedart_api/domain/capture_state_reason_code.py`
+  - Web:
+    - Add a minimal “Report” action from the node detail capture UI (`apps/web/src/routes/NodeDetailRoute.tsx`).
+  - Tests:
+    - API tests for report creation, admin listing, and resolution that hides a capture.
+- **Contracts:**
+  - Add reporting schemas in `packages/domain/schemas/` (exact names to decide in this task), e.g.:
+    - `report_reason_code.json`
+    - `create_report_request.json`, `create_report_response.json`
+    - `admin_reports_response.json`, `admin_report_resolve_request.json`
+  - Takedown should map to `CaptureState.hidden` with a distinct reason code (e.g., `report_hide`, `rights_takedown`) to keep auditability.
+- **Acceptance criteria:**
+  - Users can file a report against a capture they can see.
+  - Admin can review reports, mark them resolved, and hide the referenced capture.
+  - A hidden capture no longer appears in `GET /v1/nodes/{node_id}/captures` and its `image_url` is not disclosed through public listing payloads.
+- **Non-goals:**
+  - Automated detection (copyright matching, ML moderation), creator self-serve takedowns, or legal intake workflows.
+
 ### M5-06 — (Optional) Tip receipt integration behind an adapter boundary
 - **Context (what/why):**
-  - We want to support “proof of tip” later without coupling the core capture pipeline to any specific payments/on-chain system.
+  - We want “proof of tip” without coupling the core capture pipeline to any specific payments/on-chain system.
+  - New decision (canonical hackathon plan; see `docs/FUTUREOPTIONS.md`):
+    - **Chain**: Solana devnet only.
+    - **Assets**: SOL-only (no USDC/SPL).
+    - **On-chain integration**: no custom program; plain SOL transfer + Memo containing `tip_intent_id`.
+    - **Verification**: API verifies the receipt by fetching the transaction from Solana RPC and validating recipient/amount + memo linkage.
 - **Change plan (files):**
-  - Define an adapter boundary:
-    - New protocol/module: `apps/api/src/groundedart_api/domain/tip_receipts.py` (interface + data model).
+  - Define an adapter boundary (so we can swap chains/providers later):
+    - New protocol/module: `apps/api/src/groundedart_api/domain/tip_receipts.py` (provider interface + core types).
     - Dependency injection wiring similar to `apps/api/src/groundedart_api/domain/verification_events.py`.
-  - Add optional capture fields only if we need persistence in MVP:
-    - DB migration + `apps/api/src/groundedart_api/db/models.py` fields such as `tip_receipt_provider`, `tip_receipt_ref` (names to be decided).
-  - Add docs:
-    - `docs/ATTRIBUTION_RIGHTS.md` should note the adapter and that it’s off by default.
+    - Implement a Solana-devnet provider behind the interface (Memo-linked transfer verification via RPC).
+  - DB + models (intent + receipt persistence):
+    - Add `artists` and link nodes to a default tip target:
+      - `artists.solana_recipient_pubkey` (validated base58 string)
+      - `nodes.default_artist_id` → `artists.id`
+    - Add `tip_intents` + `tip_receipts` tables (see `docs/FUTUREOPTIONS.md` for suggested columns).
+    - Decide and enforce idempotency (recommended):
+      - `tip_receipts.tx_signature` unique
+      - `tip_receipts.tip_intent_id` unique (unless we explicitly allow multiple attempts)
+  - API endpoints (illustrative; names may be finalized here):
+    - `POST /v1/tips/intents` → `{ node_id, amount_lamports }` → canonical payment payload `{ tip_intent_id, to_pubkey, amount_lamports, cluster, memo_text }`.
+    - `POST /v1/tips/confirm` → `{ tip_intent_id, tx_signature }` → server RPC verification + stored receipt/status.
+    - `GET /v1/nodes/{node_id}/tips` → totals + recent receipts backed by stored receipts (no chain scanning).
+  - Web:
+    - Wallet adapter + tip UI that constructs a transfer + Memo containing the canonical memo text.
+    - Feature-flagged so the core app ships without tips enabled.
 - **Contracts:**
-  - No external provider contract is committed in MVP; any provider-specific payload must be encapsulated behind the adapter and be feature-flagged.
+  - Provider-specific behavior must be encapsulated behind the adapter boundary.
+  - Verification rules must be explicit and server-authoritative:
+    - Never trust client-submitted `to_pubkey`, `amount`, or `from_pubkey`.
+    - The server must find the `tip_intent_id` in the fetched transaction Memo and verify the canonical recipient/lamports.
+  - Add shared schemas in `packages/domain/schemas/` for tips payloads and error codes (names to decide in this task).
 - **Acceptance criteria:**
-  - The codebase has a clear adapter seam where tip receipts could be integrated later without changing capture core flows.
+  - The codebase has a clear adapter seam so other chains/providers can be added later without changing capture core flows.
+  - Devnet SOL-only happy path works end-to-end:
+    - create intent → wallet sends transfer+memo → confirm stores receipt → node tips endpoint reflects it.
+  - Idempotency holds: retries cannot double-credit the same `tx_signature`.
 - **Non-goals:**
-  - Implementing or deploying a real tip provider integration in MVP.
+  - USDC/SPL token tips.
+  - Any custom Solana program / PDA receipts.
+  - Chain scanning/indexing beyond stored receipts.
+  - Wallet↔user claim flows (beyond recording `from_pubkey` on receipts).
+  
+### M5-06 — Solana-native tipping (hackathon TODO) — epic
+- **Context (what/why):**
+  - We want a credible “artist value loop” (tips) without deploying a custom on-chain program or turning the API into a chain indexer.
+  - Canonical hackathon decisions (source of truth: `docs/FUTUREOPTIONS.md`):
+    - **Chain**: Solana devnet only.
+    - **Assets**: SOL-only.
+    - **On-chain integration**: one system transfer + one Memo instruction containing the `tip_intent_id`.
+    - **Receipts**: API verifies receipts via Solana RPC; no client-trusted fields.
+- **Change plan (files):**
+  - Implement the work via the concrete tasks below (M5-06a…M5-06g), keeping tips feature-flagged at the web/UI layer.
+  - Cross-cutting doc + env updates:
+    - `.env.example` (Solana RPC vars)
+    - `docs/COMMANDS.md` (local dev + demo instructions)
+- **Contracts:**
+  - Endpoints (canonical shapes defined in subtasks):
+    - `POST /v1/tips/intents`
+    - `POST /v1/tips/confirm`
+    - `GET /v1/nodes/{node_id}/tips`
+  - The Memo must include `tip_intent_id` and is the canonical linkage between intent and on-chain tx.
+- **Acceptance criteria:**
+  - Demoable end-to-end: create intent → wallet sends transfer+memo → confirm verifies/stores receipt → node tips endpoint reflects stored totals.
+- **Non-goals:**
+  - USDC/SPL tokens, custom Solana programs, chain scanning/indexing, wallet↔user claim flows.
+
+### M5-06a — Add artists + default tip target per node
+- **Context (what/why):**
+  - Tips need an authoritative recipient that is not client-supplied. For hackathon, the recipient is the **default artist per node**.
+- **Change plan (files):**
+  - DB + models:
+    - Alembic migration under `apps/api/src/groundedart_api/db/migrations/versions/` to add:
+      - `artists` table with at least `{ id, display_name, solana_recipient_pubkey, created_at, updated_at }`
+      - `nodes.default_artist_id` (nullable at first) → `artists.id`
+    - Update `apps/api/src/groundedart_api/db/models.py` with `Artist` model and `Node.default_artist_id` (and relationship if desired).
+  - Seeding / local demo ergonomics:
+    - Add a simple seeding script `apps/api/scripts/seed_artists.py` (or extend `apps/api/scripts/seed_nodes.py`) to create demo artists and link nodes.
+- **Contracts:**
+  - Define a canonical representation for a Solana pubkey in contracts:
+    - base58 string, validated format, stored exactly as provided by admin/seed tooling.
+  - Define failure behavior for nodes that don’t have a default artist:
+    - tip intent creation must fail with a stable error code (defined in M5-06b).
+- **Acceptance criteria:**
+  - At least one node in a fresh dev DB can be seeded with a `default_artist_id` that points at an `artists` row with a valid `solana_recipient_pubkey`.
+  - The DB enforces referential integrity (FK) and prevents obviously invalid pubkey shapes at the API boundary (format validation).
+- **Non-goals:**
+  - Artist claim/verification flows, multiple artists per node, or artworks/artist attribution expansions beyond the `artists` table.
+
+### M5-06b — Tip intents: persistence + `POST /v1/tips/intents`
+- **Context (what/why):**
+  - Intents are the server-issued “payment plan” that the wallet must execute. The intent id must appear in the Memo to create a verifiable linkage.
+- **Change plan (files):**
+  - DB + models:
+    - Alembic migration under `apps/api/src/groundedart_api/db/migrations/versions/` to add `tip_intents` (per `docs/FUTUREOPTIONS.md`), including:
+      - `id` (this is `tip_intent_id`)
+      - `node_id`, `artist_id`, `amount_lamports`, `to_pubkey` (snapshotted), `created_by_user_id`
+      - `expires_at`, `status`
+    - Update `apps/api/src/groundedart_api/db/models.py` with `TipIntent`.
+  - API:
+    - New router `apps/api/src/groundedart_api/api/routers/tips.py` implementing `POST /v1/tips/intents`.
+    - Wire the router in `apps/api/src/groundedart_api/main.py`.
+    - Add request/response models in `apps/api/src/groundedart_api/api/schemas.py`.
+  - Shared schemas:
+    - Add schemas under `packages/domain/schemas/` (names final in this task), e.g.:
+      - `create_tip_intent_request.json`
+      - `tip_intent_response.json`
+      - `tip_error_code.json` (+ error response schema if needed)
+  - Tests:
+    - Add API tests under `apps/api/tests/test_tips_intents.py`.
+- **Contracts:**
+  - `POST /v1/tips/intents` request: `{ node_id, amount_lamports }`.
+  - Response must include canonical fields the wallet uses:
+    - `{ tip_intent_id, to_pubkey, amount_lamports, cluster: \"devnet\", memo_text }`.
+  - Stable error codes for:
+    - node not found
+    - node missing default artist
+    - artist missing/invalid recipient pubkey
+    - invalid amount (<= 0 or above a configured max, if we choose to cap)
+- **Acceptance criteria:**
+  - Intent creation fails fast with stable error codes when the node/artist/amount constraints aren’t met.
+  - Returned `memo_text` unambiguously contains the `tip_intent_id` and is safe to embed as a Solana Memo (size limits respected).
+  - Tests cover happy path and at least two failure modes.
+- **Non-goals:**
+  - Multiple intents per node aggregation or any kind of “tip presets” UI (beyond a simple amount picker).
+
+### M5-06c — Tip confirmation: on-chain verification + receipt persistence
+- **Context (what/why):**
+  - The server must authoritatively verify that a specific on-chain tx paid the canonical recipient the canonical lamports, and that the Memo links to the intent id.
+- **Change plan (files):**
+  - Adapter boundary:
+    - Add `apps/api/src/groundedart_api/domain/tip_receipts.py` defining:
+      - provider interface for fetching/parsing tx details
+      - verification result types + error reasons
+    - Add a Solana-devnet implementation (e.g. `apps/api/src/groundedart_api/domain/tip_receipts_solana.py`) that:
+      - fetches the transaction via Solana JSON-RPC
+      - finds the Memo text and validates inclusion of `tip_intent_id`
+      - validates a system transfer instruction paying `to_pubkey` exactly `amount_lamports`
+      - extracts `from_pubkey` (fee payer / signer used for the transfer)
+  - DB + models:
+    - Alembic migration under `apps/api/src/groundedart_api/db/migrations/versions/` to add `tip_receipts` (per `docs/FUTUREOPTIONS.md`), including:
+      - `tip_intent_id` (unique unless we explicitly allow multiple attempts)
+      - `tx_signature` (unique)
+      - `from_pubkey`, `to_pubkey`, `amount_lamports`, `slot`, `block_time`
+      - `confirmation_status` (`seen`/`confirmed`/`finalized`/`failed`)
+      - `first_seen_at`, `last_checked_at`, `failure_reason`
+    - Update `apps/api/src/groundedart_api/db/models.py` with `TipReceipt`.
+  - API:
+    - Implement `POST /v1/tips/confirm` in `apps/api/src/groundedart_api/api/routers/tips.py`.
+    - Add request/response models in `apps/api/src/groundedart_api/api/schemas.py`.
+  - Shared schemas:
+    - Add under `packages/domain/schemas/` (names final in this task), e.g.:
+      - `confirm_tip_request.json`
+      - `tip_receipt_public.json`
+      - `tip_receipt_status.json` (enum)
+  - Tests:
+    - Add API tests under `apps/api/tests/test_tips_confirm.py` using mocked Solana RPC responses (no live chain dependency in CI).
+- **Contracts:**
+  - `POST /v1/tips/confirm` request: `{ tip_intent_id, tx_signature }`.
+  - Idempotency rules (must be enforced at DB + API):
+    - same `(tip_intent_id, tx_signature)` can be retried safely
+    - `tx_signature` cannot credit multiple intents
+  - Verification rules (server-authoritative):
+    - never trust client-submitted `to_pubkey`, `amount_lamports`, or `from_pubkey`
+    - memo must contain the `tip_intent_id` (server must find it in fetched tx)
+    - reject/mark failed if intent is expired or tx does not match canonical recipient/amount
+- **Acceptance criteria:**
+  - A valid transfer+memo tx results in a stored receipt with status at least `seen` (and upgraded later by reconciliation).
+  - Invalid txs (wrong recipient, wrong amount, missing memo) are rejected/recorded as `failed` with a stable failure reason.
+  - Retries do not create duplicate credits (uniqueness constraints + idempotent API behavior).
+- **Non-goals:**
+  - Supporting SPL tokens, splits/fees, or any “pay-to-post” gating in hackathon scope.
+
+### M5-06d — Receipt reconciliation job (finality upgrades)
+- **Context (what/why):**
+  - The API must not treat “seen once” as final; receipts should progress to `confirmed`/`finalized` and be marked `failed` if dropped.
+- **Change plan (files):**
+  - Implement a periodic reconciler:
+    - Option A (simplest): a script in `apps/api/scripts/reconcile_tip_receipts.py` run by cron / a separate container.
+    - Option B: a lightweight worker loop (separate process) inside `apps/api` with a configurable interval.
+  - Add minimal settings in `apps/api/src/groundedart_api/settings.py`:
+    - Solana RPC URL(s)
+    - reconciliation interval and cutoff window
+  - (If using containers) add a new service in `infra/docker-compose.yml` for the reconciler.
+  - Tests:
+    - unit tests for “status upgrade rules” (pure functions) and a small integration test that exercises DB selection/update logic.
+- **Contracts:**
+  - Define canonical transitions:
+    - `seen`/`confirmed` → `finalized` when RPC reports finalization
+    - mark `failed` when tx is missing/dropped past a cutoff window
+  - Ensure `last_checked_at`, `slot`, and `block_time` are updated when discovered.
+- **Acceptance criteria:**
+  - A receipt created by confirm can be upgraded to `finalized` by running the reconciler.
+  - Reconciler is safe to run repeatedly (no double-counting side effects; idempotent updates).
+- **Non-goals:**
+  - Chain-wide indexing or discovery of tips that were never confirmed via our API.
+
+### M5-06e — Node tips read API: `GET /v1/nodes/{node_id}/tips`
+- **Context (what/why):**
+  - The UI needs a fast, server-authoritative way to show tip totals and recent receipts without scanning the chain.
+- **Change plan (files):**
+  - API:
+    - Add `GET /v1/nodes/{node_id}/tips` in `apps/api/src/groundedart_api/api/routers/tips.py` (or `nodes.py` if we decide to keep node reads grouped).
+    - Query stored receipts (no chain scanning) and return:
+      - total amount (lamports/SOL) for the node (and/or artist) scoped to finalized (or at least confirmed) receipts
+      - a short list of recent receipts with status and timestamps
+  - Shared schemas:
+    - Add under `packages/domain/schemas/` (names final in this task), e.g. `node_tips_response.json`.
+  - Tests:
+    - API tests under `apps/api/tests/test_node_tips.py`.
+- **Contracts:**
+  - Define whether totals include `confirmed` or only `finalized` (pick one; document it in the schema and endpoint docstring).
+  - The endpoint must never rely on RPC calls for normal operation (DB-backed only).
+- **Acceptance criteria:**
+  - The endpoint returns deterministic totals based on stored receipts and includes statuses for recent receipts.
+  - Tests cover empty state and a mixed-status set of receipts.
+- **Non-goals:**
+  - Leaderboards, historical analytics, or aggregations that require chain scanning.
+
+### M5-06f — Web: Solana Wallet Adapter + tip UX
+- **Context (what/why):**
+  - Tips must be initiated from a wallet users already have (Phantom/Solflare), with minimal UI friction and a verifiable memo linkage.
+- **Change plan (files):**
+  - Dependencies:
+    - Add Solana Wallet Adapter packages in `apps/web/package.json`.
+  - New tip feature module:
+    - Add `apps/web/src/features/tips/` implementing:
+      - API calls to `POST /v1/tips/intents` and `POST /v1/tips/confirm`
+      - transaction builder: system transfer + Memo containing `memo_text`
+      - UI states: connect wallet, choose amount, send, confirming, success/failure
+  - Integrate into node UI:
+    - Update `apps/web/src/routes/NodeDetailRoute.tsx` to show a “Tip the artist” UI if the node supports tips (server indicates eligibility or we feature-flag).
+  - Tests:
+    - Add vitest tests for the tip flow state machine (mock wallet + mock API).
+- **Contracts:**
+  - The web client must use only the canonical fields returned by the intent endpoint:
+    - recipient pubkey, lamports amount, memo text, cluster
+  - The client must never construct its own `tip_intent_id` or modify the memo format.
+- **Acceptance criteria:**
+  - A user can connect a wallet, create an intent, send a transfer+memo on devnet, and confirm it with the API.
+  - UI clearly communicates non-final states (`seen`/`confirmed`) and that finalization may update later.
+- **Non-goals:**
+  - Multi-wallet account management, token selection, or cross-chain support.
+
+### M5-06g — Demo/ops: env vars, docs, and devnet funding checklist
+- **Context (what/why):**
+  - Hackathon demos fail on setup friction. We need a documented, reproducible way to configure RPC, seed recipients, and fund wallets.
+- **Change plan (files):**
+  - Config:
+    - Add required env vars to `.env.example` (API and web as needed), e.g. `SOLANA_RPC_URL`, `SOLANA_CLUSTER=devnet`.
+  - Docs:
+    - Update `docs/COMMANDS.md` with:
+      - how to seed a demo artist recipient pubkey
+      - how to fund demo wallets with devnet SOL (faucet story)
+      - how to run the reconciler (if separate)
+    - Add a short section to `docs/FUTUREOPTIONS.md` cross-linking the concrete tasks in `docs/TASKS.md` (optional but recommended).
+- **Contracts:**
+  - Document which RPC commitment levels we use for confirm/reconciliation and why (`confirmed` vs `finalized`).
+- **Acceptance criteria:**
+  - A new developer can follow the docs to run the full tip loop locally against devnet without ad-hoc tribal knowledge.
+- **Non-goals:**
+  - Production-grade RPC provider selection, rate-limit tuning, or on-chain monitoring dashboards.

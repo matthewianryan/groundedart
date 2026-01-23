@@ -30,3 +30,10 @@ Run migrations (includes seed nodes):
 
 Run the API:
 - `uvicorn groundedart_api.main:app --reload --port 8000`
+
+## Observability
+
+- **Request IDs**: every response includes `X-Request-ID` (echoed if provided by the client).
+- **Structured logs**: set `LOG_FORMAT=json` (default) and `LOG_LEVEL=INFO` to control output.
+- **Metrics**: Prometheus scrape endpoint at `GET /metrics`.
+- **Tracing (optional)**: set `GA_OTEL_ENABLED=1` to emit spans (defaults to console exporter), or set `OTEL_EXPORTER_OTLP_ENDPOINT` to export via OTLP/HTTP.

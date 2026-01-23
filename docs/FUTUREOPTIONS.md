@@ -87,93 +87,130 @@ If a check-in token must be consumed before upload begins, you need an idempoten
 - When API bandwidth/cost becomes a bottleneck.
 - When mobile uploads regularly exceed acceptable timeouts even after compression.
 
-## TODO:
+## TODO: Solana-native tipping (hackathon plan)
 
-How it works: deploy a contract that forwards funds to the artist and emits Tip(sender, recipient, amount, token, node_id/capture_id); web calls contract; API verifies logs and stores receipts.
+Canonical decisions (hackathon scope; Solana-native, SOL-only)
 
-Repo changes
+- **Chain**: Solana devnet only.
+- **Assets**: **SOL-only** (no USDC/SPL tokens).
+- **On-chain integration**: **no custom program deployment**; use a plain SOL transfer + **Memo** containing `tip_intent_id`.
+- **Receipts**: API verifies the transaction by fetching it from Solana RPC and validating:
+  - transfer recipient == canonical artist recipient
+  - amount == canonical lamports
+  - Memo contains the `tip_intent_id` (canonical linkage)
+- **Intent model**: intents are required; the intent identifier must appear in the transaction Memo.
+- **Wallet UX**: Solana Wallet Adapter (Phantom/Solflare/etc).
+- **Attribution target**: **default artist per node** via `nodes.default_artist_id` (future: multiple artists via artworks or join table).
+- **Finality policy**: do not treat “seen once” as final; store receipt status and reconcile asynchronously.
 
-DB/schema: add payout fields (likely on Node in models.py (line 135)) or introduce Artist/Artwork tables; add tips/tip_receipts table linked to user_id, node_id/capture_id, chain_id, tx_hash, amount, token, from_address, timestamps.
-API: new endpoints like POST /v1/nodes/{node_id}/tips (create intent) + POST /v1/tips/confirm (submit tx hash) + GET /v1/nodes/{node_id}/tips (stats/history); add shared contracts in packages/domain/schemas/.
-Web: add wallet connect + tipping UI (new feature module + button on NodeDetailRoute.tsx (line 1)); optionally add SIWE to link wallet↔session.
-
-External setup
-
-RPC provider (Alchemy/Infura/etc), chain selection, contract deployment (Option 2/3), WalletConnect project/app IDs, explorer links, paymaster/bundler config (Option 3), plus env vars for VITE_* (web) and server-side RPC/contract config (API).
-
-### What we are choosing between (native-only vs USDC vs either)
-These choices determine **what assets users can tip with** and what we must implement in the client + API verification.
-
-Decision: **Either (SOL + USDC)**
-   - **Meaning:** users can choose SOL or USDC at tip time.
-   - **Functional translation (on-chain):**
-     - Same as above, but the tip flow becomes “asset-aware”:
-       - For SOL: one system transfer instruction.
-       - For USDC: token transfer instructions + optional ATA creation.
-   - **Implications:**
-     - Best flexibility; most code paths.
-     - Requires the DB + API “receipt” model to include:
-       - `asset_kind` (`sol` vs `spl`)
-       - `token_mint` (for SPL; USDC mint pubkey)
-       - `amount` in base units (lamports for SOL; token base units for SPL)
-     - UI must handle decimals and formatting:
-       - SOL uses 9 decimals (lamports).
-       - USDC typically uses 6 decimals.
-
-### “Fully integrated” on Solana: receipt strategy options
-Solana doesn’t have EVM-style “events” in the same way; the closest equivalents are **transaction logs**, **program-owned receipt accounts**, and **indexable references/memos**.
-
-Decision: **Custom TipReceipt program (strongest integration)**
-- Deploy a Solana program that:
-  - validates inputs (artist recipient, amount, optional platform fee/splits),
-  - transfers funds (SOL and/or SPL),
-  - creates/updates a **TipReceipt PDA account** storing `{tipper, artist, amount, mint, capture_id/node_id, created_at}`.
-- API can verify by:
-  - checking the receipt account state (canonical),
-  - optionally indexing program logs for the demo UI.
-- Pros: canonical receipt data; easier to extend to splits/fees/gating.
-- Cons: program design, audits, deployment, and client integration cost.
+### How it works (end-to-end flow)
+1. Web calls `POST /v1/tips/intents` with `{ node_id, amount_lamports }`.
+2. API returns `{ tip_intent_id, to_pubkey, amount_lamports, cluster=devnet, memo_text }`.
+3. Web builds and sends a Solana transaction:
+   - one **system program transfer** of `amount_lamports` to `to_pubkey`
+   - one **Memo** instruction containing `memo_text` (must include `tip_intent_id`)
+4. Web calls `POST /v1/tips/confirm` with `{ tip_intent_id, tx_signature }`.
+5. API fetches the transaction from Solana RPC and verifies:
+   - signature exists + parses cleanly
+   - Memo contains `tip_intent_id` (and matches the provided intent id)
+   - at least one SOL transfer instruction pays `to_pubkey` exactly `amount_lamports`
+   - capture and store `from_pubkey` (fee payer / signer used for the transfer)
+6. API stores a receipt with status `seen`/`confirmed`/`finalized`/`failed` and returns current status.
+7. A background reconciler job periodically upgrades `seen/confirmed → finalized` or marks `failed` if dropped/invalid.
 
 ### Repo changes (what must land in this repo)
-**Domain model (to target specific artists)**
-- Introduce an `artists` table and link it to captures/nodes:
-  - `artists`: `id`, `display_name`, `solana_recipient_pubkey`, optional `verified/claimed` fields.
-  - One of:
-    - `captures.artist_id` (tip the artist tied to the capture), or
-    - `nodes.default_artist_id` (tip the “owner” artist for the node), or
-    - `artworks` + `artwork.artist_id` (more correct; more work).
 
-**Tip intent + receipt persistence**
-- Add `tip_intents` and `tip_receipts` (or one table if we skip intents):
-  - `tip_intents`: server-issued id, `artist_id`, `capture_id`/`node_id`, `asset_kind`, `token_mint`, `amount`, `created_by_user_id`, `expires_at`.
-  - `tip_receipts`: `tip_intent_id`, `tx_signature`, `from_pubkey`, `to_pubkey`, `token_mint` (nullable for SOL), `amount`, `confirmed_at`, `slot`, `status`.
+**Domain model (artists)**
+- Add `artists` table:
+  - `id`
+  - `display_name`
+  - `solana_recipient_pubkey` (base58 string; validated format)
+  - optional: `created_at`, `updated_at`, `verified/claimed` (future)
+- Link default artist per node:
+  - `nodes.default_artist_id` → `artists.id`
+
+**Tip intents + receipts**
+- Add `tip_intents`:
+  - `id` (this is `tip_intent_id`)
+  - `node_id`
+  - `artist_id` (derived from `nodes.default_artist_id` at creation time)
+  - `amount_lamports`
+  - `to_pubkey` (snapshotted from artist at intent creation time)
+  - `created_by_user_id`
+  - `expires_at`
+  - `status` (`open`/`expired`/`completed`/`canceled`)
+- Add `tip_receipts`:
+  - `id`
+  - `tip_intent_id` (unique; or allow multiple attempts with a separate constraint—pick one)
+  - `tx_signature` (unique)
+  - `from_pubkey`
+  - `to_pubkey`
+  - `amount_lamports`
+  - `slot` (nullable until known)
+  - `block_time` (nullable)
+  - `confirmation_status` (`seen`/`confirmed`/`finalized`/`failed`)
+  - `first_seen_at`, `last_checked_at`
+  - `failure_reason` (nullable)
 
 **API endpoints (illustrative)**
-- `POST /v1/tips/intents` → create intent and return the canonical “what to pay” payload.
-- `POST /v1/tips/confirm` → submit `tx_signature`; API verifies and stores receipt.
-- `GET /v1/artists/{artist_id}/tips` and/or `GET /v1/nodes/{node_id}/tips` → totals/history for UI.
+- `POST /v1/tips/intents`
+  - Validates node exists and has `default_artist_id` and that artist has a recipient pubkey.
+  - Returns canonical payment payload (recipient, lamports, memo text).
+- `POST /v1/tips/confirm`
+  - Accepts `{ tip_intent_id, tx_signature }`.
+  - Performs authoritative RPC verification and stores/updates receipt.
+  - Idempotent: repeated calls return the existing receipt/status.
+- `GET /v1/nodes/{node_id}/tips`
+  - Returns totals + recent receipts (backed by stored receipts; no chain scanning in hackathon scope).
 
-**Web**
-- Wallet connect (Solana Wallet Adapter: Phantom/Solflare/etc).
-- Tip UI on node/capture views:
-  - choose amount,
-  - choose asset (SOL/USDC) if we support “either”,
-  - send transaction,
-  - submit signature for confirmation and show success/receipt.
+**Verification rules (must be explicit)**
+- Never trust client-submitted `to_pubkey`, `amount`, or `from_pubkey`.
+- The memo must include the `tip_intent_id` (and the server must find it in the fetched transaction).
+- Reject/mark failed if:
+  - intent is expired, or
+  - transaction doesn’t pay the canonical recipient the canonical lamports, or
+  - signature can’t be fetched/parsed after retries.
+- Do not “credit twice”:
+  - `tx_signature` unique in DB
+  - `tip_intent_id` should not be completable multiple times unless explicitly allowed.
 
-### External setup (what is configured outside the repo)
-- Solana network selection: `devnet` vs `mainnet-beta` (hackathons usually start on devnet).
-- RPC provider (public RPC works for demos; managed RPC is more reliable):
-  - examples: Helius, QuickNode, Triton, Alchemy Solana.
-- If using USDC:
-  - decide the USDC mint pubkey for the chosen network and ensure faucets/fixtures exist for demo wallets.
-- If using a custom TipReceipt program:
-  - program deployment + program ID distribution to web/API.
+**Async reconciliation**
+- Add a periodic job (or worker loop) that:
+  - re-fetches receipts that are `seen`/`confirmed` and upgrades to `finalized` when available
+  - marks `failed` if the tx never lands within a cutoff window
+  - persists `last_checked_at` + `slot`/`block_time` when known
 
-### Other “core functionality” considerations we must account for
-- **Artist wallet claiming/admin management:** how an artist sets/changes `solana_recipient_pubkey` (admin-only for hackathon vs self-serve claim flow).
-- **Verification + finality policy:** what commitment we accept (`confirmed` vs `finalized`) and how we handle dropped/expired transactions.
-- **Idempotency:** prevent the same `tx_signature` from being credited twice; prevent “intent reuse” if we model intents.
-- **Fraud checks:** verify the transfer actually pays the intended recipient/mint/amount; do not trust client-submitted fields.
-- **Fees:** users always need SOL for fees unless we add a relayer (out of scope unless explicitly chosen).
-- **Indexing strategy:** for receipts/history, decide if we rely on stored receipts only (simplest) vs chain scan by reference (more complex).
+### External setup (minimal)
+- Solana cluster: **devnet**.
+- RPC:
+  - simplest: public RPC (acceptable for demos),
+  - or one provider key (recommended for reliability) configured via server env var(s).
+- Funding:
+  - fund demo wallets with **devnet SOL** (simple faucet story).
+- No contract deployment, no custom Solana program deployment.
+
+### Non-goals for hackathon scope (explicitly deferred)
+- USDC/SPL token tips.
+- Any custom on-chain receipt program / PDAs.
+- Wallet ↔ user account linking/claim flows (beyond recording `from_pubkey` on receipts).
+- Chain scanning/indexing beyond stored receipts.
+
+### Forward-compatible extension (after hackathon)
+- Support multiple artists per node by introducing either:
+  - `artworks` + `artworks.artist_id` and linking captures to artworks, or
+  - a join table `node_artists` plus a “primary/default” flag; keep `nodes.default_artist_id` as the default tip target.
+
+### Deferred upgrades (intentionally out of hackathon scope)
+This section records future directions that are compatible with the canonical hackathon plan above but are not required to ship a working demo.
+
+**Add USDC/SPL tips**
+- Pros: stable-value tipping, broader user preference.
+- Cons: ATA creation edge cases, decimals/UI complexity, more verification rules, needs mint/network decisions.
+
+**Custom on-chain receipt program**
+- Pros: canonical receipt state on-chain; natural place for fees/splits/gating later.
+- Cons: program design/deployment overhead; slows hackathon velocity; more moving parts to debug.
+
+**Chain indexing**
+- Pros: can show historical tips even if the API missed confirms; enables richer analytics.
+- Cons: expensive/complex for a hackathon; introduces consistency and backfill problems.

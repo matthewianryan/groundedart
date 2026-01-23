@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
-from pathlib import Path
 import uuid
+from dataclasses import dataclass
+from pathlib import Path
 
 from fastapi import UploadFile
 
@@ -15,6 +15,7 @@ from groundedart_api.settings import Settings
 class StoredMedia:
     path: str
     mime: str | None
+    bytes_written: int
 
 
 class LocalMediaStorage:
@@ -75,7 +76,7 @@ class LocalMediaStorage:
                 temp_path.unlink(missing_ok=True)
 
         # Return a relative path suitable for URL building.
-        return StoredMedia(path=filename, mime=content_type)
+        return StoredMedia(path=filename, mime=content_type, bytes_written=bytes_written)
 
 
 def _safe_extension(content_type: str | None) -> str:

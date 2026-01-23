@@ -21,27 +21,30 @@ from groundedart_api.db.models import Capture, CheckinToken, ContentReport, Node
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.abuse_events import record_abuse_event
 from groundedart_api.domain.attribution_rights import (
+    is_capture_publicly_visible,
     missing_attribution_fields,
     missing_rights_fields,
-    is_capture_publicly_visible,
 )
-from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.capture_events import (
     apply_capture_transition_with_audit,
     record_capture_created_event,
     record_capture_published_event,
 )
+from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.capture_transitions import validate_capture_state_reason
 from groundedart_api.domain.errors import AppError
 from groundedart_api.domain.gating import assert_can_create_capture
 from groundedart_api.domain.rank_projection import get_rank_for_user
 from groundedart_api.domain.report_reason_code import ReportReasonCode
 from groundedart_api.domain.verification_events import VerificationEventEmitterDep
+from groundedart_api.observability import metrics
+from groundedart_api.observability.ops import observe_operation
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.storage.deps import MediaStorageDep
 from groundedart_api.time import UtcNow, get_utcnow
 
 router = APIRouter(prefix="/v1", tags=["captures"])
+
 
 def _with_retry_after(
     *,
@@ -151,7 +154,9 @@ async def create_capture(
             details["source"] = "capture_create"
             details["recent_count"] = recent_count
             max_per_window = int(details.get("max_per_window") or 0)
-            window_seconds = int(details.get("window_seconds") or settings.capture_rate_window_seconds)
+            window_seconds = int(
+                details.get("window_seconds") or settings.capture_rate_window_seconds
+            )
             retry_at = None
             if max_per_window > 0 and recent_count > 0:
                 offset = max(0, recent_count - max_per_window)
@@ -384,62 +389,71 @@ async def upload_capture_image(
     verification_events: VerificationEventEmitterDep,
     settings: Settings = Depends(get_settings),
 ) -> CapturePublic:
-    capture = await db.get(Capture, capture_id)
-    if capture is None:
-        raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
-    if capture.user_id != user.id:
-        raise AppError(code="forbidden", message="Forbidden", status_code=403)
+    async with observe_operation(
+        "upload_capture_image",
+        attributes={
+            "capture.id": str(capture_id),
+        },
+    ):
+        capture = await db.get(Capture, capture_id)
+        if capture is None:
+            raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
+        if capture.user_id != user.id:
+            raise AppError(code="forbidden", message="Forbidden", status_code=403)
 
-    if capture.state == CaptureState.draft.value:
-        pending_count = await db.scalar(
-            select(func.count())
-            .select_from(Capture)
-            .where(
-                Capture.node_id == capture.node_id,
-                Capture.state == CaptureState.pending_verification.value,
+        if capture.state == CaptureState.draft.value:
+            pending_count = await db.scalar(
+                select(func.count())
+                .select_from(Capture)
+                .where(
+                    Capture.node_id == capture.node_id,
+                    Capture.state == CaptureState.pending_verification.value,
+                )
             )
+            if (pending_count or 0) >= settings.max_pending_verification_captures_per_node:
+                await record_abuse_event(
+                    db=db,
+                    event_type="pending_verification_cap_reached",
+                    user_id=user.id,
+                    node_id=capture.node_id,
+                    capture_id=capture.id,
+                    details={
+                        "max_pending_per_node": settings.max_pending_verification_captures_per_node,
+                        "pending_count": int(pending_count or 0),
+                    },
+                )
+                raise AppError(
+                    code="pending_verification_cap_reached",
+                    message="Pending verification cap reached",
+                    status_code=429,
+                    details={
+                        "max_pending_per_node": settings.max_pending_verification_captures_per_node,
+                    },
+                )
+
+        stored = await storage.save_capture_image(capture_id=capture.id, upload=file)
+        metrics.upload_bytes_total.labels(mime=stored.mime or "", outcome="success").inc(
+            float(stored.bytes_written)
         )
-        if (pending_count or 0) >= settings.max_pending_verification_captures_per_node:
-            await record_abuse_event(
+        capture.image_path = stored.path
+        capture.image_mime = stored.mime
+        promoted = False
+        if capture.state == CaptureState.draft.value:
+            apply_capture_transition_with_audit(
                 db=db,
-                event_type="pending_verification_cap_reached",
-                user_id=user.id,
-                node_id=capture.node_id,
+                capture=capture,
+                target_state=CaptureState.pending_verification,
+                reason_code="image_uploaded",
+                actor_type="user",
+                actor_user_id=user.id,
+            )
+            promoted = True
+        await db.commit()
+        await db.refresh(capture)
+        if promoted:
+            await verification_events.capture_uploaded(
                 capture_id=capture.id,
-                details={
-                    "max_pending_per_node": settings.max_pending_verification_captures_per_node,
-                    "pending_count": int(pending_count or 0),
-                },
+                node_id=capture.node_id,
+                user_id=capture.user_id,
             )
-            raise AppError(
-                code="pending_verification_cap_reached",
-                message="Pending verification cap reached",
-                status_code=429,
-                details={
-                    "max_pending_per_node": settings.max_pending_verification_captures_per_node,
-                },
-            )
-
-    stored = await storage.save_capture_image(capture_id=capture.id, upload=file)
-    capture.image_path = stored.path
-    capture.image_mime = stored.mime
-    promoted = False
-    if capture.state == CaptureState.draft.value:
-        apply_capture_transition_with_audit(
-            db=db,
-            capture=capture,
-            target_state=CaptureState.pending_verification,
-            reason_code="image_uploaded",
-            actor_type="user",
-            actor_user_id=user.id,
-        )
-        promoted = True
-    await db.commit()
-    await db.refresh(capture)
-    if promoted:
-        await verification_events.capture_uploaded(
-            capture_id=capture.id,
-            node_id=capture.node_id,
-            user_id=capture.user_id,
-        )
-    return capture_to_public(capture)
+        return capture_to_public(capture)

@@ -13,12 +13,19 @@ from groundedart_api.api.routers.health import router as health_router
 from groundedart_api.api.routers.me import router as me_router
 from groundedart_api.api.routers.nodes import router as nodes_router
 from groundedart_api.api.routers.sessions import router as sessions_router
+from groundedart_api.observability.logging import access_log, configure_logging
+from groundedart_api.observability.metrics import render_metrics
+from groundedart_api.observability.middleware import RequestContextMiddleware
+from groundedart_api.observability.tracing import configure_tracing
 from groundedart_api.settings import get_settings
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging()
     app = FastAPI(title="Grounded Art API", version="0.1.0")
+
+    app.add_middleware(RequestContextMiddleware, access_log=access_log)
 
     app.add_middleware(
         CORSMiddleware,
@@ -37,9 +44,12 @@ def create_app() -> FastAPI:
     app.include_router(captures_router)
     app.include_router(admin_router)
 
+    app.add_api_route("/metrics", render_metrics, methods=["GET"], include_in_schema=False)
+
     Path(settings.media_dir).mkdir(parents=True, exist_ok=True)
     app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
     install_error_handlers(app)
+    configure_tracing(app)
     return app
 
 

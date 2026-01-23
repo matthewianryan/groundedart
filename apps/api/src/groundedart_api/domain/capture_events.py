@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from groundedart_api.db.models import Capture, CaptureEvent
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.capture_transitions import apply_capture_state_transition
+from groundedart_api.observability.ops import observe_transition
 
 
 def apply_capture_transition_with_audit(
@@ -20,21 +21,27 @@ def apply_capture_transition_with_audit(
     details: dict[str, object] | None = None,
 ) -> None:
     current_state = CaptureState(capture.state)
-    validated_reason = apply_capture_state_transition(current_state, target_state, reason_code)
-    db.add(
-        CaptureEvent(
-            capture_id=capture.id,
-            event_type="state_transition",
-            from_state=current_state.value,
-            to_state=target_state.value,
-            reason_code=validated_reason,
-            actor_type=actor_type,
-            actor_user_id=actor_user_id,
-            details=details,
+    with observe_transition(
+        from_state=current_state.value,
+        to_state=target_state.value,
+        actor_type=actor_type,
+        attributes={"capture.id": str(capture.id)},
+    ):
+        validated_reason = apply_capture_state_transition(current_state, target_state, reason_code)
+        db.add(
+            CaptureEvent(
+                capture_id=capture.id,
+                event_type="state_transition",
+                from_state=current_state.value,
+                to_state=target_state.value,
+                reason_code=validated_reason,
+                actor_type=actor_type,
+                actor_user_id=actor_user_id,
+                details=details,
+            )
         )
-    )
-    capture.state = target_state.value
-    capture.state_reason = validated_reason
+        capture.state = target_state.value
+        capture.state_reason = validated_reason
 
 
 def record_capture_created_event(
