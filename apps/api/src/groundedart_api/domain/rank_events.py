@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from groundedart_api.db.models import CuratorRankEvent, utcnow
 
+CAPTURE_VERIFIED_EVENT_TYPE = "capture_verified"
+
 DEFAULT_RANK_VERSION = "v1_points"
 
 

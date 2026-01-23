@@ -9,9 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from groundedart_api.db.models import Capture, CuratorRankEvent
 from groundedart_api.domain.capture_state import CaptureState
-from groundedart_api.domain.rank_events import DEFAULT_RANK_VERSION
-
-CAPTURE_VERIFIED_EVENT_TYPE = "capture_verified"
+from groundedart_api.domain.rank_events import (
+    CAPTURE_VERIFIED_EVENT_TYPE,
+    DEFAULT_RANK_VERSION,
+)
 PER_NODE_PER_DAY_CAP = 1
 PER_DAY_POINTS_CAP = 3
 

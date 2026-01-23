@@ -50,6 +50,7 @@ async def create_user_session(
                         min_rank=0,
                     )
                 )
+                await session.flush()
                 session.add(
                     Capture(
                         id=capture_id,

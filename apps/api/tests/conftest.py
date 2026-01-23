@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
@@ -53,7 +54,7 @@ def media_dir(tmp_path, monkeypatch):
     get_settings.cache_clear()
 
 
-@pytest.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def reset_db(db_sessionmaker):
     async with db_sessionmaker() as session:
         await session.execute(
@@ -67,7 +68,7 @@ async def reset_db(db_sessionmaker):
     yield
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(media_dir):
     app = create_app()
     transport = ASGITransport(app=app)
