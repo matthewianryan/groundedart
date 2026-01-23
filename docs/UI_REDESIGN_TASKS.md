@@ -5,7 +5,7 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
 ## Phase 1: Design System Foundation
 
 ### Task 1.1: Create Shared UI Components
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **Files:**
   - `apps/web/src/components/ui/Button.tsx`
   - `apps/web/src/components/ui/Card.tsx`
@@ -14,32 +14,33 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
   - `apps/web/src/components/ui/Input.tsx`
   - `apps/web/src/components/ui/Select.tsx`
   - `apps/web/src/components/ui/Alert.tsx`
+  - `apps/web/src/components/ui/AnimatedSection.tsx`
   - `apps/web/src/components/ui/index.ts`
 - **Acceptance Criteria:**
-  - [ ] Components use `card-light`/`card-dark` and `btn-tactile-*` classes
-  - [ ] Support dark mode via `dark:` variants
-  - [ ] Include hover/focus states with animations
-  - [ ] Match typography and spacing from landing page
-  - [ ] Export from index.ts
+  - [x] Components use `card-light`/`card-dark` and `btn-tactile-*` classes
+  - [x] Support dark mode via `dark:` variants
+  - [x] Include hover/focus states with animations
+  - [x] Match typography and spacing from landing page
+  - [x] Export from index.ts
 
 ### Task 1.2: Create Typography Utilities
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **Files:**
-  - `apps/web/src/styles/typography.css` (or add to styles.css)
+  - `apps/web/src/styles.css` (added typography utilities)
 - **Acceptance Criteria:**
-  - [ ] Typography matches landing page hierarchy
-  - [ ] Proper font weights, sizes, and tracking
-  - [ ] Dark mode variants included
+  - [x] Typography matches landing page hierarchy
+  - [x] Proper font weights, sizes, and tracking
+  - [x] Dark mode variants included
 
 ### Task 1.3: Create Animation Utilities
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **Files:**
   - `apps/web/src/utils/animations.ts`
   - `apps/web/src/components/ui/AnimatedSection.tsx`
 - **Acceptance Criteria:**
-  - [ ] Animations match landing page timing and easing
-  - [ ] Reusable across components
-  - [ ] Performance optimized
+  - [x] Animations match landing page timing and easing
+  - [x] Reusable across components
+  - [x] Performance optimized
 
 ---
 
@@ -234,9 +235,9 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
 ## Progress Summary
 
 - **Total Tasks:** 21
-- **Completed:** 0
+- **Completed:** 3
 - **In Progress:** 0
-- **Pending:** 21
+- **Pending:** 18
 
 ## Status Legend
 - ⏳ Pending
