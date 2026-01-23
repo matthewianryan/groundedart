@@ -118,33 +118,33 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
 ## Phase 3: Node Detail Route Redesign
 
 ### Task 3.1: Redesign Node Header
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/NodeDetailRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Header matches landing page style
-  - [ ] Typography hierarchy correct
-  - [ ] Back button uses tactile styling
-  - [ ] Smooth animations
+  - [x] Header matches landing page style
+  - [x] Typography hierarchy correct
+  - [x] Back button uses tactile styling
+  - [x] Smooth animations
 
 ### Task 3.2: Redesign Captures Gallery
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/NodeDetailRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Gallery uses card grid
-  - [ ] Hover effects match landing page
-  - [ ] Attribution clearly displayed
-  - [ ] Smooth staggered animations
-  - [ ] Loading states styled
+  - [x] Gallery uses card grid
+  - [x] Hover effects match landing page
+  - [x] Attribution clearly displayed
+  - [x] Smooth staggered animations
+  - [x] Loading states styled
 
 ### Task 3.3: Redesign Report Flow
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/NodeDetailRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Report form in styled card
-  - [ ] Form inputs match theme
-  - [ ] Buttons use tactile styling
-  - [ ] Smooth state transitions
-  - [ ] Error states use grounded colors
+  - [x] Report form in styled card
+  - [x] Form inputs match theme
+  - [x] Buttons use tactile styling
+  - [x] Smooth state transitions
+  - [x] Error states use grounded colors
 
 ---
 
@@ -235,9 +235,9 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
 ## Progress Summary
 
 - **Total Tasks:** 21
-- **Completed:** 12
+- **Completed:** 15
 - **In Progress:** 0
-- **Pending:** 9
+- **Pending:** 6
 
 ## Status Legend
 - ⏳ Pending
