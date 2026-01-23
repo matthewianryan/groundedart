@@ -36,6 +36,6 @@ This repository contains initial scaffolding for:
 
 Quick start:
 - `docker compose -f infra/docker-compose.yml up -d db`
-- `source .venv311/bin/activate && pip install -e "apps/api[dev]" && (cd apps/api && alembic upgrade head) && python apps/api/scripts/seed_nodes.py`
+- `source .venv311/bin/activate && pip install -e "apps/api[dev]" && (cd apps/api && alembic upgrade head)`
 - `uvicorn groundedart_api.main:app --reload --port 8000`
 - `cd apps/web && npm install && cp .env.example .env && npm run dev` (set `VITE_GOOGLE_MAPS_API_KEY` for the map/Directions/Places/Geocoding APIs)

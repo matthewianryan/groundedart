@@ -3,6 +3,21 @@ import { apiFetch } from "../../api/http";
 export type CheckinChallengeResponse = { challenge_id: string; expires_at: string };
 export type CheckinRequest = { challenge_id: string; lat: number; lng: number; accuracy_m: number };
 export type CheckinResponse = { checkin_token: string; expires_at: string };
+export type CheckinErrorCode =
+  | "node_not_found"
+  | "invalid_challenge"
+  | "challenge_used"
+  | "challenge_expired"
+  | "location_accuracy_too_low"
+  | "outside_geofence";
+export type CheckinErrorDetails = {
+  accuracy_m?: number;
+  max_allowed_m?: number;
+  radius_m?: number;
+  distance_m?: number;
+  challenge_id?: string;
+  node_id?: string;
+};
 
 export function createCheckinChallenge(nodeId: string) {
   return apiFetch<CheckinChallengeResponse>(`/v1/nodes/${nodeId}/checkins/challenge`, { method: "POST" });

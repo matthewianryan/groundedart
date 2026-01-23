@@ -23,12 +23,7 @@ cd apps/web
 npm install
 ```
 
-Seed nodes (run after migrations when you want sample data):
-
-```bash
-cd apps/api
-python scripts/seed_nodes.py
-```
+Seed nodes (included in Alembic migrations).
 
 ## Alembic migrations (exact sequence)
 

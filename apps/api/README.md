@@ -25,9 +25,8 @@ Install the API (from repo root):
 - `source .venv311/bin/activate`
 - `pip install -e "apps/api[dev]"`
 
-Run migrations + seed a starter node:
+Run migrations (includes seed nodes):
 - `cd apps/api && alembic upgrade head`
-- `python apps/api/scripts/seed_nodes.py`
 
 Run the API:
 - `uvicorn groundedart_api.main:app --reload --port 8000`

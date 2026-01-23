@@ -1,10 +1,28 @@
-export type ApiError = {
+export type ApiErrorPayload = {
   error: {
     code: string;
     message: string;
-    details: Record<string, unknown>;
+    details?: Record<string, unknown>;
   };
 };
+
+export class ApiError extends Error {
+  code: string;
+  details: Record<string, unknown>;
+  status: number;
+
+  constructor(payload: ApiErrorPayload["error"], status: number) {
+    super(payload.message ?? "API error");
+    this.name = "ApiError";
+    this.code = payload.code;
+    this.details = payload.details ?? {};
+    this.status = status;
+  }
+}
+
+export function isApiError(err: unknown): err is ApiError {
+  return err instanceof ApiError;
+}
 
 const API_ORIGIN = import.meta.env.VITE_API_ORIGIN ?? "http://localhost:8000";
 
@@ -19,10 +37,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   });
 
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as ApiError | null;
-    if (body?.error?.message) throw new Error(`${body.error.code}: ${body.error.message}`);
-    throw new Error(`HTTP ${res.status}`);
+    const body = (await res.json().catch(() => null)) as ApiErrorPayload | null;
+    if (body?.error?.code) {
+      throw new ApiError(body.error, res.status);
+    }
+    throw new ApiError({ code: "http_error", message: `HTTP ${res.status}` }, res.status);
   }
   return (await res.json()) as T;
 }
-

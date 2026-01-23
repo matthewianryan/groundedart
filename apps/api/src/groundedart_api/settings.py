@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 from functools import lru_cache
 from typing import Annotated
 
@@ -53,7 +54,15 @@ class Settings(BaseSettings):
     @classmethod
     def _split_cors_origins(cls, value: list[AnyHttpUrl] | str) -> list[AnyHttpUrl] | str:
         if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
+            raw = value.strip()
+            if raw.startswith("["):
+                try:
+                    parsed = json.loads(raw)
+                except json.JSONDecodeError:
+                    parsed = None
+                if isinstance(parsed, list):
+                    return [str(origin).strip() for origin in parsed if str(origin).strip()]
+            return [origin.strip() for origin in raw.split(",") if origin.strip()]
         return value
 
 
