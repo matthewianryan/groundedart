@@ -83,6 +83,10 @@ class Settings(BaseSettings):
         default=5,
         description="Maximum reports per user per rate window.",
     )
+    tip_intent_ttl_seconds: int = Field(
+        default=60 * 60,
+        description="Time-to-live for tip intents, in seconds.",
+    )
 
     media_dir: str = "./.local_media"
     upload_allowed_mime_types: list[str] = Field(

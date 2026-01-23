@@ -135,8 +135,7 @@
   - The API must not treat “seen once” as final; receipts should progress to `confirmed`/`finalized` and be marked `failed` if dropped.
 - **Change plan (files):**
   - Implement a periodic reconciler:
-    - Option A (simplest): a script in `apps/api/scripts/reconcile_tip_receipts.py` run by cron / a separate container.
-    - Option B: a lightweight worker loop (separate process) inside `apps/api` with a configurable interval.
+Decision: a script in `apps/api/scripts/reconcile_tip_receipts.py` run by cron / a separate container.
   - Add minimal settings in `apps/api/src/groundedart_api/settings.py`:
     - Solana RPC URL(s)
     - reconciliation interval and cutoff window

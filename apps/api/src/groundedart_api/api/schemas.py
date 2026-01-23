@@ -110,6 +110,19 @@ class CheckinResponse(BaseModel):
     expires_at: dt.datetime
 
 
+class CreateTipIntentRequest(BaseModel):
+    node_id: uuid.UUID
+    amount_lamports: int
+
+
+class TipIntentResponse(BaseModel):
+    tip_intent_id: uuid.UUID
+    to_pubkey: str
+    amount_lamports: int
+    cluster: Literal["devnet"]
+    memo_text: str
+
+
 class CreateCaptureRequest(BaseModel):
     node_id: uuid.UUID
     checkin_token: str

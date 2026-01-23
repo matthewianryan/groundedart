@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TipIntentResponse",
+  "type": "object",
+  "required": ["tip_intent_id", "to_pubkey", "amount_lamports", "cluster", "memo_text"],
+  "properties": {
+    "tip_intent_id": { "type": "string", "format": "uuid" },
+    "to_pubkey": { "type": "string" },
+    "amount_lamports": { "type": "integer", "minimum": 1 },
+    "cluster": { "type": "string", "enum": ["devnet"] },
+    "memo_text": { "type": "string" }
+  }
+}

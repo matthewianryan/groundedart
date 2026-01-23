@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TipErrorCode",
+  "type": "string",
+  "enum": [
+    "artist_missing_recipient_pubkey",
+    "invalid_tip_amount",
+    "node_missing_default_artist",
+    "node_not_found"
+  ]
+}

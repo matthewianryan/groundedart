@@ -177,6 +177,34 @@ class Node(Base):
     default_artist: Mapped[Artist | None] = relationship(back_populates="nodes_defaulting")
 
 
+class TipIntent(Base):
+    __tablename__ = "tip_intents"
+    __table_args__ = (
+        CheckConstraint(
+            "status in ('open', 'expired', 'completed', 'canceled')",
+            name="ck_tip_intents_status",
+        ),
+        Index("ix_tip_intents_node_id", "node_id"),
+        Index("ix_tip_intents_artist_id", "artist_id"),
+        Index("ix_tip_intents_created_by_user_id", "created_by_user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    node_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("nodes.id"), nullable=False
+    )
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artists.id"), nullable=False
+    )
+    amount_lamports: Mapped[int] = mapped_column(Integer, nullable=False)
+    to_pubkey: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    expires_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+
+
 class CheckinChallenge(Base):
     __tablename__ = "checkin_challenges"
     __table_args__ = (
