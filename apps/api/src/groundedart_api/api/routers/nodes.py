@@ -21,11 +21,12 @@ from groundedart_api.api.schemas import (
 )
 from groundedart_api.auth.deps import CurrentUser, OptionalUser
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import Capture, CheckinChallenge, CheckinToken, CuratorProfile, Node, utcnow
+from groundedart_api.db.models import Capture, CheckinChallenge, CheckinToken, CuratorProfile, Node
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
 from groundedart_api.settings import Settings, get_settings
+from groundedart_api.time import UtcNow, get_utcnow
 
 router = APIRouter(prefix="/v1", tags=["nodes"])
 logger = logging.getLogger(__name__)
@@ -133,12 +134,13 @@ async def create_checkin_challenge(
     db: DbSessionDep,
     user: CurrentUser,
     settings: Settings = Depends(get_settings),
+    now: UtcNow = Depends(get_utcnow),
 ) -> CheckinChallengeResponse:
     node = await db.get(Node, node_id)
     if node is None:
         raise AppError(code="node_not_found", message="Node not found", status_code=404)
 
-    expires_at = utcnow() + dt.timedelta(seconds=settings.checkin_challenge_ttl_seconds)
+    expires_at = now() + dt.timedelta(seconds=settings.checkin_challenge_ttl_seconds)
     challenge = CheckinChallenge(user_id=user.id, node_id=node.id, expires_at=expires_at)
     db.add(challenge)
     await db.commit()
@@ -152,6 +154,7 @@ async def check_in(
     db: DbSessionDep,
     user: CurrentUser,
     settings: Settings = Depends(get_settings),
+    now: UtcNow = Depends(get_utcnow),
 ) -> CheckinResponse:
     challenge = await db.get(CheckinChallenge, body.challenge_id)
     if challenge is None or challenge.user_id != user.id or challenge.node_id != node_id:
@@ -174,7 +177,7 @@ async def check_in(
             message="Check-in challenge already used",
             status_code=400,
         )
-    if utcnow() >= challenge.expires_at:
+    if now() >= challenge.expires_at:
         raise AppError(
             code="challenge_expired",
             message="Check-in challenge expired",
@@ -224,11 +227,11 @@ async def check_in(
             details=details,
         )
 
-    challenge.used_at = utcnow()
+    challenge.used_at = now()
 
     token = generate_opaque_token()
     token_hash = hash_opaque_token(token, settings)
-    expires_at = utcnow() + dt.timedelta(seconds=settings.checkin_token_ttl_seconds)
+    expires_at = now() + dt.timedelta(seconds=settings.checkin_token_ttl_seconds)
     db.add(
         CheckinToken(
             user_id=user.id,

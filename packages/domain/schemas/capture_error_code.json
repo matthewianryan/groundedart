@@ -7,6 +7,9 @@
     "checkin_token_expired",
     "capture_not_found",
     "forbidden",
-    "auth_required"
+    "auth_required",
+    "file_too_large",
+    "invalid_media_type",
+    "upload_incomplete"
   ]
 }

@@ -19,7 +19,10 @@ export type CaptureErrorCode =
   | "checkin_token_expired"
   | "capture_not_found"
   | "forbidden"
-  | "auth_required";
+  | "auth_required"
+  | "file_too_large"
+  | "invalid_media_type"
+  | "upload_incomplete";
 
 export type CaptureErrorResponse = {
   error: { code: CaptureErrorCode; message: string; details: Record<string, unknown> };

@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     )
 
     media_dir: str = "./.local_media"
+    upload_allowed_mime_types: list[str] = Field(
+        default=["image/jpeg", "image/png", "image/webp"],
+        description="Allowed MIME types for capture uploads.",
+    )
+    upload_max_bytes: int = Field(
+        default=1_500_000,
+        description="Maximum allowed upload size for capture images, in bytes.",
+    )
 
     @field_validator("api_cors_origins", mode="before")
     @classmethod
@@ -64,6 +72,15 @@ class Settings(BaseSettings):
                     return [str(origin).strip() for origin in parsed if str(origin).strip()]
             return [origin.strip() for origin in raw.split(",") if origin.strip()]
         return value
+
+    @field_validator("upload_allowed_mime_types", mode="before")
+    @classmethod
+    def _normalize_upload_mime_types(cls, value: list[str] | str) -> list[str]:
+        if isinstance(value, str):
+            values = [item.strip() for item in value.split(",")]
+        else:
+            values = [str(item).strip() for item in value]
+        return [item.lower() for item in values if item]
 
 
 @lru_cache(maxsize=1)

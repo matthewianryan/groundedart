@@ -7,9 +7,10 @@ from sqlalchemy import select
 
 from groundedart_api.api.schemas import AnonymousSessionRequest, AnonymousSessionResponse
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import CuratorProfile, Device, Session, User, utcnow
+from groundedart_api.db.models import CuratorProfile, Device, Session, User
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.settings import Settings, get_settings
+from groundedart_api.time import UtcNow, get_utcnow
 
 router = APIRouter(prefix="/v1/sessions", tags=["sessions"])
 
@@ -20,6 +21,7 @@ async def create_anonymous_session(
     response: Response,
     db: DbSessionDep,
     settings: Settings = Depends(get_settings),
+    now: UtcNow = Depends(get_utcnow),
 ) -> AnonymousSessionResponse:
     device_id = str(body.device_id)
     device = await db.scalar(select(Device).where(Device.device_id == device_id))
@@ -32,11 +34,11 @@ async def create_anonymous_session(
         db.add(CuratorProfile(user_id=user.id, rank=0))
     else:
         user = await db.get(User, device.user_id)
-        device.last_seen_at = utcnow()
+        device.last_seen_at = now()
 
     token = generate_opaque_token()
     token_hash = hash_opaque_token(token, settings)
-    expires_at = utcnow() + dt.timedelta(seconds=settings.session_ttl_seconds)
+    expires_at = now() + dt.timedelta(seconds=settings.session_ttl_seconds)
     db.add(Session(user_id=user.id, token_hash=token_hash, expires_at=expires_at))
     await db.commit()
 
@@ -51,4 +53,3 @@ async def create_anonymous_session(
     )
 
     return AnonymousSessionResponse(user_id=user.id, session_expires_at=expires_at)
-

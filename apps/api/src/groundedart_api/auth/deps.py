@@ -10,11 +10,13 @@ from groundedart_api.db.models import Session, User
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.errors import AppError
 from groundedart_api.settings import Settings, get_settings
+from groundedart_api.time import UtcNow, get_utcnow
 
 
 async def get_optional_user(
     db: DbSessionDep,
     settings: Annotated[Settings, Depends(get_settings)],
+    now: Annotated[UtcNow, Depends(get_utcnow)],
     request: Request,
 ) -> User | None:
     session_cookie = request.cookies.get(settings.session_cookie_name)
@@ -28,7 +30,7 @@ async def get_optional_user(
             Session.revoked_at.is_(None),
         )
     )
-    if not session or session.is_expired:
+    if not session or now() >= session.expires_at:
         return None
     return await db.get(User, session.user_id)
 

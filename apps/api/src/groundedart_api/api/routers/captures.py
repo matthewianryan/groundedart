@@ -8,11 +8,12 @@ from sqlalchemy import select
 from groundedart_api.api.schemas import CapturePublic, CreateCaptureRequest, CreateCaptureResponse
 from groundedart_api.auth.deps import CurrentUser
 from groundedart_api.auth.tokens import hash_opaque_token
-from groundedart_api.db.models import Capture, CheckinToken, utcnow
+from groundedart_api.db.models import Capture, CheckinToken
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.errors import AppError
 from groundedart_api.settings import Settings, get_settings
-from groundedart_api.storage.local import LocalMediaStorage
+from groundedart_api.storage.deps import MediaStorageDep
+from groundedart_api.time import UtcNow, get_utcnow
 
 router = APIRouter(prefix="/v1", tags=["captures"])
 
@@ -34,6 +35,7 @@ async def create_capture(
     db: DbSessionDep,
     user: CurrentUser,
     settings: Settings = Depends(get_settings),
+    now: UtcNow = Depends(get_utcnow),
 ) -> CreateCaptureResponse:
     token_hash = hash_opaque_token(body.checkin_token, settings)
     token = await db.scalar(
@@ -48,14 +50,14 @@ async def create_capture(
             message="Invalid check-in token",
             status_code=400,
         )
-    if token.is_expired:
+    if now() >= token.expires_at:
         raise AppError(
             code="checkin_token_expired",
             message="Check-in token expired",
             status_code=400,
         )
 
-    token.used_at = utcnow()
+    token.used_at = now()
     capture = Capture(
         user_id=user.id,
         node_id=body.node_id,
@@ -76,7 +78,7 @@ async def upload_capture_image(
     file: UploadFile,
     db: DbSessionDep,
     user: CurrentUser,
-    settings: Settings = Depends(get_settings),
+    storage: MediaStorageDep,
 ) -> CapturePublic:
     capture = await db.get(Capture, capture_id)
     if capture is None:
@@ -84,7 +86,6 @@ async def upload_capture_image(
     if capture.user_id != user.id:
         raise AppError(code="forbidden", message="Forbidden", status_code=403)
 
-    storage = LocalMediaStorage(settings)
     stored = await storage.save_capture_image(capture_id=capture.id, upload=file)
     capture.image_path = stored.path
     capture.image_mime = stored.mime

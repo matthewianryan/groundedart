@@ -46,6 +46,14 @@ def db_sessionmaker():
 
 
 @pytest.fixture(autouse=True)
+def media_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEDIA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
 async def reset_db(db_sessionmaker):
     async with db_sessionmaker() as session:
         await session.execute(
@@ -59,7 +67,7 @@ async def reset_db(db_sessionmaker):
 
 
 @pytest.fixture
-async def client():
+async def client(media_dir):
     app = create_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
