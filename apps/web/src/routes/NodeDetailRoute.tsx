@@ -55,6 +55,26 @@ export function NodeDetailRoute() {
     return null;
   }
 
+  function getPlaceholderImage(nodeId: string): string {
+    // Use node ID to deterministically pick one of 40 placeholder images
+    // Convert UUID to a number and mod by 40 to get consistent placeholder
+    const hash = nodeId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const imageNum = (hash % 40) + 1;
+    return `/artworks/${imageNum}.jpg`;
+  }
+
+  function getNodeImageUrl(node: NodeView): string {
+    if (node.visibility !== "visible") {
+      return getPlaceholderImage(node.id);
+    }
+    const visibleNode = node as NodePublic;
+    // Check if image_url exists and is not empty
+    if (visibleNode.image_url && visibleNode.image_url.trim() !== "") {
+      return visibleNode.image_url;
+    }
+    return getPlaceholderImage(node.id);
+  }
+
   useEffect(() => {
     if (!nodeId) {
       setCaptures([]);
@@ -184,35 +204,40 @@ export function NodeDetailRoute() {
             ) : (
               <>
                 {/* Node Image */}
-                {node.visibility === "visible" && node.image_url ? (
+                {node.visibility === "visible" ? (
                   <motion.div variants={staggerItem}>
                     <Card variant="light" padding="none" className="overflow-hidden mb-6">
-                      <div className="relative w-full aspect-video overflow-hidden bg-grounded-charcoal/5 dark:bg-grounded-parchment/5">
-                        <motion.img
-                          src={node.image_url}
+                      <div className="relative w-full aspect-video overflow-hidden bg-grounded-charcoal/5 dark:bg-grounded-parchment/5 min-h-[200px]">
+                        <img
+                          src={getNodeImageUrl(node)}
                           alt={node.name}
                           loading="lazy"
-                          initial={{ opacity: 0, scale: 1.05 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={defaultTransition}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // If the image fails to load, try a fallback placeholder
+                            const target = e.currentTarget;
+                            const fallback = getPlaceholderImage(node.id);
+                            if (!target.src.includes("artworks")) {
+                              target.src = fallback;
+                            }
+                          }}
                         />
                       </div>
-                      {node.image_attribution ? (
+                      {node.visibility === "visible" && (node as NodePublic).image_attribution ? (
                         <div className="p-4 border-t border-grounded-charcoal/10 dark:border-grounded-parchment/10">
                           <p className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60 uppercase tracking-wide">
                             Image credit:{" "}
-                            {node.image_source_url ? (
+                            {(node as NodePublic).image_source_url ? (
                               <a
-                                href={node.image_source_url}
+                                href={(node as NodePublic).image_source_url!}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-grounded-copper hover:text-grounded-clay dark:text-grounded-copper dark:hover:text-grounded-clay transition-colors"
                               >
-                                {node.image_attribution}
+                                {(node as NodePublic).image_attribution}
                               </a>
                             ) : (
-                              <span>{node.image_attribution}</span>
+                              <span>{(node as NodePublic).image_attribution}</span>
                             )}
                           </p>
                         </div>
