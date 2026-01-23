@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RankEvent",
+  "type": "object",
+  "required": ["id", "user_id", "event_type", "delta", "created_at", "rank_version"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "user_id": { "type": "string", "format": "uuid" },
+    "event_type": { "$ref": "rank_event_type.json" },
+    "delta": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "rank_version": { "type": "string", "enum": ["v1_points"] },
+    "capture_id": { "type": ["string", "null"] },
+    "node_id": { "type": ["string", "null"] },
+    "details": { "type": ["object", "null"], "additionalProperties": true }
+  }
+}

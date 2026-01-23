@@ -74,6 +74,7 @@ Exit criteria:
 
 Deliverables:
 - Rank computation rules + an auditable event log (derive from verified actions only).
+- Rank policy reference: see `docs/RANK_GATING.md`.
 - API-level gating for:
   - which nodes are visible in discovery
   - who can create captures / how often

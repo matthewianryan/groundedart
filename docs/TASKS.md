@@ -1,174 +1,216 @@
-## Milestone 3 — Verification state machine (MVP)
+# Tasks
 
-This section turns Milestone 3 from `docs/ROADMAP.md` into an implementable backlog: server-enforced capture states, an auditable moderation path, and basic anti-abuse.
+This file is the **active milestone task checklist**.
 
-### M3-01 — Capture verification reason codes (contract + storage)
-
-**Context (what is achieved)**: capture transitions carry stable, explainable reason codes (not free-form strings), and the API can safely expose “why” to admins without leaking it publicly.
-
-**Why**: reason codes are how the system stays debuggable and how future rank/scoring can rely on verification outcomes without parsing arbitrary text.
-
-**Change plan (specific files)**:
-- Domain contracts:
-  - Add `packages/domain/schemas/capture_state_reason_code.json` (string enum) and reference it from any moderation/audit schemas introduced in later tasks.
-- API storage + validation:
-  - Treat `Capture.state_reason` as a *reason code* (validated against the enum) for M3 (defer any column rename).
-  - Enforce reason requirements by state:
-    - `pending_verification` must have a non-null reason (e.g. `image_uploaded`).
-    - `rejected`/`hidden` must have a non-null reason (moderation outcome).
-    - `verified` may have a reason (optional) but should remain explainable (e.g. `manual_review_pass`).
-  - Wire validation into a single transition helper (see M3-03), not scattered across routers.
-
-**Acceptance criteria**:
-- Any attempt to set a state without the required reason code is rejected with a stable `error.code`.
-- Reason codes used by the API are declared in `packages/domain/schemas/capture_state_reason_code.json`.
+- Milestones **0–3** are implemented in this repo; see `docs/M0.md`, `docs/M1.md`, `docs/M2.md`, `docs/M3.md`.
+- The next milestone is **Milestone 4 — Rank + gating (MVP)** from `docs/ROADMAP.md`.
 
 ---
 
-### M3-02 — Capture state audit log (append-only)
+## Milestone 4 — Rank + gating (MVP)
 
-**Context (what is achieved)**: every capture state transition is recorded as an append-only audit event with `from_state`, `to_state`, actor, reason code, and timestamp.
+Goal (per `docs/ROADMAP.md`): users unlock nodes/features based on verified contributions; discovery improves as trust grows.
 
-**Why**: moderation must be auditable; without an event log, “who changed what and why” becomes impossible to answer and undermines trust.
+### M4-01 — Decide rank rules + gating policy (design + contracts)
 
-**Change plan (specific files)**:
-- Add a new DB table/model (example name: `CaptureStateEvent`) in `apps/api/src/groundedart_api/db/models.py` with:
-  - `capture_id`, `from_state`, `to_state`, `reason_code` (stored in `state_reason` or separately), `actor_type`, `actor_user_id` (nullable), `created_at`, `details` (optional JSON).
-- Add an Alembic migration under `apps/api/src/groundedart_api/db/migrations/versions/` for the table + indexes (at least `capture_id, created_at`).
-- Ensure any code path that changes `Capture.state` writes exactly one audit event in the same DB transaction (upload promotion and admin moderation).
+**Context (what/why)**
+- M4 requires rank to be **derived from verified actions only** and to be explainable/auditable.
+- The repo currently stores `curator_profiles.rank`, but there is **no rank event log** and no documented rank computation rules (`docs/TOADDRESS.md`).
+- Without a clear policy, the system can’t honestly explain unlocks (“why can/can’t I see/do this?”) and we can’t write stable tests.
 
-**Acceptance criteria**:
-- Upload promotion (`draft` → `pending_verification`) writes an audit event.
-- Admin moderation transitions write an audit event with actor and reason code.
-- Tests assert that transitions create audit rows (add coverage under `apps/api/tests/`).
+**Decision points (pick explicitly; do not “let code decide”)**
+- Rank computation model (choose one for MVP; can evolve later):
+Decision: Simple Points System: +N per verified capture (with per-node/day caps).
+     - Pros: simplest; easy to audit; low product ambiguity.
+     - Cons: can incentivize spam unless caps/anti-abuse are strong.
+- What happens when verified content is later moderated (e.g., `verified → hidden`)?
+Decision: rank is **recomputed** from current “still-verified” content (rank can go down).
+- Gating surface (minimum required by ROADMAP):
+  - Discovery read path: already filters by `nodes.min_rank`, but must be driven by the new rank system.
+  - “Who can create captures / how often”: decide which actions are rank-tiered (capture create frequency, check-in issuance limits, per-node caps).
 
----
+**Change plan (specific files)**
+- Add policy doc:
+  - `docs/RANK_GATING.md` (new): computation rules, examples, tier table, and “why” language guidelines.
+  - Update cross-references in `docs/ROADMAP.md` and/or `docs/ARCHITECTURE.md` (small link-only change).
+- Define new shared contract primitives (names may vary, but must be versioned and testable):
+  - `packages/domain/schemas/rank_event.json` (new)
+  - `packages/domain/schemas/rank_event_type.json` (new enum)
+  - `packages/domain/schemas/rank_events_response.json` (new)
+  - `packages/domain/schemas/me_response.json` (new or update existing `MeResponse` contract approach)
 
-### M3-03 — Server-enforced moderation transitions (admin endpoint + helper)
+**Contracts (must be explicit)**
+- Decide whether `/v1/me` is expanded or a new endpoint is introduced:
+Decision: extend `GET /v1/me` to include rank breakdown + next unlock.
 
-**Context (what is achieved)**: an admin can move captures through `pending_verification → verified/rejected/hidden` via a minimal API, and all transitions are validated and auditable.
+**Acceptance criteria**
+- `docs/RANK_GATING.md` explains:
+  - exactly which verified actions generate rank,
+  - how rank is computed from the event log,
+  - how rank changes (or doesn’t) after moderation,
+  - at least 3 concrete examples (“rank 0 → 1”, “repeat captures at same node”, “moderated content”),
+  - the specific gating rules/tier thresholds applied by the API.
 
-**Why**: M3 requires the server (not the UI) to be the authority for verification; “manual review” needs a safe, testable entry point.
-
-**Change plan (specific files)**:
-- Admin auth (MVP):
-  - Add an admin auth dependency (e.g. `require_admin`) using a shared secret in `apps/api/src/groundedart_api/settings.py` (e.g. `admin_api_token`) and a header like `X-Admin-Token`.
-  - Keep admin routes under a distinct router module (e.g. `apps/api/src/groundedart_api/api/routers/admin.py`) and include it from `apps/api/src/groundedart_api/main.py`.
-- Transition helper:
-  - Implement a single transition function (new module under `apps/api/src/groundedart_api/domain/`) that:
-    - loads the capture,
-    - calls `assert_valid_capture_transition(...)`,
-    - enforces reason-code requirements (M3-01),
-    - writes the audit event (M3-02),
-    - updates `Capture.state` + `Capture.state_reason`,
-    - commits atomically.
-- Admin API surface (minimal):
-  - List pending captures (optional filters by node/time) for review.
-  - Transition endpoint that accepts `{ target_state, reason_code, details? }`.
-  - Add/extend domain JSON schemas in `packages/domain/schemas/` for these request/response shapes.
-
-**Acceptance criteria**:
-- Only admin-authenticated requests can transition captures to `verified/rejected/hidden`.
-- Invalid transitions are rejected with stable error codes.
-- A newly `verified` capture becomes visible in the normal node captures read path (see M3-04) and can be rendered by the web UI (see M3-08).
-
----
-
-### M3-04 — Public capture visibility rules (verified-only by default)
-
-**Context (what is achieved)**: public read endpoints cannot be used to enumerate non-public capture states (`draft`, `pending_verification`, `rejected`, `hidden`).
-
-**Why**: non-verified and moderation outcomes are sensitive; leaking them enables harassment and gaming, and violates the “trusted content” posture.
-
-**Change plan (specific files)**:
-- Lock down `GET /v1/nodes/{node_id}/captures` in `apps/api/src/groundedart_api/api/routers/nodes.py`:
-  - Default and non-admin behavior returns only `CaptureState.verified`.
-  - If keeping the `state` query parameter, reject non-`verified` values unless admin-authenticated (or remove the parameter and add an admin-only endpoint instead).
-- Add tests in `apps/api/tests/test_nodes.py` (or a new module) asserting:
-  - anonymous/authenticated non-admin requests cannot request `hidden`/`rejected`/`pending_verification`,
-  - the endpoint returns only `verified` captures.
-
-**Acceptance criteria**:
-- Non-admin clients can only retrieve `verified` captures from node endpoints.
-- “Verified captures” can be powered by this endpoint without exposing moderation data.
+**Non-goals**
+- No “perfect” scoring model; MVP should optimize for clarity + auditability.
+- No new “quality scoring” features (belongs to verification/scoring upgrades; see `docs/FUTUREOPTIONS.md`).
 
 ---
 
-### M3-05 — Async verification/scoring hook boundary (no-op allowed)
+### M4-02 — Add an append-only rank event log (DB + domain model)
 
-**Context (what is achieved)**: capture transitions emit a structured “verification event” that can later be handled by a worker (similarity, scoring), while remaining a no-op for now.
+**Context (what/why)**
+- M4 requires an **auditable event log** so rank can be derived, debugged, and explained.
+- The existing capture audit log (`capture_state_events`) shows verification transitions, but there is no rank-side ledger.
 
-**Why**: M3 explicitly calls for an async boundary; having the hook in place prevents tight coupling later and makes state changes observable.
+**Change plan (specific files)**
+- DB model + migration:
+  - `apps/api/src/groundedart_api/db/models.py`: add `CuratorRankEvent` (name TBD) model.
+  - `apps/api/src/groundedart_api/db/migrations/versions/*_rank_events.py` (new Alembic migration).
+- Domain service:
+  - `apps/api/src/groundedart_api/domain/rank_events.py` (new): append-only write helpers + idempotency guard.
+- API schemas:
+  - `apps/api/src/groundedart_api/api/schemas.py`: add `RankEvent`/`RankEventsResponse` models (or wire via separate module if preferred).
+- Shared JSON schemas:
+  - `packages/domain/schemas/rank_event*.json` (from M4-01).
 
-**Change plan (specific files)**:
-- Add a small interface + dependency in `apps/api/src/groundedart_api/` (new module under `domain/` or `api/`) for emitting events like:
-  - `capture_uploaded(capture_id, node_id, user_id)`
-  - `capture_state_changed(capture_id, from_state, to_state, reason_code)`
-- Call the hook from:
-  - `apps/api/src/groundedart_api/api/routers/captures.py` (on upload promotion),
-  - the moderation transition helper from M3-03.
-- Add tests that override/inject the hook and assert it is called (no background queue required yet).
+**Contract sketch (minimum fields; align with shared schemas)**
+- `rank_events` (table):
+  - `id` (uuid), `user_id` (uuid), `event_type` (string enum), `delta` (int), `created_at` (timestamptz)
+  - linkage fields for auditability: `capture_id` (uuid, nullable), `node_id` (uuid, nullable)
+  - `details` (jsonb, nullable) for explainability without schema churn
+- Idempotency:
+  - A uniqueness constraint to prevent duplicate events for the same underlying trigger, e.g.:
+    - `(event_type, capture_id)` if capture verification is the only source in MVP, or
+    - `(event_type, source_kind, source_id)` for extensibility.
 
-**Acceptance criteria**:
-- Upload promotion and admin moderation transitions trigger the hook.
-- Hook behavior is isolated behind a dependency boundary (can be swapped for a real worker later).
+**Acceptance criteria**
+- A rank event can be written for a user with stable linkage to the triggering capture/node.
+- Duplicate writes for the same trigger are rejected (or treated as a no-op) deterministically.
+- Events are queryable by user in chronological order with a stable response schema.
 
----
-
-### M3-06 — Basic anti-abuse: per-node caps + rate limits (server-side)
-
-**Context (what is achieved)**: the API limits spammy behavior (challenge creation, capture creation, uploads) with clear errors and server-enforced caps.
-
-**Why**: verification has no meaning if attackers can flood nodes with pending submissions; M3 calls for basic anti-abuse and tracking.
-
-**Change plan (specific files)**:
-- Add settings in `apps/api/src/groundedart_api/settings.py` (MVP defaults) such as:
-  - max check-in challenges per user per node per window,
-  - max captures per user per node per day,
-  - max pending_verification captures per node (global cap).
-- Enforce caps in:
-  - `apps/api/src/groundedart_api/api/routers/nodes.py` (`/checkins/challenge`, `/checkins`),
-  - `apps/api/src/groundedart_api/api/routers/captures.py` (`POST /captures`, `/captures/{id}/image`).
-- Add/extend error-code enums in `packages/domain/schemas/checkin_error_code.json` and/or `packages/domain/schemas/capture_error_code.json` for rate limit/cap failures, and mirror them in web types (e.g. `apps/web/src/features/checkin/api.ts`, `apps/web/src/features/captures/api.ts`).
-- Add tests that exceed caps deterministically using the injected clock (`groundedart_api/time.py`).
-
-**Acceptance criteria**:
-- Caps are enforced by the API (not only UI), with stable `error.code` values and appropriate HTTP status codes.
-- Tests cover at least one cap for check-ins and one cap for captures.
+**Non-goals**
+- No background workers required for MVP; rank events can be emitted inline with verification transitions.
 
 ---
 
-### M3-07 — Suspicious behavior tracking (first-class records)
+### M4-03 — Implement rank projection (derive rank from events) + backfill
 
-**Context (what is achieved)**: suspicious/abusive events are recorded in a queryable way (not only logs) to support future automated scoring and moderation queues.
+**Context (what/why)**
+- Gating must rely on rank derived from rank events, not a manually-updated integer.
+- Projection is needed to efficiently answer “current rank” during node discovery and write gates.
 
-**Why**: “tracking” is part of M3; without persistent records, admins can’t review patterns and the system can’t evolve toward automated trust signals.
+**Change plan (specific files)**
+- Projection logic:
+  - `apps/api/src/groundedart_api/domain/rank_projection.py` (new): compute rank from events and/or maintain a cached snapshot.
+  - `apps/api/src/groundedart_api/db/models.py`: optionally extend `CuratorProfile` to store snapshot metadata (e.g., `rank_updated_at`, `rank_version`).
+- API integration:
+  - `apps/api/src/groundedart_api/api/routers/me.py`: return rank derived from projection; optionally include “next unlock” info.
+  - `apps/api/src/groundedart_api/api/routers/nodes.py`: use projected rank for read gating.
+- Backfill tooling:
+  - `apps/api/scripts/backfill_rank_events.py` (new): create rank events from existing verified captures (and/or state events) in a safe, idempotent way.
 
-**Change plan (specific files)**:
-- Add a small DB table/model (example name: `AbuseEvent`) in `apps/api/src/groundedart_api/db/models.py` and a migration under `apps/api/src/groundedart_api/db/migrations/versions/`.
-- Record events from anti-abuse enforcement (M3-06) and from notable check-in failures in `apps/api/src/groundedart_api/api/routers/nodes.py` (e.g. repeated invalid challenge, repeated outside-geofence).
-- Add an admin-only endpoint to view recent abuse events (can live in the admin router from M3-03).
+**Contracts**
+- If a “rank explanation” UX is in-scope, decide and expose:
+  - breakdown summary (e.g., total verified contributions counted, caps applied),
+  - next unlock threshold and what it unlocks (at least in generic terms).
 
-**Acceptance criteria**:
-- Triggering an anti-abuse cap writes an abuse event.
-- Admin can retrieve recent events to debug abuse patterns.
+**Acceptance criteria**
+- Rank returned by the API is reproducible by recomputing from the rank event log.
+- Running backfill twice does not create duplicates and does not change computed rank.
+- Node discovery read gating continues to function with projected rank (no regression to anonymous rank=0 behavior).
+
+**Non-goals**
+- No real-time push updates; polling/refresh is acceptable for MVP.
 
 ---
 
-### M3-08 — Web: Node detail shows real verified captures
+### M4-04 — Emit rank events from verified actions (verification → rank)
 
-**Context (what is achieved)**: the “Verified captures” section in node detail is powered by real API state (`verified`) rather than a static empty state.
+**Context (what/why)**
+- Rank must be derived from **verified actions only**. In the current system, the most concrete verified action is a capture transitioning to `verified`.
 
-**Why**: Milestone 3 exit criteria requires the node detail surface to be backed by verification state.
+**Change plan (specific files)**
+- Hook points (choose the authoritative emission point and keep it centralized):
+  - `apps/api/src/groundedart_api/domain/capture_moderation.py`: emit rank event when `target_state=verified` succeeds.
+  - `apps/api/src/groundedart_api/api/routers/admin.py`: ensure admin transitions flow through the same domain function (already does).
+  - (Optional) `apps/api/src/groundedart_api/domain/verification_events.py`: if rank should also be emitted by async hooks later, define the boundary now but keep MVP inline.
+- Tests:
+  - `apps/api/tests/test_rank_events.py` (new): verifying a capture creates exactly one rank event and updates projected rank.
 
-**Change plan (specific files)**:
-- Add a client API call for node captures:
-  - Either in `apps/web/src/features/nodes/api.ts` or `apps/web/src/features/captures/api.ts`, add `listNodeCaptures(nodeId)` returning `CapturesResponse`.
-- Update `apps/web/src/routes/NodeDetailRoute.tsx` to:
-  - fetch verified captures for `nodeId`,
-  - render thumbnails using `capture.image_url` (and keep a clear empty state when none),
-  - handle loading/error states.
+**Contracts**
+- Rank event type(s) for MVP:
+  - `capture_verified` (required)
+  - Decide whether `capture_unverified`/`capture_hidden` exists for moderation reversals (from M4-01).
 
-**Acceptance criteria**:
-- After a capture is moderated to `verified`, it appears in node detail without code changes.
-- Node detail remains usable when there are zero captures (empty state) or when the API call fails (error state).
+**Acceptance criteria**
+- Transitioning a capture to `verified` results in:
+  - a new rank event row (idempotent),
+  - updated rank projection output for that user.
+- If moderation reversal affects rank (per M4-01), reversing the state updates rank deterministically and is auditable.
+
+**Non-goals**
+- No user-to-user endorsements, likes, or social reputation signals in MVP.
+
+---
+
+### M4-05 — Rank-based gating enforcement (read + write paths)
+
+**Context (what/why)**
+- ROADMAP requires gating at the API level for:
+  - which nodes are visible in discovery (read path),
+  - who can create captures / how often (write path),
+  - with UX support that can explain requirements without relying on client-side hiding.
+
+**Change plan (specific files)**
+- Centralize gating rules:
+  - `apps/api/src/groundedart_api/domain/gating.py` (new): helpers like `assert_can_view_node(...)`, `assert_can_checkin(...)`, `assert_can_create_capture(...)`.
+- Apply to endpoints:
+  - `apps/api/src/groundedart_api/api/routers/nodes.py`: list/detail gating uses projected rank (retain current “filtered out” behavior for locked nodes).
+  - `apps/api/src/groundedart_api/api/routers/nodes.py`: check-in challenge + check-in should enforce node gating policy (decision from M4-01).
+  - `apps/api/src/groundedart_api/api/routers/captures.py`: capture creation should enforce rank-tiered frequency limits and/or per-node requirements (decision from M4-01).
+- Contracts + error codes:
+  - Extend existing error enums (preferred) or add a new gating enum:
+    - `packages/domain/schemas/capture_error_code.json` (add codes like `insufficient_rank`, `feature_locked`, if applicable)
+    - `packages/domain/schemas/node_error_code.json` (if any new node gating codes are exposed)
+  - Mirror in API/web error handling.
+
+**Acceptance criteria**
+- Gating is enforced on the discovery read path (existing `min_rank` behavior continues, driven by projected rank).
+- At least one write-path gate is rank-dependent (not just time-window rate limiting), and is enforced server-side with stable error codes/details.
+- Anonymous users remain supported (rank defaults to 0; gating is consistent).
+
+**Non-goals**
+- No client-only gating; the client may *explain*, but the server must *enforce*.
+
+---
+
+### M4-06 — “Unlock” UX: explain rank and requirements in plain language (web)
+
+**Context (what/why)**
+- Users must understand why discovery is sparse and what actions unlock more access.
+- The UI already displays `node.min_rank` on node detail, but it does not expose current user rank, progress, or “next unlock”.
+
+**Change plan (specific files)**
+- API client + types:
+  - `apps/web/src/features/me/api.ts` (new or extend existing patterns): fetch rank/progress endpoint(s).
+  - `apps/web/src/features/me/types.ts` (new): `MeResponse` (and progress payload if added).
+- UI:
+  - `apps/web/src/routes/MapRoute.tsx`: show current rank + next unlock guidance (non-intrusive, map-first).
+  - `apps/web/src/routes/NodeDetailRoute.tsx`: show “You are rank X; this node requires Y” when available (without leaking locked nodes beyond what’s already visible).
+  - `apps/web/src/routes/CaptureRoute.tsx` / `apps/web/src/features/captures/CaptureFlow.tsx` (as applicable): show rank-based restrictions when capture creation is blocked.
+
+**Contracts**
+- Copy requirements (keep it consistent):
+  - “Current rank”
+  - “To unlock more, verify N more captures” or “verify at a new node” (depends on rank model)
+  - “Why can’t I post?” messaging maps to stable API reason codes.
+
+**Acceptance criteria**
+- A user can see:
+  - their current rank,
+  - what they need to do to unlock the next tier (in plain language),
+  - when an action is blocked, the UI explains the requirement without vague errors.
+
+**Non-goals**
+- No gamified leaderboards or social feeds in MVP.

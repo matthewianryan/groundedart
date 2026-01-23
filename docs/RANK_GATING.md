@@ -1,0 +1,74 @@
+# Rank + Gating (MVP)
+
+This document defines the MVP rank model and the API gating policy. The goal is a simple,
+auditable system derived from verified actions only.
+
+## Rank model (version: v1_points)
+
+### Actions that generate rank
+- Verified captures only. A rank event is emitted when a capture transitions to `verified`.
+- Other actions (check-ins, uploads, drafts) do not affect rank.
+
+### Event log + computation
+- Rank events are append-only.
+- Rank is computed from rank events whose captures are still verified.
+- Computation steps (per user):
+  1. Start with all `capture_verified` events.
+  2. Exclude events whose capture is no longer `verified`.
+  3. Group by `(node_id, UTC day)` and keep at most 1 event per node per day.
+  4. Apply a per-user daily cap of 3 points (UTC day).
+  5. Rank is the sum of remaining points across all time.
+
+### Moderation effects
+- If a verified capture is later hidden, it no longer counts toward rank.
+- Rank is recomputed from the current set of still-verified captures, so rank can go down.
+
+## Gating policy (API enforced)
+
+Discovery is always gated by `nodes.min_rank <= user.rank`.
+
+The following write limits are rank-tiered:
+- Check-in challenges per user per node per 5-minute window.
+- Capture creation per user per node per rolling 24-hour window.
+
+The global pending-verification cap per node is not rank-tiered.
+
+### Tier table
+
+| Tier | Rank range | Check-in challenges per node / 5 min | Captures per node / 24h | Notes |
+| --- | --- | --- | --- | --- |
+| New | 0 | 3 | 1 | Baseline access; unlocks rank with first verified capture. |
+| Apprentice | 1-2 | 5 | 2 | Stable participation with low abuse risk. |
+| Contributor | 3-5 | 8 | 4 | Higher throughput for proven users. |
+| Trusted | 6+ | 12 | 6 | Broad access for consistent contributors. |
+
+## /v1/me contract (rank explanation)
+
+`GET /v1/me` returns:
+- `rank`: current rank (int).
+- `rank_version`: `v1_points`.
+- `rank_breakdown`: counts used to compute rank (including caps applied).
+- `next_unlock`: the next tier threshold and what it unlocks (or null if at top tier).
+
+## Explanation guidelines ("why" language)
+- State the current rank and the verified actions counted.
+- Explain caps in plain terms ("only one verified capture per node per day counts").
+- Point to the next unlock with a concrete requirement ("2 more verified captures").
+- Avoid blame or judgement; keep tone factual and encouraging.
+
+## Examples
+
+1) Rank 0 -> 1
+- User has no verified captures (rank 0).
+- One capture at Node A is verified on 2026-02-01.
+- Rank becomes 1.
+
+2) Repeat captures at the same node
+- Two captures at Node B are verified on 2026-02-02.
+- Only one counts for rank (per-node/day cap).
+- Rank increases by 1, not 2.
+
+3) Moderated content reduces rank
+- A verified capture at Node C on 2026-02-03 raises rank by 1.
+- The capture is later hidden.
+- Rank is recomputed and drops by 1 because the capture is no longer verified.

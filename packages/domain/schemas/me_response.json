@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MeResponse",
+  "type": "object",
+  "required": ["user_id", "rank", "rank_version", "rank_breakdown", "next_unlock"],
+  "properties": {
+    "user_id": { "type": "string", "format": "uuid" },
+    "rank": { "type": "integer", "minimum": 0 },
+    "rank_version": { "type": "string", "enum": ["v1_points"] },
+    "rank_breakdown": {
+      "type": "object",
+      "required": [
+        "points_total",
+        "verified_captures_total",
+        "verified_captures_counted",
+        "caps_applied"
+      ],
+      "properties": {
+        "points_total": { "type": "integer", "minimum": 0 },
+        "verified_captures_total": { "type": "integer", "minimum": 0 },
+        "verified_captures_counted": { "type": "integer", "minimum": 0 },
+        "caps_applied": {
+          "type": "object",
+          "required": ["per_node_per_day", "per_day_total"],
+          "properties": {
+            "per_node_per_day": { "type": "integer", "minimum": 0 },
+            "per_day_total": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "next_unlock": {
+      "type": ["object", "null"],
+      "required": ["min_rank", "summary", "unlocks"],
+      "properties": {
+        "min_rank": { "type": "integer", "minimum": 0 },
+        "summary": { "type": "string" },
+        "unlocks": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
