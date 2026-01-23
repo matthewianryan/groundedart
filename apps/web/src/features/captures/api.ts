@@ -1,8 +1,18 @@
 import { apiFetch } from "../../api/http";
 
-export type CreateCaptureResponse = {
-  capture: { id: string; node_id: string; state: string; created_at: string; image_url: string | null };
+export type CapturePublic = {
+  id: string;
+  node_id: string;
+  state: string;
+  created_at: string;
+  image_url: string | null;
 };
+
+export type CreateCaptureResponse = {
+  capture: CapturePublic;
+};
+
+export type UploadCaptureImageResponse = CapturePublic;
 
 export type CaptureErrorCode =
   | "invalid_checkin_token"
@@ -34,11 +44,5 @@ export async function uploadCaptureImage(captureId: string, file: File) {
     credentials: "include"
   });
   if (!res.ok) throw new Error(`Upload failed: HTTP ${res.status}`);
-  return (await res.json()) as {
-    id: string;
-    node_id: string;
-    state: string;
-    created_at: string;
-    image_url: string | null;
-  };
+  return (await res.json()) as UploadCaptureImageResponse;
 }

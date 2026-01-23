@@ -80,14 +80,16 @@ Why this matters: it prevents simple replay and makes “upload later from anywh
 ### 3) Capture + upload
 Goal: reliably upload photos on weak networks without corrupting trust.
 
-Flow:
+Flow (canonical for M2; aligned with the current API + web client):
 1. Client captures an image and applies a *mobile-friendly* preprocessing step (resize/compress).
-2. Client uploads to storage (prefer resumable uploads when possible).
-3. Client creates a capture record referencing the stored asset and includes:
-   - check-in token
-   - timestamps
-   - attribution fields (artist name, artwork title, consent flags)
-4. API validates token and stores capture in `pending_verification`.
+2. Client creates a capture record (consuming the one-time check-in token); the API stores it as `pending_verification` and returns a `capture_id`.
+3. Client uploads the image to the API as `POST /v1/captures/{capture_id}/image` (retryable).
+4. API associates the uploaded image with the existing capture.
+
+Notes:
+- MVP storage is **API-terminated** (client uploads to our API; the API persists media).
+- MVP upload resilience is **retry-only** (no resumable/chunked protocol in M2); future options live in `docs/FUTUREOPTIONS.md`.
+- The M2 roadmap treats this section as the source of truth for ordering and contracts.
 
 ### 4) Verification + promotion
 Goal: decide whether a capture is “trusted” and whether it becomes a node’s primary image.
@@ -135,4 +137,3 @@ To minimize moving parts while preserving clean boundaries:
 - Keep blockchain integration behind an adapter boundary; do not bake chain calls into core flows.
 
 This supports hackathon velocity while keeping the system evolvable.
-

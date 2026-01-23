@@ -1,197 +1,172 @@
 # Tasks
 
-This file breaks milestones into implementable tasks with explicit contracts and acceptance criteria.
+This file tracks build tasks with enough detail to implement without guessing. It currently focuses on **Milestone 2** from `docs/ROADMAP.md`.
 
-Conventions:
-- Tasks are ordered by **system dependency** (see `docs/ROADMAP.md`).
-- Use `[ ]` / `[x]` checkboxes as work is completed.
-- “Contracts” are the API/domain guarantees other code can rely on (schemas, reason codes, invariants).
+## Milestone 2 — Capture + upload (MVP)
 
----
+Milestone goal (per `docs/ROADMAP.md`): a user can capture and upload a photo reliably on weak mobile networks.
 
-## Milestone 1 — On-site check-in (MVP)
+### M2-01 — Resolve capture/upload architecture + contracts
 
-Roadmap goal: a user can only begin a capture flow when physically inside a node’s geofence.
+**Context (what is achieved)**: document and lock the canonical M2 “capture + upload” flow to match the repository implementation and unblock reliable client behavior work.
 
-Note: a baseline M1 check-in flow exists in this repo already (see `docs/M0.md`). The tasks below focus on making the MVP decision/contract explicit, hardening server invariants, and upgrading UX.
+**Why**: without a single canonical contract, we risk implementing reliability work (retry/persistence/idempotency) against mismatched backend assumptions.
 
-### [x] M1-01 — Make the geofence model authoritative (point + radius)
+**Change plan (specific files)**:
+- Confirm the canonical flow in `docs/ARCHITECTURE.md` (“Capture + upload”) and `docs/ROADMAP.md` M2:
+  - Ordering: `POST /v1/captures` → `POST /v1/captures/{id}/image`
+  - Storage: API-terminated (MVP)
+  - Resilience: retry-only (M2)
+- Document the “happy path” and failure modes (retry, resume, offline intent) in `docs/COMMANDS.md` (how to manually test on mobile + network throttling).
+- Define (or confirm) the M2 contract(s) in `packages/domain/schemas/` and keep them aligned with:
+  - `apps/api/src/groundedart_api/api/schemas.py`
+  - `apps/web/src/features/captures/api.ts`
+- Record deferred alternatives (asset-first ordering, direct-to-storage, true resumable) in `docs/FUTUREOPTIONS.md`.
 
-**What this achieves**
-- Establishes a single authoritative geometry model for “inside the zone” decisions so check-in, capture gating, and future verification all agree.
+**Contracts (canonical for M2)**:
+- Ordering: `POST /v1/captures` (token consumed) → `POST /v1/captures/{id}/image` (retryable).
+- **Storage backend for MVP**: API-terminated upload to server storage.
+- **Resumability scope**: “retry only”.
 
-**Why**
-- A mismatched or client-decided geofence creates easy spoofing and inconsistent UX; the API must be the source of truth.
+**Acceptance criteria**:
+- A single “source of truth” flow exists in docs, and the codebase is expected to match it.
+- `packages/domain/schemas/` cover the chosen capture + upload API responses and error envelopes used by the web client.
+- Deferred options are written down in `docs/FUTUREOPTIONS.md` so they can be revisited intentionally.
 
-**Change plan (files)**
-- `docs/M0.md`: confirm the chosen model (point + radius) as the M1 decision and note “polygon later”.
-- `docs/DATA_MODEL.md`: clarify that `Node` geometry is concretely `(center point, radius_m)` for MVP.
-- `apps/api/src/groundedart_api/db/models.py`: ensure `Node.radius_m` constraints are explicit (non-negative; optionally minimum > 0).
-- `apps/api/src/groundedart_api/db/migrations/versions/*`: add a DB-level constraint migration if missing (e.g., `CHECK (radius_m >= 0)`).
-- `packages/domain/schemas/node_public.json`: ensure `radius_m` constraints match DB/API expectations.
-
-**Contracts**
-- `Node` geofence for MVP is `POINT(srid=4326) + radius_m (meters)`.
-- “Inside” is defined server-side via PostGIS (e.g., `ST_DWithin(Geography(point), Geography(center), radius_m)`).
-- Any future polygon support is additive and must not silently change semantics of existing nodes.
-
-**Acceptance criteria**
-- Seeded and newly-created nodes have a well-defined `radius_m` that the API uses for check-in decisions.
-- The API never relies on client-side “inside zone” checks for authorization.
-
-**Require `radius_m >= 25m**
-
-**Non-goals**
-- Supporting polygon geofences in M1.
+**Non-goals**:
+- Implementing asset-first ordering, direct-to-storage, or true resumable uploads in M2.
 
 ---
 
-### [x] M1-02 — Define domain contracts for check-in (schemas + reason codes)
+### M2-02 — Web capture UX (camera-first) with explicit states
 
-**What this achieves**
-- Makes the check-in flow interoperable across API and web by defining stable request/response shapes and failure codes in `packages/domain`.
+**Context (what is achieved)**: replace the current “file input + Create capture” scaffold on `apps/web/src/routes/MapRoute.tsx` with a camera-first capture flow that has a clear state machine (capture → preview → submit → uploading → success/failure).
 
-**Why**
-- M1 exit criteria requires stable reason codes; without a shared source of truth, clients drift and UX becomes inconsistent.
+**Why**: M2 requires a reliable, mobile-friendly capture experience. A structured UX is required to support retries, background upload, and not losing the user’s intent.
 
-**Change plan (files)**
-- `packages/domain/schemas/`:
-  - Add `checkin_challenge_response.json` (challenge id + expiry).
-  - Add `checkin_request.json` (challenge id + lat/lng + accuracy).
-  - Add `checkin_response.json` (token + expiry).
-  - Add `checkin_error_code.json` (string enum of check-in failure codes).
-- `apps/api/src/groundedart_api/api/schemas.py`: ensure Pydantic models match the domain schemas (field names + types).
-- `apps/web/src/features/checkin/api.ts`: ensure TS types match the domain schemas (no hand-wavy `any`/shape drift).
-- `docs/IMPLEMENTATION_PRACTICES.md`: link to the new schemas as the canonical contract for M1 check-in.
+**Change plan (specific files)**:
+- Introduce a dedicated capture UI surface:
+  - either a new route (e.g. `apps/web/src/routes/CaptureRoute.tsx`) wired in `apps/web/src/App.tsx`,
+  - or a modal/flow component owned by `apps/web/src/features/captures/`.
+- Refactor `apps/web/src/routes/MapRoute.tsx` to navigate into the capture flow (instead of embedding the raw file input).
+- Extend `apps/web/src/features/captures/` with UI + state primitives (e.g. `CaptureFlow.tsx`, `captureFlowState.ts`).
 
-**Contracts**
-- Endpoints:
-  - `POST /v1/nodes/{node_id}/checkins/challenge` → `{ challenge_id, expires_at }`
-  - `POST /v1/nodes/{node_id}/checkins` with `{ challenge_id, lat, lng, accuracy_m }` → `{ checkin_token, expires_at }`
-- Error envelope shape is always `packages/domain/schemas/error.json`.
-- Check-in failures use stable `error.code` values (see `checkin_error_code.json`), including at minimum:
-  - `node_not_found`
-  - `invalid_challenge`
-  - `challenge_used`
-  - `challenge_expired`
-  - `location_accuracy_too_low`
-  - `outside_geofence`
+**Contracts (client-side)**:
+- The capture flow produces an image `Blob` + a small metadata object to hand to the upload layer (capture intent).
 
-**Acceptance criteria**
-- All check-in-related errors emitted by the API use one of the documented `checkin_error_code.json` values.
-- The web client can map `error.code` to a specific UX state without string parsing.
+**Acceptance criteria**:
+- On mobile, “Take photo” reliably opens a camera-capable picker and supports retake before upload.
+- UI exposes explicit states (at minimum: `capturing`, `preview`, `submitting`, `uploading`, `success`, `failure`) with actionable retry/cancel.
+- The flow never attempts capture creation or upload unless a valid check-in token is present.
 
-**Non-goals**
-- Codegen for schemas (manual alignment is fine for M1).
+**Non-goals**:
+- Full PWA background sync/service worker implementation (can be an upgrade later if needed for reliability).
 
 ---
 
-### [x] M1-03 — Harden the server-side check-in flow (details, replay, and invariants)
+### M2-03 — Client-side image preprocessing (resize/compress + EXIF stripping)
 
-**What this achieves**
-- Produces an auditable, abuse-resistant proof-of-presence token that downstream endpoints can rely on.
+**Context (what is achieved)**: add a deterministic preprocessing step so uploads are smaller and more reliable on weak networks, and avoid accidentally persisting sensitive EXIF metadata.
 
-**Why**
-- The check-in token becomes the gate for capture creation; if it’s replayable or under-specified, M2+ trust collapses.
+**Why**: large original images (especially from modern phones) will fail more often on mobile networks; EXIF (including GPS) is privacy-sensitive and should not be shipped by default.
 
-**Change plan (files)**
-- `apps/api/src/groundedart_api/api/routers/nodes.py`:
-  - Ensure all failure cases return stable codes (per M1-02) and include useful `details` for UX.
-  - Add `details` for `outside_geofence` (at minimum `radius_m`, and optionally `distance_m` if computed server-side).
-  - Add `details` for `invalid_challenge` (avoid leaking whether a challenge exists; keep messaging consistent).
-- `apps/api/src/groundedart_api/db/models.py`:
-  - Consider adding indexes to support lookup/cleanup (e.g., `(user_id, node_id, expires_at)` for challenges/tokens).
-- `apps/api/src/groundedart_api/settings.py`:
-  - Ensure `checkin_challenge_ttl_seconds`, `checkin_token_ttl_seconds`, and `max_location_accuracy_m` are documented and configurable.
-- `apps/api/tests/test_api_smoke.py` (or a new `apps/api/tests/test_checkin.py`):
-  - Add API-level tests for: invalid/expired/used challenge; accuracy too low; outside geofence; successful token issuance.
+**Change plan (specific files)**:
+- Add an image preprocessing module (e.g. `apps/web/src/features/captures/imagePreprocess.ts`) used by the capture flow before upload.
+- Add unit-level tests for the preprocessing behavior (location depends on existing web test setup; if none exists yet, add a minimal test harness only for this module).
+- Document chosen constraints and rationale in `docs/PRIVACY_SECURITY.md` (EXIF posture) if needed.
 
-**Contracts**
-- Challenge:
-  - One-time use; expires server-side; bound to `(user_id, node_id)`.
-- Token:
-  - Opaque random value; only a hash is stored server-side.
-  - One-time use; expires server-side; bound to `(user_id, node_id)`.
-- Replay protection:
-  - Reusing a `challenge_id` must fail with `challenge_used`.
-  - Reusing a `checkin_token` for capture creation must fail with `invalid_checkin_token`.
+**Contracts**:
+- Define preprocessing targets in code as constants (max dimensions, target format, and max bytes) so UX + API limits can agree.
 
-**Acceptance criteria**
-- Check-in failures are explainable via `error.code` and actionable `error.details` (enough for the client to tell the user what to do next).
-- A token cannot be used:
-  - by a different user
-  - for a different node
-  - after expiry
-  - more than once
+**Acceptance criteria**:
+- Preprocessed output is consistently below a chosen size ceiling (explicitly defined) for typical phone photos, and preserves correct orientation.
+- Output does not include original EXIF metadata (verified via re-encoding behavior).
+- The module reports actionable failures (unsupported input, decode failure) so UX can guide the user.
 
-**Non-goals**
-- Advanced GPS spoof detection (device integrity, mock location detection).
-- Full rate limiting/abuse scoring (can be a Milestone 3/4 enhancement unless it becomes necessary).
+**Non-goals**:
+- “Best image” quality scoring or automatic rejection heuristics (belongs to verification/ranking milestones).
 
 ---
 
-### [x] M1-04 — Web UX for “not inside the zone” (accuracy + connectivity aware)
+### M2-04 — Resilient upload client (retry + persisted intent)
 
-**What this achieves**
-- A check-in experience that communicates “why not” clearly and guides users to success without confusing dead-ends.
+**Context (what is achieved)**: implement an upload mechanism that can survive flaky connectivity without forcing the user to start over, by persisting “capture intent” locally and retrying safely.
 
-**Why**
-- Real GPS is noisy; users need feedback about accuracy and next steps (move closer, wait for better accuracy, retry) and must survive intermittent connectivity.
+**Why**: M2 exit criteria requires upload failures to be recoverable without losing the capture intent.
 
-**Change plan (files)**
-- `apps/web/src/routes/MapRoute.tsx`:
-  - Represent check-in state explicitly (idle → requesting_location → challenging → verifying → success/failure).
-  - Handle API errors by `error.code` (not string matching on `message`).
-  - Display accuracy (`accuracy_m`) and, when provided by API, `distance_m`/`radius_m`.
-  - Provide “Retry check-in” and “Get directions” CTAs that preserve the selected node.
-- `apps/web/src/api/http.ts`:
-  - Ensure API errors surface `error.code` + `details` in a structured way to features.
-- `apps/web/src/features/checkin/api.ts`:
-  - Add typed error handling expectations (challenge/create/verify).
+**Change plan (specific files)**:
+- Add an upload queue + persistence layer in `apps/web/src/features/captures/` (e.g. `uploadQueue.ts`, `indexedDb.ts`, `useUploadQueue.ts`).
+- Update `apps/web/src/features/captures/api.ts` to support:
+  - retries with bounded exponential backoff,
+  - surfacing structured API error codes to the UI,
+  - optional progress reporting (best-effort on browser APIs).
+- Update the capture UX (from M2-02) to:
+  - enqueue intent, show progress and retry,
+  - and provide a “resume pending uploads” surface on app start or on `/map`.
 
-**Contracts**
-- The web app treats the API as the authority; it does not unlock capture UI based on local distance math.
-- UX maps stable `error.code` values (from M1-02) to stable UI states.
+**Contracts**:
+- The persisted intent must include `capture_id` and the preprocessed `Blob` (canonical: create then upload).
+- Asset-first ordering is deferred; see `docs/FUTUREOPTIONS.md`.
 
-Decision: **Online-only check-in** (simplest): show “Offline” state; user retries when online.
+**Acceptance criteria**:
+- With network throttling or intermittent offline/online toggles, uploads retry automatically and can be manually retried without recapturing.
+- Reloading the page does not lose in-progress or failed uploads; the user can resume.
+- Duplicate submits do not create multiple captures for a single user action (idempotency must be defined by contract; see M2-05).
 
-**Acceptance criteria**
-- When check-in fails, the UI displays a clear reason and a next step (retry, move closer, improve accuracy, reconnect).
-- The “Create capture” action is disabled unless a valid check-in token is present.
-- The UI behaves predictably when location permission is denied, GPS times out, or the network is offline.
-
-**Non-goals**
-- Perfect indoor positioning.
-- Background location tracking.
+**Non-goals**:
+- True resumable/chunked uploads (see `docs/FUTUREOPTIONS.md`).
 
 ---
 
-### [x] M1-05 — Enforce check-in token gating for capture creation (API + docs)
+### M2-05 — API upload robustness: limits, atomic writes, and stable errors
 
-**What this achieves**
-- Ensures all downstream capture creation is grounded in a recent, single-use proof-of-presence token.
+**Context (what is achieved)**: make the server-side upload endpoint safe to retry and predictable under failure (partial uploads, oversized uploads, wrong MIME types), with stable error codes so the client can do the right thing.
 
-**Why**
-- M1 exit criteria: a valid token is required for downstream capture creation; without this, M2 uploads are trivially replayable.
+**Why**: weak networks and retries can lead to corrupted files unless writes are atomic; without explicit limits and error codes, the client cannot implement reliable recovery UX.
 
-**Change plan (files)**
-- `apps/api/src/groundedart_api/api/routers/captures.py`: ensure create-capture rejects missing/expired/reused tokens with stable codes.
-- `packages/domain/schemas/`: add `create_capture_request.json` and `create_capture_response.json` (or expand an existing capture schema set).
-- `packages/domain/schemas/`: add `capture_error_code.json` and `capture_error_response.json` for capture error payloads.
-- `apps/web/src/features/captures/api.ts`: align request fields with the domain schema(s).
-- `apps/api/tests/`: add or extend tests for token gating (invalid token, expired token, reused token, wrong node).
+**Change plan (specific files)**:
+- Harden `apps/api/src/groundedart_api/api/routers/captures.py` (`POST /v1/captures/{capture_id}/image`):
+  - validate allowed content types,
+  - enforce max upload bytes,
+  - ensure writes are atomic (temp file + rename),
+  - define idempotency semantics for retries (e.g. overwrite-by-capture-id vs reject-if-already-has-image).
+- Update storage implementation in `apps/api/src/groundedart_api/storage/local.py` to support atomic write semantics and enforce limits.
+- Add settings knobs in `apps/api/src/groundedart_api/settings.py` (and `.env.example`) for allowed MIME types and max bytes.
+- Extend shared error contracts in `packages/domain/schemas/` (and keep web types in sync):
+  - update `packages/domain/schemas/capture_error_code.json` and `packages/domain/schemas/capture_error_response.json` with upload-related codes (e.g. `file_too_large`, `invalid_media_type`, `upload_incomplete`).
+- Add focused API tests in `apps/api/tests/` (e.g. `test_capture_uploads.py`) for the new behavior.
 
-**Contracts**
-- `POST /v1/captures` requires `checkin_token` and rejects:
-  - token not found (`invalid_checkin_token`)
-  - token expired (`checkin_token_expired`)
-  - token already used (`invalid_checkin_token`)
-  - token bound to different node/user (`invalid_checkin_token`)
+**Contracts (API)**:
+- `POST /v1/captures/{capture_id}/image` request: `multipart/form-data` with `file`.
+- Response: the capture public payload including `image_url` (align with `apps/api/src/groundedart_api/api/schemas.py#CapturePublic`).
+- Errors: use the standard error envelope with stable codes.
 
-**Acceptance criteria**
-- Capture creation cannot succeed without a valid, unused, unexpired token bound to the current user and node.
-- Error codes and shapes follow the shared domain contract (`packages/domain/schemas/error.json`).
-- Capture error responses use the shared capture error schema.
+**Acceptance criteria**:
+- Interrupted/failed uploads cannot leave a partially-written file as the final stored asset.
+- Upload retries are safe per the chosen idempotency contract and are test-covered.
+- Oversized or unsupported uploads return stable error codes the client can map to actionable UI.
 
-**Non-goals**
-- Upload reliability/compression (Milestone 2).
+**Non-goals**:
+- Switching to object storage and signed URLs (see `docs/FUTUREOPTIONS.md`).
+
+---
+
+### M2-06 — End-to-end “weak network” verification checklist + smoke coverage
+
+**Context (what is achieved)**: ensure the whole M2 pipeline is demoable and regressions are caught: check-in → capture intent → upload → capture visible as `pending_verification`.
+
+**Why**: M2 is primarily about reliability and recovery. We need an explicit checklist and minimal automated coverage so the project doesn’t drift.
+
+**Change plan (specific files)**:
+- Add an explicit manual checklist in `docs/COMMANDS.md` for:
+  - mobile capture, retry flows, and network throttling scenarios,
+  - verifying that “capture intent” survives reload/offline.
+- Add (or extend) API tests that cover the happy path from token → capture creation → image upload (and that the capture remains `pending_verification`).
+  - likely touches `apps/api/tests/test_capture_tokens.py` and a new upload-focused test module.
+
+**Acceptance criteria**:
+- There is a documented, repeatable manual scenario that demonstrates recovery from a failed upload without recapture.
+- Automated tests cover the API-level invariants that make the UX reliable (token single-use, upload auth, upload idempotency).
+
+**Non-goals**:
+- Verification state machine implementation (Milestone 3).

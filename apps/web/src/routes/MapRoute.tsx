@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { ensureAnonymousSession } from "../auth/session";
 import { isApiError } from "../api/http";
 import { createCheckinChallenge, checkIn } from "../features/checkin/api";
-import { createCapture, uploadCaptureImage } from "../features/captures/api";
 import { listNodes } from "../features/nodes/api";
 import type { NodePublic } from "../features/nodes/types";
 
@@ -55,7 +54,6 @@ export function MapRoute() {
   const [checkinAccuracyM, setCheckinAccuracyM] = useState<number | undefined>(undefined);
   const [checkinDistanceM, setCheckinDistanceM] = useState<number | undefined>(undefined);
   const [checkinRadiusM, setCheckinRadiusM] = useState<number | undefined>(undefined);
-  const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
   const navigate = useNavigate();
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   const { isLoaded, loadError } = useJsApiLoader({
@@ -319,22 +317,11 @@ export function MapRoute() {
     }
   }
 
-  async function handleCreateCapture(file: File | null) {
+  function handleStartCapture() {
     if (!selectedNode || !checkinToken) return;
-    setStatus("Creating capture…");
-    const created = await createCapture({
-      node_id: selectedNode.id,
-      checkin_token: checkinToken
+    navigate("/capture", {
+      state: { node: selectedNode, checkinToken }
     });
-    setLastCaptureId(created.capture.id);
-
-    if (file) {
-      setStatus("Uploading image…");
-      await uploadCaptureImage(created.capture.id, file);
-      setStatus("Uploaded.");
-    } else {
-      setStatus("Capture created (no image uploaded).");
-    }
   }
 
   function handleOpenDetails() {
@@ -487,22 +474,13 @@ export function MapRoute() {
               ) : null}
             </div>
             <div className="muted" style={{ marginTop: 8 }}>
-              Token: {checkinToken ? `${checkinToken.slice(0, 8)}…` : "none"} | Last capture:{" "}
-              {lastCaptureId ?? "none"} | Directions: {directionsResult ? "ready" : "not requested"}
+              Token: {checkinToken ? `${checkinToken.slice(0, 8)}…` : "none"} | Directions:{" "}
+              {directionsResult ? "ready" : "not requested"}
             </div>
             <div style={{ marginTop: 8 }}>
-              <button
-                onClick={() => handleCreateCapture(null).catch((err) => setStatus(String(err)))}
-                disabled={!checkinToken}
-              >
-                Create capture
+              <button onClick={handleStartCapture} disabled={!checkinToken}>
+                Take photo
               </button>
-              <input
-                type="file"
-                accept="image/*"
-                disabled={!checkinToken}
-                onChange={(e) => handleCreateCapture(e.target.files?.[0] ?? null).catch((err) => setStatus(String(err)))}
-              />
             </div>
           </div>
         ) : (
