@@ -515,7 +515,7 @@ export function MapRoute() {
       <div className="map-area">
         {!googleMapsApiKey ? (
           <div className="muted" style={{ padding: 12 }}>
-            Set VITE_GOOGLE_MAPS_API_KEY in apps/web/.env to load the map.
+            Set VITE_GOOGLE_MAPS_API_KEY in .env to load the map.
           </div>
         ) : !isLoaded ? (
           <div className="muted" style={{ padding: 12 }}>

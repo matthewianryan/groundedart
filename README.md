@@ -32,10 +32,10 @@ This repository contains initial scaffolding for:
 
 ## Google Maps Platform (required)
 - Enable Maps JavaScript API, Directions API, Places API, and Geocoding API on a Google Cloud project.
-- Create an API key restricted to HTTP referrers for local dev (`http://localhost:5173/*`) and add it to `apps/web/.env` as `VITE_GOOGLE_MAPS_API_KEY`.
+- Create an API key restricted to HTTP referrers for local dev (`http://localhost:5173/*`) and add it to `.env` as `VITE_GOOGLE_MAPS_API_KEY`.
 
 Quick start:
 - `docker compose -f infra/docker-compose.yml up -d db`
 - `source .venv311/bin/activate && pip install -e "apps/api[dev]" && (cd apps/api && alembic upgrade head)`
 - `uvicorn groundedart_api.main:app --reload --port 8000`
-- `cd apps/web && npm install && cp .env.example .env && npm run dev` (set `VITE_GOOGLE_MAPS_API_KEY` for the map/Directions/Places/Geocoding APIs)
+- `cd apps/web && npm install && npm run dev` (set `VITE_GOOGLE_MAPS_API_KEY` in `.env` for the map/Directions/Places/Geocoding APIs)

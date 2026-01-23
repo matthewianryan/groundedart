@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgis/postgis:16-3.4
+    image: kartoza/postgis:16-3.4
     environment:
       POSTGRES_DB: groundedart
       POSTGRES_USER: groundedart
@@ -41,9 +41,8 @@ services:
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
-    environment:
-      VITE_API_ORIGIN: http://localhost:8000
-      VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+    env_file:
+      - ../.env
     ports:
       - "5173:5173"
     volumes:
