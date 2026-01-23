@@ -7,7 +7,11 @@
     "lat": -33.9095,
     "lng": 18.422,
     "radius_m": 70,
-    "min_rank": 0
+    "min_rank": 0,
+    "image_path": "nodes/c266874f-a61e-41fa-b0be-9e40e7f3d246.jpg",
+    "image_attribution": "Unknown - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ABattery_Park_-_Skate_parks.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "af192d9c-9a0e-411b-a3c4-76f3842c1a06",
@@ -17,7 +21,11 @@
     "lat": -33.9069,
     "lng": 18.4202,
     "radius_m": 120,
-    "min_rank": 0
+    "min_rank": 0,
+    "image_path": "nodes/af192d9c-9a0e-411b-a3c4-76f3842c1a06.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "e2b2e3a5-8c2d-4c5b-8f42-7e5d2e3c9f41",
@@ -27,7 +35,11 @@
     "lat": -33.9082,
     "lng": 18.4208,
     "radius_m": 70,
-    "min_rank": 0
+    "min_rank": 0,
+    "image_path": "nodes/e2b2e3a5-8c2d-4c5b-8f42-7e5d2e3c9f41.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "e730a001-11ac-425e-b5f8-104323a19df3",
@@ -51,7 +63,11 @@
     "lat": -33.9075,
     "lng": 18.4231,
     "radius_m": 120,
-    "min_rank": 0
+    "min_rank": 0,
+    "image_path": "nodes/b752b4c2-6da5-4bba-bdc1-5687db128123.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Zeitz_Museum_of_Contemporary_Art_Africa_--_2024_--_2980.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "ffb56c55-8cc9-5c5b-88ca-8047d75774df",
@@ -121,7 +137,11 @@
     "lat": -33.9059846,
     "lng": 18.4205334,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/a3a0d650-001b-5456-a4c3-8e03b70b0dc4.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Kran_--_2024_--_2907.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "2daab73a-1c5d-5419-a03f-4fba452e96ba",
@@ -141,7 +161,11 @@
     "lat": -33.9071667,
     "lng": 18.4181806,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/de388f75-b9b7-5fc0-84ce-52af2824b496.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "eed6c622-17e8-5e82-8e1b-d54e7650f9e0",
@@ -251,7 +275,11 @@
     "lat": -33.9060846,
     "lng": 18.4215191,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/e388b937-9777-5dd3-98fb-bbb80d57cef2.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Hafen%2C_Robben_--_2024_--_2876.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "165b8f06-79b3-5003-bd0f-7c2c873393ba",
@@ -371,7 +399,11 @@
     "lat": -33.9069282,
     "lng": 18.4222965,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/aeaa4cef-b8c8-591a-a5a9-a09ee2878366.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "1fd9934c-e3d2-5a3a-a6ee-000b94e5e059",
@@ -601,7 +633,11 @@
     "lat": -33.9069467,
     "lng": 18.4183623,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/35b82b6a-b10e-5d27-8a6a-3e49bb9863eb.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "22b71135-f617-53e2-8824-1766074b7392",
@@ -641,7 +677,11 @@
     "lat": -33.9071046,
     "lng": 18.418723,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/022c3037-a535-59a6-8a29-5f6fcc670621.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "88cbfa2d-2a4e-5e07-873c-842ca7cf6598",
@@ -675,7 +715,11 @@
     "lat": -33.9070104,
     "lng": 18.4184327,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/84ac75c2-d0bc-5982-96e6-47635dd081ca.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "e56c545a-02ce-56be-bf61-b642921ae725",
@@ -709,7 +753,11 @@
     "lat": -33.9090812,
     "lng": 18.4229328,
     "radius_m": 90,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/e76a6e4f-6767-56f2-8a77-1064753bdfcd.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Victoria_%26_Alfred_Hotel_Cape_Town_--_2024_--_2894.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "bb6f8932-10a8-5ad4-aaed-984a8f339a51",
@@ -719,7 +767,11 @@
     "lat": -33.9071229,
     "lng": 18.4224672,
     "radius_m": 120,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/bb6f8932-10a8-5ad4-aaed-984a8f339a51.jpeg",
+    "image_attribution": "Geraldshields11 - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_Diamond_Museum_001.jpeg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "80748831-e531-5492-ae2c-ab43c756713e",
@@ -853,7 +905,11 @@
     "lat": -33.907055,
     "lng": 18.421593,
     "radius_m": 120,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/7d164471-f74d-5050-8de8-bc8d91611892.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Chavonnes_Battery_Museum_--_2024_--_2946.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "0259eee5-e6b2-5cec-b7b0-0b4ecce3f71d",
@@ -1007,7 +1063,11 @@
     "lat": -33.9068408,
     "lng": 18.4184711,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/c21941ac-9bbf-5d50-a056-902bbfcd0555.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "9d108032-fb83-5528-9fe1-f092bf99f8ea",
@@ -1047,7 +1107,11 @@
     "lat": -33.9070041,
     "lng": 18.4225974,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/33d3a970-cf3a-5d92-8f03-702d45ee66ba.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Kran_--_2024_--_2907.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "db877fc9-6fcb-5187-a778-cadb35ed58fe",
@@ -1057,7 +1121,11 @@
     "lat": -33.9048929,
     "lng": 18.4180118,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/db877fc9-6fcb-5187-a778-cadb35ed58fe.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "e00dfe3f-a963-5778-81dd-7fa455b8ea46",
@@ -1167,7 +1235,11 @@
     "lat": -33.9054119,
     "lng": 18.4184477,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/8dedb6f4-9f67-5a22-b46e-806d44287ff7.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Victoria_%26_Alfred_Hotel_Cape_Town_--_2024_--_2894.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "4bdaf7e0-7be1-53eb-8e41-d9c716358d4a",
@@ -1793,7 +1865,11 @@
     "lat": -33.907039,
     "lng": 18.4186829,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/0562683b-65c3-5740-97da-38a2e15aee90.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Kran_--_2024_--_2907.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "5130d9ca-0773-5086-b32e-311ce6215cf0",
@@ -2007,7 +2083,11 @@
     "lat": -33.9065612,
     "lng": 18.419714,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/11afa343-076a-5ac5-a902-9100c97b3a89.jpg",
+    "image_attribution": "Photograph by Mike Peel (www.mikepeel.net). - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AAt_Cape_Town_%28MP%29_2018_236.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "62e8405f-d582-506c-8829-b58228ef646f",
@@ -2121,7 +2201,11 @@
     "lat": -33.9033017,
     "lng": 18.4211155,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/00f671db-a18a-5879-bb59-babd6cbf4183.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Kran_--_2024_--_2907.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "99871e5d-4509-5412-98ab-440c04c047be",
@@ -2221,7 +2305,11 @@
     "lat": -33.9071804,
     "lng": 18.4180248,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/03f06d6d-136f-524a-b7e5-6f0584f990eb.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "fa6f18fd-ffbe-5e63-9593-e87ce220ea42",
@@ -2507,7 +2595,11 @@
     "lat": -33.9069683,
     "lng": 18.4185276,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/d50f9d7a-4e07-5b96-87be-11fbbf47e922.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "d8c32407-0dfe-5d4b-ba42-2b2ea766640e",
@@ -2567,7 +2659,11 @@
     "lat": -33.9099241,
     "lng": 18.4228693,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/dcef8735-7f0f-5c8b-a1fb-46d89ba37822.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Victoria_%26_Alfred_Hotel_Cape_Town_--_2024_--_2894.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "f3f2cd61-b394-5cce-a285-1cfd02d86725",
@@ -2637,7 +2733,11 @@
     "lat": -33.9071291,
     "lng": 18.4186642,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/a4318845-cafc-5f9c-8c71-0f4bb2dbde59.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Kran_--_2024_--_2907.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "eb6eee0f-a605-5a70-8fb5-a3b9404f12f7",
@@ -2691,7 +2791,11 @@
     "lat": -33.9070104,
     "lng": 18.4184327,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/ffde2aed-9acd-53b5-97c8-bd47924400cd.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "ac7e43a3-a410-554c-8378-8e3396786fe5",
@@ -2909,7 +3013,11 @@
     "lat": -33.9069582,
     "lng": 18.4185352,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/af8b6797-4f3c-5663-b693-2f5bd0a77030.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "ee4a2a36-179c-4551-b152-b95d7c80c6f7",
@@ -2943,7 +3051,11 @@
     "lat": -33.9059052,
     "lng": 18.4192376,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/115eda50-9af9-50f7-af6f-f7a9b6af7007.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Clock_Tower_--_2024_--_2945.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "e4979ecc-731e-5528-8f94-365c1f438531",
@@ -2953,7 +3065,11 @@
     "lat": -33.9069683,
     "lng": 18.4185276,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/e4979ecc-731e-5528-8f94-365c1f438531.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "91af14da-736b-5cd3-917d-63a9d235460e",
@@ -2993,7 +3109,11 @@
     "lat": -33.9079916,
     "lng": 18.420162,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/9afc2a4e-7751-5164-a6cb-aa4094ac77a6.jpg",
+    "image_attribution": "Dietmar Rabich - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACape_Town_%28ZA%29%2C_Waterfront%2C_Hafen%2C_Robben_--_2024_--_2876.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "032b4ea5-6564-559c-8d38-543aa67260f8",
@@ -3153,7 +3273,11 @@
     "lat": -33.9069991,
     "lng": 18.4184426,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/28034aef-041a-575a-8c4c-130a1b112cde.jpg",
+    "image_attribution": "Damien du Toit - CC BY 2.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWaterfront_panorama.jpg",
+    "image_license": "CC BY 2.0"
   },
   {
     "id": "32a48c59-6654-5138-8554-bd1c01b980cd",
