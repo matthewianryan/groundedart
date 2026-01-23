@@ -257,6 +257,16 @@ function normalizeAccuracyM(value: number, fallback = 8): number {
   return Math.min(50, Math.max(1, rounded));
 }
 
+function isLocalhostHostname(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
+function isGeolocationError(err: unknown): err is { code: number; message?: unknown } {
+  if (!err || typeof err !== "object") return false;
+  if (!("code" in err) || typeof (err as { code: unknown }).code !== "number") return false;
+  return true;
+}
+
 function describeGeolocationError(err: unknown): string | null {
   if (!err || typeof err !== "object") return null;
   if (!("code" in err) || typeof (err as { code: unknown }).code !== "number") return null;
@@ -659,6 +669,14 @@ export function MapRoute() {
     }
   }, [isOnline, checkinState]);
 
+  const requestCurrentPosition = useCallback(
+    (options: PositionOptions) =>
+      new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, options)
+      ),
+    []
+  );
+
   const getLocationFix = useCallback(async (): Promise<{ lat: number; lng: number; accuracy_m: number }> => {
     if (demoMode && puppetEnabled) {
       const fallback = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
@@ -666,14 +684,27 @@ export function MapRoute() {
       const accuracy_m = normalizeAccuracyM(puppetAccuracyM);
       return { lat: loc.lat, lng: loc.lng, accuracy_m };
     }
+    if (typeof window !== "undefined") {
+      const protocol = window.location?.protocol;
+      const hostname = window.location?.hostname;
+      if (protocol && protocol !== "https:" && hostname && !isLocalhostHostname(hostname)) {
+        throw new Error("Geolocation requires a secure context (HTTPS).");
+      }
+    }
     if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== "function") {
       throw new Error("Geolocation is not available in this browser.");
     }
-    const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000 })
-    );
-    return { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: pos.coords.accuracy };
-  }, [demoMode, puppetAccuracyM, puppetEnabled, puppetLocation]);
+    try {
+      const pos = await requestCurrentPosition({ enableHighAccuracy: true, timeout: 12_000, maximumAge: 30_000 });
+      return { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: pos.coords.accuracy };
+    } catch (err) {
+      if (isGeolocationError(err) && (err.code === 2 || err.code === 3)) {
+        const pos = await requestCurrentPosition({ enableHighAccuracy: false, timeout: 20_000, maximumAge: 300_000 });
+        return { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: pos.coords.accuracy };
+      }
+      throw err;
+    }
+  }, [demoMode, puppetAccuracyM, puppetEnabled, puppetLocation, requestCurrentPosition]);
 
   const setPuppetLocationFromLatLng = useCallback(
     (next: google.maps.LatLngLiteral) => {
@@ -952,12 +983,12 @@ export function MapRoute() {
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
   const directionsLeg = useMemo(() => directionsResult?.routes?.[0]?.legs?.[0] ?? null, [directionsResult]);
   const directionsUrl = useMemo(() => {
-    if (!selectedNode || !userLocation) return null;
-    const origin = `${userLocation.lat},${userLocation.lng}`;
+    if (!selectedNode) return null;
     const destination = `${selectedNode.lat},${selectedNode.lng}`;
-    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(
-      destination
-    )}&travelmode=walking`;
+    const base = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=walking`;
+    if (!userLocation) return base;
+    const origin = `${userLocation.lat},${userLocation.lng}`;
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=walking`;
   }, [selectedNode, userLocation]);
 
   useEffect(() => {
@@ -1427,8 +1458,15 @@ export function MapRoute() {
                 >
                   Teleport & check in
                 </button>
-              ) : null}
+                ) : null}
             </div>
+            {directionsUrl ? (
+              <div className="muted" style={{ marginTop: 6 }}>
+                <a href={directionsUrl} target="_blank" rel="noreferrer">
+                  Open in Google Maps
+                </a>
+              </div>
+            ) : null}
             <div style={{ marginTop: 8 }}>
               <div className="muted">Check-in status</div>
               <div>
@@ -1469,13 +1507,6 @@ export function MapRoute() {
                 <div className="muted">
                   Route: {directionsLeg.distance?.text ?? "?"} • {directionsLeg.duration?.text ?? "?"}
                 </div>
-                {directionsUrl ? (
-                  <div className="muted" style={{ marginTop: 4 }}>
-                    <a href={directionsUrl} target="_blank" rel="noreferrer">
-                      Open in Google Maps
-                    </a>
-                  </div>
-                ) : null}
                 {directionsLeg.steps?.length ? (
                   <ol style={{ marginTop: 8, paddingLeft: 18, display: "grid", gap: 6 }}>
                     {directionsLeg.steps.slice(0, 8).map((step, idx) => (
