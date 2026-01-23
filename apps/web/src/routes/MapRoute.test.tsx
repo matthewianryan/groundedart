@@ -8,9 +8,13 @@ const listNodes = vi.fn();
 const createCheckinChallenge = vi.fn();
 const checkIn = vi.fn();
 const getMe = vi.fn();
+const listNotifications = vi.fn();
+const markNotificationRead = vi.fn();
 
 vi.mock("@react-google-maps/api", async () => {
   const ReactModule = await import("react");
+  const OverlayView = ({ children }: any) => <div data-testid="overlay-view">{children}</div>;
+  (OverlayView as any).OVERLAY_MOUSE_TARGET = "overlayMouseTarget";
   return {
     useJsApiLoader: () => ({ isLoaded: true, loadError: undefined }),
     GoogleMap: ({ children, onLoad, onIdle }: any) => {
@@ -30,6 +34,7 @@ vi.mock("@react-google-maps/api", async () => {
         marker
       </button>
     ),
+    OverlayView,
     DirectionsRenderer: () => <div data-testid="directions-renderer" />,
     DirectionsService: () => <div data-testid="directions-service" />
   };
@@ -50,6 +55,11 @@ vi.mock("../features/checkin/api", () => ({
 
 vi.mock("../features/me/api", () => ({
   getMe: (...args: unknown[]) => getMe(...args)
+}));
+
+vi.mock("../features/notifications/api", () => ({
+  listNotifications: (...args: unknown[]) => listNotifications(...args),
+  markNotificationRead: (...args: unknown[]) => markNotificationRead(...args)
 }));
 
 vi.mock("../features/captures/useUploadQueue", () => ({
@@ -79,6 +89,8 @@ beforeEach(() => {
   createCheckinChallenge.mockReset();
   checkIn.mockReset();
   getMe.mockReset();
+  listNotifications.mockReset();
+  markNotificationRead.mockReset();
   process.env.VITE_GOOGLE_MAPS_API_KEY = "test";
   Object.defineProperty(navigator, "geolocation", {
     value: {
@@ -112,6 +124,7 @@ async function renderMap() {
     },
     next_unlock: { min_rank: 1, summary: "Unlocks Apprentice tier limits.", unlocks: [] }
   });
+  listNotifications.mockResolvedValue({ notifications: [] });
   await vi.resetModules();
   const { MapRoute } = await import("./MapRoute");
   render(
@@ -134,11 +147,14 @@ describe("MapRoute", () => {
       nodes: [
         {
           id: "node_1",
+          visibility: "visible",
           name: "Test node",
           category: "Mural",
           description: "",
           lat: 1,
-          lng: 2
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
         }
       ]
     });
@@ -165,11 +181,14 @@ describe("MapRoute", () => {
       nodes: [
         {
           id: "node_1",
+          visibility: "visible",
           name: "Test node",
           category: "Mural",
           description: "",
           lat: 1,
-          lng: 2
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
         }
       ]
     });
@@ -203,11 +222,14 @@ describe("MapRoute", () => {
       nodes: [
         {
           id: "node_1",
+          visibility: "visible",
           name: "Test node",
           category: "Mural",
           description: "",
           lat: 1,
-          lng: 2
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
         }
       ]
     });

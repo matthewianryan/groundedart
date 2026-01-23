@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -63,6 +64,7 @@ class RankEventsResponse(BaseModel):
 
 class NodePublic(BaseModel):
     id: uuid.UUID
+    visibility: Literal["visible"] = "visible"
     name: str
     description: str | None = None
     category: str
@@ -74,6 +76,21 @@ class NodePublic(BaseModel):
 
 class NodesResponse(BaseModel):
     nodes: list[NodePublic]
+
+
+CaptureRightsBasis = Literal["i_took_photo", "permission_granted", "public_domain"]
+
+
+class NodeLocked(BaseModel):
+    id: uuid.UUID
+    visibility: Literal["locked"] = "locked"
+    min_rank: int
+    current_rank: int = Field(ge=0)
+    required_rank: int = Field(ge=0)
+
+
+class NodeGetResponse(BaseModel):
+    node: NodePublic | NodeLocked
 
 
 class CheckinChallengeResponse(BaseModel):
@@ -93,6 +110,48 @@ class CheckinResponse(BaseModel):
     expires_at: dt.datetime
 
 
+class CreateTipIntentRequest(BaseModel):
+    node_id: uuid.UUID
+    amount_lamports: int
+
+
+class TipIntentResponse(BaseModel):
+    tip_intent_id: uuid.UUID
+    to_pubkey: str
+    amount_lamports: int
+    cluster: Literal["devnet"]
+    memo_text: str
+
+
+TipReceiptStatus = Literal["seen", "confirmed", "finalized", "failed"]
+
+
+class ConfirmTipRequest(BaseModel):
+    tip_intent_id: uuid.UUID
+    tx_signature: str
+
+
+class TipReceiptPublic(BaseModel):
+    tip_intent_id: uuid.UUID
+    tx_signature: str
+    from_pubkey: str | None = None
+    to_pubkey: str
+    amount_lamports: int
+    slot: int | None = None
+    block_time: dt.datetime | None = None
+    confirmation_status: TipReceiptStatus
+    first_seen_at: dt.datetime
+    last_checked_at: dt.datetime
+    failure_reason: str | None = None
+
+
+class NodeTipsResponse(BaseModel):
+    node_id: uuid.UUID
+    total_amount_lamports: int
+    total_amount_sol: str
+    recent_receipts: list[TipReceiptPublic]
+
+
 class CreateCaptureRequest(BaseModel):
     node_id: uuid.UUID
     checkin_token: str
@@ -100,8 +159,9 @@ class CreateCaptureRequest(BaseModel):
     attribution_artwork_title: str | None = None
     attribution_source: str | None = None
     attribution_source_url: str | None = None
-    rights_basis: str | None = None
+    rights_basis: CaptureRightsBasis | None = None
     rights_attestation: bool | None = None
+    publish_requested: bool | None = None
 
 
 class UpdateCaptureRequest(BaseModel):
@@ -109,7 +169,7 @@ class UpdateCaptureRequest(BaseModel):
     attribution_artwork_title: str | None = None
     attribution_source: str | None = None
     attribution_source_url: str | None = None
-    rights_basis: str | None = None
+    rights_basis: CaptureRightsBasis | None = None
     rights_attestation: bool | None = None
 
 
@@ -124,7 +184,7 @@ class CapturePublic(BaseModel):
     attribution_artwork_title: str | None = None
     attribution_source: str | None = None
     attribution_source_url: str | None = None
-    rights_basis: str | None = None
+    rights_basis: CaptureRightsBasis | None = None
     rights_attested_at: dt.datetime | None = None
 
 
@@ -134,6 +194,25 @@ class CreateCaptureResponse(BaseModel):
 
 class CapturesResponse(BaseModel):
     captures: list[CapturePublic]
+
+
+class NodeCapturesResponse(BaseModel):
+    node: NodePublic | NodeLocked
+    captures: list[CapturePublic]
+
+
+class NotificationPublic(BaseModel):
+    id: uuid.UUID
+    event_type: str
+    title: str
+    body: str | None = None
+    created_at: dt.datetime
+    read_at: dt.datetime | None = None
+    details: dict[str, object] | None = None
+
+
+class NotificationsResponse(BaseModel):
+    notifications: list[NotificationPublic]
 
 
 class ReportPublic(BaseModel):
@@ -169,7 +248,7 @@ class AdminCapture(BaseModel):
     attribution_artwork_title: str | None = None
     attribution_source: str | None = None
     attribution_source_url: str | None = None
-    rights_basis: str | None = None
+    rights_basis: CaptureRightsBasis | None = None
     rights_attested_at: dt.datetime | None = None
 
 

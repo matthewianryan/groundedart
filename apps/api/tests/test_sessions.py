@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import uuid
 
@@ -92,6 +93,24 @@ async def test_anonymous_session_reuses_device_and_updates_last_seen(
         assert device.last_seen_at == later
         user_count = await session.scalar(select(func.count()).select_from(User))
         assert user_count == 1
+
+
+@pytest.mark.asyncio
+async def test_anonymous_session_is_idempotent_under_concurrent_requests(client: AsyncClient) -> None:
+    device_id = uuid.uuid4()
+
+    async def _create() -> tuple[int, dict]:
+        response = await client.post(
+            "/v1/sessions/anonymous",
+            json={"device_id": str(device_id)},
+        )
+        return response.status_code, response.json()
+
+    (status_a, payload_a), (status_b, payload_b) = await asyncio.gather(_create(), _create())
+
+    assert status_a == 200
+    assert status_b == 200
+    assert payload_a["user_id"] == payload_b["user_id"]
 
 
 @pytest.mark.asyncio

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeTipsResponse",
+  "type": "object",
+  "required": [
+    "node_id",
+    "total_amount_lamports",
+    "total_amount_sol",
+    "recent_receipts"
+  ],
+  "properties": {
+    "node_id": { "type": "string", "format": "uuid" },
+    "total_amount_lamports": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sum of confirmed and finalized tip receipts for the node."
+    },
+    "total_amount_sol": {
+      "type": "string",
+      "description": "Decimal SOL string for the total (confirmed and finalized receipts only)."
+    },
+    "recent_receipts": {
+      "type": "array",
+      "items": { "$ref": "tip_receipt_public.json" }
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { isApiError } from "../../api/http";
 import { formatNextUnlockLine, formatUnlockRequirement } from "../me/copy";
 import { getMe } from "../me/api";
 import type { MeResponse } from "../me/types";
-import { createCapture } from "./api";
+import { createCapture, type CaptureRightsBasis } from "./api";
 import { type CaptureAsset, type CaptureFailure, type CaptureFlowStatus, type CaptureIntent } from "./captureFlowState";
 import { clearActiveCaptureDraft, saveActiveCaptureDraft } from "./captureDraftStore";
 import {
@@ -67,8 +67,9 @@ export function CaptureFlow({
   const [attributionArtworkTitle, setAttributionArtworkTitle] = useState("");
   const [attributionSource, setAttributionSource] = useState("");
   const [attributionSourceUrl, setAttributionSourceUrl] = useState("");
-  const [rightsBasis, setRightsBasis] = useState("");
+  const [rightsBasis, setRightsBasis] = useState<CaptureRightsBasis | "">("");
   const [rightsAttestation, setRightsAttestation] = useState(false);
+  const [publishRequested, setPublishRequested] = useState(false);
   const submitLock = useRef(false);
   const uploadQueue = useUploadQueue();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -139,6 +140,7 @@ export function CaptureFlow({
     setAttributionSourceUrl("");
     setRightsBasis("");
     setRightsAttestation(false);
+    setPublishRequested(false);
     submitLock.current = false;
     void clearActiveCaptureDraft().catch(() => undefined);
   }
@@ -300,7 +302,8 @@ export function CaptureFlow({
         attribution_source: normalizedSource,
         attribution_source_url: normalizedSourceUrl,
         rights_basis: normalizedRightsBasis,
-        rights_attestation: rightsAttestation || undefined
+        rights_attestation: rightsAttestation || undefined,
+        publish_requested: publishRequested || undefined
       });
       setCaptureId(created.capture.id);
       onCaptureCreated?.(created.capture.id);
@@ -335,7 +338,7 @@ export function CaptureFlow({
       setFailureStage("submitting");
       submitLock.current = false;
       if (isApiError(err)) {
-        if (err.code === "insufficient_rank") {
+        if (err.code === "rank_locked") {
           const details = err.details ?? {};
           const currentRank = getNumberDetail(details, "current_rank");
           const requiredRank =
@@ -578,7 +581,10 @@ export function CaptureFlow({
             <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
               <label>
                 <div className="muted">Rights basis</div>
-                <select value={rightsBasis} onChange={(event) => setRightsBasis(event.target.value)}>
+                <select
+                  value={rightsBasis}
+                  onChange={(event) => setRightsBasis(event.target.value as CaptureRightsBasis | "")}
+                >
                   <option value="">Select a basis</option>
                   <option value="i_took_photo">I took the photo</option>
                   <option value="permission_granted">Permission granted</option>
@@ -594,6 +600,17 @@ export function CaptureFlow({
                 <span>I attest I have the rights to share this capture publicly.</span>
               </label>
             </div>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <div className="muted">Publish request</div>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+              <input
+                type="checkbox"
+                checked={publishRequested}
+                onChange={(event) => setPublishRequested(event.target.checked)}
+              />
+              <span>Publish automatically once verified (requires attribution + rights).</span>
+            </label>
           </div>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={handleUploadFromPreview} disabled={(!checkinToken && !captureId) || submitLock.current}>

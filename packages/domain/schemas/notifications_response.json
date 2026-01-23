@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NotificationsResponse",
+  "type": "object",
+  "required": ["notifications"],
+  "properties": {
+    "notifications": {
+      "type": "array",
+      "items": { "$ref": "./notification_public.json" }
+    }
+  }
+}

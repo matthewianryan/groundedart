@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConfirmTipRequest",
+  "type": "object",
+  "required": ["tip_intent_id", "tx_signature"],
+  "properties": {
+    "tip_intent_id": { "type": "string", "format": "uuid" },
+    "tx_signature": { "type": "string" }
+  }
+}

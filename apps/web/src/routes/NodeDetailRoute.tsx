@@ -5,11 +5,13 @@ import {
   createCaptureReport,
   listNodeCaptures,
   type CapturePublic,
+  type NodeCapturesResponse,
   type ReportReasonCode
 } from "../features/captures/api";
 import { getMe } from "../features/me/api";
 import type { MeResponse } from "../features/me/types";
-import type { NodePublic } from "../features/nodes/types";
+import type { NodePublic, NodeView } from "../features/nodes/types";
+import { TipFlow } from "../features/tips/TipFlow";
 
 type NodeLocationState = {
   node?: NodePublic;
@@ -18,7 +20,8 @@ type NodeLocationState = {
 export function NodeDetailRoute() {
   const { nodeId } = useParams();
   const location = useLocation();
-  const node = (location.state as NodeLocationState)?.node ?? null;
+  const seedNode = (location.state as NodeLocationState)?.node ?? null;
+  const [node, setNode] = useState<NodeView | null>(seedNode);
   const [captures, setCaptures] = useState<CapturePublic[]>([]);
   const [capturesStatus, setCapturesStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [capturesError, setCapturesError] = useState<string | null>(null);
@@ -29,6 +32,7 @@ export function NodeDetailRoute() {
   const [reportStatus, setReportStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [reportError, setReportError] = useState<string | null>(null);
   const [lastReportedId, setLastReportedId] = useState<string | null>(null);
+  const tipsEnabled = import.meta.env.VITE_TIPS_ENABLED === "true";
 
   const reportReasons: ReportReasonCode[] = [
     "spam",
@@ -52,6 +56,7 @@ export function NodeDetailRoute() {
       setCaptures([]);
       setCapturesStatus("idle");
       setCapturesError(null);
+      setNode(seedNode);
       return;
     }
 
@@ -61,7 +66,9 @@ export function NodeDetailRoute() {
 
     listNodeCaptures(nodeId, { signal: controller.signal })
       .then((res) => {
-        setCaptures(res.captures);
+        const payload = res as NodeCapturesResponse;
+        setNode(payload.node);
+        setCaptures(payload.captures);
         setCapturesStatus("ready");
       })
       .catch((err) => {
@@ -75,7 +82,7 @@ export function NodeDetailRoute() {
       });
 
     return () => controller.abort();
-  }, [nodeId]);
+  }, [nodeId, seedNode]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -125,37 +132,63 @@ export function NodeDetailRoute() {
         <div className="muted">Node ID: {nodeId ?? "unknown"}</div>
         {node ? (
           <div className="node">
-            <div className="node-header">
-              <div>
-                <strong>{node.name}</strong>
-              </div>
-              <div className="muted">{node.category}</div>
-            </div>
-            {node.description ? <div className="node-description">{node.description}</div> : null}
-            <dl className="metadata">
-              <div>
-                <dt>Latitude</dt>
-                <dd>{node.lat.toFixed(5)}</dd>
-              </div>
-              <div>
-                <dt>Longitude</dt>
-                <dd>{node.lng.toFixed(5)}</dd>
-              </div>
-              <div>
-                <dt>Radius</dt>
-                <dd>{node.radius_m} m</dd>
-              </div>
-              <div>
-                <dt>Min rank</dt>
-                <dd>{node.min_rank}</dd>
-              </div>
-            </dl>
-            {me ? (
-              <div style={{ marginTop: 8 }}>You are rank {me.rank}; this node requires {node.min_rank}.</div>
-            ) : null}
+            {node.visibility === "locked" ? (
+              <>
+                <div className="node-header">
+                  <div>
+                    <strong>Locked node</strong>
+                  </div>
+                  <div className="muted">Unlock at rank {node.required_rank}</div>
+                </div>
+                <div className="muted" style={{ marginTop: 8 }}>
+                  Your rank: {me?.rank ?? node.current_rank}. Required: {node.required_rank}.
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="node-header">
+                  <div>
+                    <strong>{node.name}</strong>
+                  </div>
+                  <div className="muted">{node.category}</div>
+                </div>
+                {node.description ? <div className="node-description">{node.description}</div> : null}
+                <dl className="metadata">
+                  <div>
+                    <dt>Latitude</dt>
+                    <dd>{node.lat.toFixed(5)}</dd>
+                  </div>
+                  <div>
+                    <dt>Longitude</dt>
+                    <dd>{node.lng.toFixed(5)}</dd>
+                  </div>
+                  <div>
+                    <dt>Radius</dt>
+                    <dd>{node.radius_m} m</dd>
+                  </div>
+                  <div>
+                    <dt>Min rank</dt>
+                    <dd>{node.min_rank}</dd>
+                  </div>
+                </dl>
+                {me ? (
+                  <div style={{ marginTop: 8 }}>
+                    You are rank {me.rank}; this node requires {node.min_rank}.
+                  </div>
+                ) : null}
+                {tipsEnabled ? (
+                  <div className="section">
+                    <h2>Tip the artist</h2>
+                    <TipFlow nodeId={node.id} nodeName={node.name} />
+                  </div>
+                ) : null}
+              </>
+            )}
             <div className="section">
               <h2>Verified captures</h2>
-              {capturesStatus === "loading" ? (
+              {node.visibility === "locked" ? (
+                <div className="empty-state">Unlock this node to view verified captures.</div>
+              ) : capturesStatus === "loading" ? (
                 <div className="empty-state">Loading verified captures...</div>
               ) : capturesStatus === "error" ? (
                 <div className="alert">{capturesError ?? "Unable to load verified captures."}</div>
@@ -253,6 +286,16 @@ export function NodeDetailRoute() {
                 </div>
               )}
             </div>
+          </div>
+        ) : nodeId ? (
+          <div className="node">
+            {capturesStatus === "loading" ? (
+              <div className="empty-state">Loading node…</div>
+            ) : capturesStatus === "error" ? (
+              <div className="alert">{capturesError ?? "Unable to load node."}</div>
+            ) : (
+              <div className="muted">No node data available.</div>
+            )}
           </div>
         ) : (
           <div className="node">

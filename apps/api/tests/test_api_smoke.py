@@ -98,8 +98,9 @@ async def test_node_detail_and_verified_captures(db_sessionmaker, client: AsyncC
 
     detail = await client.get(f"/v1/nodes/{node_id}")
     assert detail.status_code == 200
-    node = detail.json()
+    node = detail.json()["node"]
     assert node["id"] == str(node_id)
+    assert node["visibility"] == "visible"
     assert node["name"] == "Detail Node"
     assert pytest.approx(node["lat"], rel=1e-3) == 41.89
     assert pytest.approx(node["lng"], rel=1e-3) == 12.49
@@ -107,6 +108,7 @@ async def test_node_detail_and_verified_captures(db_sessionmaker, client: AsyncC
     captures = await client.get(f"/v1/nodes/{node_id}/captures", params={"state": "verified"})
     assert captures.status_code == 200
     data = captures.json()
+    assert data["node"]["visibility"] == "visible"
     capture_ids = [capture["id"] for capture in data["captures"]]
     assert capture_ids == [str(verified_capture_id)]
     assert data["captures"][0]["image_url"] == "/media/captures/verified.jpg"

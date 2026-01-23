@@ -10,7 +10,11 @@ services:
     volumes:
       - groundedart_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U groundedart -d groundedart"]
+      test:
+        [
+          "CMD-SHELL",
+          "PGPASSWORD=$${POSTGRES_PASSWORD} pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -31,11 +35,9 @@ services:
       - api_media:/app/.local_media
     working_dir: /app/apps/api
     depends_on:
-      db:
-        condition: service_healthy
-    command: >
-      sh -c "alembic -c alembic.ini upgrade head
-      && uvicorn groundedart_api.main:app --host 0.0.0.0 --port 8000 --reload"
+      migrate:
+        condition: service_completed_successfully
+    command: uvicorn groundedart_api.main:app --host 0.0.0.0 --port 8000 --reload
 
   web:
     build:
@@ -52,6 +54,37 @@ services:
     depends_on:
       - api
     command: npm run dev -- --host 0.0.0.0 --port 5173
+
+  tip-reconciler:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
+      SOLANA_RPC_URL: https://api.devnet.solana.com
+      TIP_RECEIPT_RECONCILIATION_INTERVAL_SECONDS: 60
+      TIP_RECEIPT_RECONCILIATION_CUTOFF_SECONDS: 3600
+    volumes:
+      - ..:/app
+    working_dir: /app/apps/api
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: python scripts/reconcile_tip_receipts.py --loop
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
+    volumes:
+      - ..:/app
+    working_dir: /app/apps/api
+    depends_on:
+      db:
+        condition: service_healthy
+    command: alembic -c alembic.ini upgrade head
 
 volumes:
   groundedart_pgdata:

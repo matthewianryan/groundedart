@@ -13,6 +13,7 @@ from groundedart_api.api.routers.health import router as health_router
 from groundedart_api.api.routers.me import router as me_router
 from groundedart_api.api.routers.nodes import router as nodes_router
 from groundedart_api.api.routers.sessions import router as sessions_router
+from groundedart_api.api.routers.tips import router as tips_router
 from groundedart_api.observability.logging import access_log, configure_logging
 from groundedart_api.observability.metrics import render_metrics
 from groundedart_api.observability.middleware import RequestContextMiddleware
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(me_router)
     app.include_router(nodes_router)
     app.include_router(captures_router)
+    app.include_router(tips_router)
     app.include_router(admin_router)
 
     app.add_api_route("/metrics", render_metrics, methods=["GET"], include_in_schema=False)

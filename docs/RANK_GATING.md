@@ -85,6 +85,49 @@ The global pending-verification cap per node is not rank-tiered.
 | Contributor | 3-5 | 8 | 4 | Higher throughput for proven users. |
 | Trusted | 6+ | 12 | 6 | Broad access for consistent contributors. |
 
+## Rank-based visibility matrix (no user-facing 404/403 for rank-gated content)
+
+This section defines **exactly what each rank can see/do** across read and write surfaces. The intent is to keep API + UI consistent and avoid “locked content” being represented via user-facing `404`/`403`.
+
+### Core contract decisions
+
+1) **Map population remains sparse by design**
+- `GET /v1/nodes` returns only nodes where `node.min_rank <= current_rank` (anonymous is rank `0`).
+- Nodes above rank are **not returned** in list endpoints (no placeholders on the map).
+
+2) **Direct access to locked nodes is explicit, not error-shaped**
+- If a client requests a specific node ID that exists but is rank-locked, the API returns `200` with a **locked node payload** (not `404`/`403`).
+
+3) **Rank-gated actions fail with `409 rank_locked`**
+- If a client attempts an action against a rank-locked node, the API returns `409` with `error.code = "rank_locked"` and details containing `current_rank` and `required_rank`.
+
+### Surfaces (read + write)
+
+| Surface | Endpoint | Unlocked behavior (`node.min_rank <= rank`) | Locked behavior (`node.min_rank > rank`) |
+| --- | --- | --- | --- |
+| Map nodes | `GET /v1/nodes?bbox=` | `200 { nodes: NodePublic[] }` containing only unlocked nodes. | Locked nodes are **omitted** from the list (no errors, no placeholders). |
+| Node detail | `GET /v1/nodes/{node_id}` | `200 { node: NodePublic }` with full metadata (name/description/category/precise lat,lng/radius/min_rank). | `200 { node: NodeLocked }` with `id`, `min_rank`, `current_rank`, `required_rank` only (no name/coords/description). |
+| Node captures | `GET /v1/nodes/{node_id}/captures` | `200 { node: NodePublic, captures: CapturePublic[] }` filtered by the attribution/rights policy for non-admin users. | `200 { node: NodeLocked, captures: [] }` (no capture visibility until the node is unlocked). |
+| Check-in challenge | `POST /v1/nodes/{node_id}/checkins/challenge` | `200 { challenge_id, expires_at }` (subject to rate limit). | `409 rank_locked` (details include `current_rank`, `required_rank`, `feature="checkin_challenge"`). |
+| Check-in | `POST /v1/nodes/{node_id}/checkins` | `200 { checkin_token, expires_at }` (subject to geofence + rate limits). | `409 rank_locked` (details include `current_rank`, `required_rank`, `feature="checkin"`). |
+| Capture creation | `POST /v1/captures` | `200 { capture: CapturePublic }` (subject to per-node rate limits). | `409 rank_locked` (details include `current_rank`, `required_rank`, `feature="capture_create"`). |
+| Capture upload | `POST /v1/captures/{id}/image` | Not rank-gated; enforced by capture ownership + state. | Not applicable. |
+| Reporting | `POST /v1/captures/{id}/reports` | Not rank-gated; requires auth. | Not applicable. |
+
+### Rank tiers (“what each rank sees”)
+
+Rank tiers do **not** change payload shapes; they determine **which nodes are unlocked** (via `nodes.min_rank`) and **which write caps apply** (tier table above).
+
+- **New (rank 0)**: sees only nodes with `min_rank = 0`; can check-in/capture within New caps.
+- **Apprentice (rank 1-2)**: sees nodes with `min_rank <= rank`; higher caps.
+- **Contributor (rank 3-5)**: sees nodes with `min_rank <= rank`; higher caps.
+- **Trusted (rank 6+)**: sees nodes with `min_rank <= rank`; highest caps.
+
+### UI requirements (derived)
+
+- Never show a “not found” screen for rank-lock; render an explicit “Unlock at rank N” state (using `NodeLocked` / `rank_locked` details).
+- Do not attempt rank-gated actions from locked UIs; buttons should be disabled or hidden with an unlock hint.
+
 ## /v1/me contract (rank explanation)
 
 `GET /v1/me` returns:

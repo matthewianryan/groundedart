@@ -37,8 +37,13 @@ export function CaptureRoute() {
         if (cancelled) return;
         setNodeId(capture.node_id);
         try {
-          const node = await getNode(capture.node_id);
-          if (!cancelled) setNodeName(node.name);
+          const res = await getNode(capture.node_id);
+          if (cancelled) return;
+          if (res.node.visibility === "visible") {
+            setNodeName(res.node.name);
+          } else {
+            setNodeName("Locked node");
+          }
         } catch {
           // Leave node name as-is if we cannot fetch details.
         }

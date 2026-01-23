@@ -193,6 +193,7 @@ async def create_capture(
         attribution_source_url=body.attribution_source_url,
         rights_basis=body.rights_basis,
         rights_attested_at=now_time if body.rights_attestation else None,
+        publish_requested=bool(body.publish_requested),
         visibility="private",
         state=CaptureState.draft.value,
         state_reason=validate_capture_state_reason(CaptureState.draft, "geo_passed"),

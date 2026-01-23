@@ -2,9 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NodePublic",
   "type": "object",
-  "required": ["id", "name", "category", "lat", "lng", "radius_m", "min_rank"],
+  "required": ["id", "visibility", "name", "category", "lat", "lng", "radius_m", "min_rank"],
   "properties": {
     "id": { "type": "string", "format": "uuid" },
+    "visibility": { "type": "string", "enum": ["visible"] },
     "name": { "type": "string" },
     "description": { "type": ["string", "null"] },
     "category": { "type": "string" },

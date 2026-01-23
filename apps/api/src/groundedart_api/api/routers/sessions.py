@@ -4,6 +4,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from groundedart_api.api.schemas import AnonymousSessionRequest, AnonymousSessionResponse
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
@@ -27,14 +28,34 @@ async def create_anonymous_session(
     device = await db.scalar(select(Device).where(Device.device_id == device_id))
 
     if device is None:
-        user = User()
-        db.add(user)
-        await db.flush()
-        db.add(Device(device_id=device_id, user_id=user.id))
-        db.add(CuratorRankCache(user_id=user.id))
+        try:
+            timestamp = now()
+            user = User(created_at=timestamp)
+            db.add(user)
+            await db.flush()
+            db.add(
+                Device(
+                    device_id=device_id,
+                    user_id=user.id,
+                    created_at=timestamp,
+                    last_seen_at=timestamp,
+                )
+            )
+            db.add(CuratorRankCache(user_id=user.id))
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            device = await db.scalar(select(Device).where(Device.device_id == device_id))
+            if device is None:
+                raise
+            user = await db.get(User, device.user_id)
+            device.last_seen_at = now()
     else:
         user = await db.get(User, device.user_id)
         device.last_seen_at = now()
+
+    if user is None:
+        raise RuntimeError("Device references missing user")
 
     token = generate_opaque_token()
     token_hash = hash_opaque_token(token, settings)

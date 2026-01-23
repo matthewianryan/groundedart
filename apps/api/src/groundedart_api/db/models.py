@@ -5,6 +5,7 @@ import uuid
 
 from geoalchemy2 import Geometry
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -132,6 +133,24 @@ class CuratorRankCache(Base):
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
+class Artist(Base):
+    __tablename__ = "artists"
+    __table_args__ = (
+        CheckConstraint(
+            "solana_recipient_pubkey ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$'",
+            name="ck_artists_solana_pubkey",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    display_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    solana_recipient_pubkey: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    nodes_defaulting: Mapped[list[Node]] = relationship(back_populates="default_artist")
+
+
 class Node(Base):
     __tablename__ = "nodes"
     __table_args__ = (CheckConstraint("radius_m >= 25", name="ck_nodes_radius_m_min_25"),)
@@ -146,11 +165,80 @@ class Node(Base):
     )
     radius_m: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
     min_rank: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    default_artist_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artists.id"), nullable=True
+    )
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True),
         default=utcnow,
         nullable=False,
     )
+
+    default_artist: Mapped[Artist | None] = relationship(back_populates="nodes_defaulting")
+
+
+class TipIntent(Base):
+    __tablename__ = "tip_intents"
+    __table_args__ = (
+        CheckConstraint(
+            "status in ('open', 'expired', 'completed', 'canceled')",
+            name="ck_tip_intents_status",
+        ),
+        Index("ix_tip_intents_node_id", "node_id"),
+        Index("ix_tip_intents_artist_id", "artist_id"),
+        Index("ix_tip_intents_created_by_user_id", "created_by_user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    node_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("nodes.id"), nullable=False
+    )
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artists.id"), nullable=False
+    )
+    amount_lamports: Mapped[int] = mapped_column(Integer, nullable=False)
+    to_pubkey: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    expires_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+
+
+class TipReceipt(Base):
+    __tablename__ = "tip_receipts"
+    __table_args__ = (
+        CheckConstraint(
+            "confirmation_status in ('seen', 'confirmed', 'finalized', 'failed')",
+            name="ck_tip_receipts_confirmation_status",
+        ),
+        UniqueConstraint("tip_intent_id", name="uq_tip_receipts_tip_intent_id"),
+        UniqueConstraint("tx_signature", name="uq_tip_receipts_tx_signature"),
+        Index("ix_tip_receipts_confirmation_status", "confirmation_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tip_intent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tip_intents.id"), nullable=False
+    )
+    tx_signature: Mapped[str] = mapped_column(String(128), nullable=False)
+    from_pubkey: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    to_pubkey: Mapped[str] = mapped_column(String(64), nullable=False)
+    amount_lamports: Mapped[int] = mapped_column(Integer, nullable=False)
+    slot: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    block_time: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    confirmation_status: Mapped[str] = mapped_column(String(16), nullable=False)
+    first_seen_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        nullable=False,
+    )
+    last_checked_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        nullable=False,
+    )
+    failure_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class CheckinChallenge(Base):
@@ -213,6 +301,12 @@ class CheckinToken(Base):
 
 class Capture(Base):
     __tablename__ = "captures"
+    __table_args__ = (
+        CheckConstraint(
+            "rights_basis IS NULL OR rights_basis IN ('i_took_photo', 'permission_granted', 'public_domain')",
+            name="ck_captures_rights_basis",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -228,6 +322,7 @@ class Capture(Base):
         nullable=False,
     )
     visibility: Mapped[str] = mapped_column(String(16), default="private", nullable=False)
+    publish_requested: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     state_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
@@ -271,6 +366,26 @@ class ContentReport(Base):
     )
     resolved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     resolution: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class UserNotification(Base):
+    __tablename__ = "user_notifications"
+    __table_args__ = (
+        Index("ix_user_notifications_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    details: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    read_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class CaptureEvent(Base):

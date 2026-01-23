@@ -4,6 +4,7 @@ import {
   DirectionsService,
   GoogleMap,
   Marker,
+  OverlayView,
   useJsApiLoader
 } from "@react-google-maps/api";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +16,10 @@ import { useUploadQueue } from "../features/captures/useUploadQueue";
 import { formatNextUnlockLine, formatRankCapsNotes } from "../features/me/copy";
 import { getMe } from "../features/me/api";
 import type { MeResponse } from "../features/me/types";
+import type { RankUpUnlocked, ToastNotice } from "../features/me/RankUpUi";
+import { RankBadge, RankUpOverlay, ToastStack, type RankUpEvent } from "../features/me/RankUpUi";
+import { listNotifications, markNotificationRead } from "../features/notifications/api";
+import type { NotificationPublic } from "../features/notifications/types";
 import { listNodes } from "../features/nodes/api";
 import type { NodePublic } from "../features/nodes/types";
 import { Button, Card, Badge, Select, Alert } from "../components/ui";
@@ -124,6 +129,14 @@ function bboxString(bounds: google.maps.LatLngBounds): string {
 
 type CheckinFailure = { title: string; detail?: string; nextStep?: string };
 
+const MISSING_FIELD_LABELS: Record<string, string> = {
+  attribution_artist_name: "artist name",
+  attribution_artwork_title: "artwork title",
+  attribution_source: "attribution source",
+  rights_basis: "rights basis",
+  rights_attested_at: "rights attestation"
+};
+
 function getNumberDetail(details: Record<string, unknown>, key: string): number | undefined {
   const value = details[key];
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -139,6 +152,18 @@ function formatSeconds(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.round(seconds / 60);
   return `${minutes}m`;
+}
+
+function formatNotificationTimestamp(value: string): string {
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return value;
+  return new Date(parsed).toLocaleString();
+}
+
+function formatMissingFields(fields?: string[] | null): string | null {
+  if (!fields?.length) return null;
+  const labels = fields.map((field) => MISSING_FIELD_LABELS[field] ?? field);
+  return labels.join(", ");
 }
 
 function isMapStylePresetKey(value: string): value is MapStylePresetKey {
@@ -179,6 +204,9 @@ export function MapRoute() {
   const [checkinRadiusM, setCheckinRadiusM] = useState<number | undefined>(undefined);
   const [me, setMe] = useState<MeResponse | null>(null);
   const [meStatus, setMeStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [notifications, setNotifications] = useState<NotificationPublic[]>([]);
+  const [notificationsStatus, setNotificationsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const navigate = useNavigate();
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
@@ -198,6 +226,23 @@ export function MapRoute() {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isPanelVisible, setIsPanelVisible] = useState<boolean>(true);
   const uploadQueue = useUploadQueue();
+  const demoMode = useMemo(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).has("demo") : false), []);
+  const [demoRank, setDemoRank] = useState<number | null>(null);
+  const prevDemoRankRef = useRef<number | null>(null);
+
+  const meFetchAbortRef = useRef<AbortController | null>(null);
+  const meRef = useRef<MeResponse | null>(null);
+  const prevMeRef = useRef<MeResponse | null>(null);
+
+  const [rankPulseKey, setRankPulseKey] = useState(0);
+  const [rankUpEvent, setRankUpEvent] = useState<RankUpEvent | null>(null);
+  const rankUpDismissTimeoutRef = useRef<number | null>(null);
+  const timeoutsRef = useRef<number[]>([]);
+  const [toasts, setToasts] = useState<ToastNotice[]>([]);
+
+  const celebrateNodesOnNextRefreshRef = useRef(false);
+  const prevNodesRef = useRef<NodePublic[] | null>(null);
+  const [mapRipples, setMapRipples] = useState<Array<{ id: string; position: google.maps.LatLngLiteral }>>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -217,17 +262,54 @@ export function MapRoute() {
   }, []);
 
   useEffect(() => {
+    meRef.current = me;
+  }, [me]);
+
+  const refreshMe = useCallback(
+    (showLoading: boolean) => {
+      if (!sessionReady) return;
+      meFetchAbortRef.current?.abort();
+      const controller = new AbortController();
+      meFetchAbortRef.current = controller;
+
+      if (showLoading) setMeStatus("loading");
+      getMe({ signal: controller.signal })
+        .then((res) => {
+          setMe(res);
+          setMeStatus("ready");
+        })
+        .catch((err) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          if (!meRef.current) setMeStatus("error");
+        });
+    },
+    [sessionReady]
+  );
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    refreshMe(true);
+    const intervalId = window.setInterval(() => refreshMe(false), 30_000);
+    return () => {
+      window.clearInterval(intervalId);
+      meFetchAbortRef.current?.abort();
+    };
+  }, [refreshMe, sessionReady]);
+
+  useEffect(() => {
     if (!sessionReady) return;
     const controller = new AbortController();
-    setMeStatus("loading");
-    getMe({ signal: controller.signal })
+    setNotificationsStatus("loading");
+    setNotificationsError(null);
+    listNotifications({ signal: controller.signal })
       .then((res) => {
-        setMe(res);
-        setMeStatus("ready");
+        setNotifications(res.notifications);
+        setNotificationsStatus("ready");
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        setMeStatus("error");
+        setNotificationsStatus("error");
+        setNotificationsError(err instanceof Error ? err.message : String(err));
       });
     return () => controller.abort();
   }, [sessionReady]);
@@ -280,6 +362,7 @@ export function MapRoute() {
         })
         .catch((e) => {
           if (e instanceof DOMException && e.name === "AbortError") return;
+          celebrateNodesOnNextRefreshRef.current = false;
           const message = e instanceof Error ? e.message : String(e);
           setNodesStatus("error");
           setNodesError(message);
@@ -288,8 +371,118 @@ export function MapRoute() {
     }, NODE_FETCH_DEBOUNCE_MS);
   }, []);
 
+  const dismissRankUp = useCallback(() => {
+    if (rankUpDismissTimeoutRef.current !== null) window.clearTimeout(rankUpDismissTimeoutRef.current);
+    rankUpDismissTimeoutRef.current = null;
+    setRankUpEvent(null);
+  }, []);
+
+  const pushToast = useCallback((title: string, lines: string[], ttlMs = 6000) => {
+    const id = `toast_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    setToasts((prev) => [...prev, { id, title, lines }]);
+    const timeoutId = window.setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), ttlMs);
+    timeoutsRef.current.push(timeoutId);
+  }, []);
+
+  const addMapRipples = useCallback((items: Array<{ id: string; lat: number; lng: number }>) => {
+    items.forEach((item) => {
+      const rippleId = `ripple_${item.id}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      setMapRipples((prev) => [...prev, { id: rippleId, position: { lat: item.lat, lng: item.lng } }]);
+      const timeoutId = window.setTimeout(() => setMapRipples((prev) => prev.filter((r) => r.id !== rippleId)), 1800);
+      timeoutsRef.current.push(timeoutId);
+    });
+  }, []);
+
+  const triggerRankUp = useCallback(
+    (fromRank: number, toRank: number, unlocked: RankUpUnlocked | null) => {
+      setRankPulseKey((prev) => prev + 1);
+      const eventId = `rankup_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      setRankUpEvent({ id: eventId, fromRank, toRank, unlocked });
+
+      if (unlocked) {
+        const lines = [unlocked.summary, ...unlocked.unlocks].filter(Boolean);
+        pushToast("Unlocked", lines);
+      } else {
+        pushToast("Rank up", [`Rank ${fromRank} → ${toRank}`]);
+      }
+
+      celebrateNodesOnNextRefreshRef.current = true;
+      scheduleNodesRefresh(lastBboxRef.current);
+    },
+    [pushToast, scheduleNodesRefresh]
+  );
+
+  useEffect(() => {
+    if (!rankUpEvent) return;
+    if (rankUpDismissTimeoutRef.current !== null) window.clearTimeout(rankUpDismissTimeoutRef.current);
+    rankUpDismissTimeoutRef.current = window.setTimeout(() => dismissRankUp(), 4500);
+    return () => {
+      if (rankUpDismissTimeoutRef.current !== null) window.clearTimeout(rankUpDismissTimeoutRef.current);
+      rankUpDismissTimeoutRef.current = null;
+    };
+  }, [dismissRankUp, rankUpEvent]);
+
+  useEffect(() => {
+    const prev = prevMeRef.current;
+    if (demoRank !== null) {
+      prevMeRef.current = me;
+      return;
+    }
+    if (me && prev && me.rank > prev.rank) {
+      const unlocked =
+        prev.next_unlock && prev.rank < prev.next_unlock.min_rank && me.rank >= prev.next_unlock.min_rank
+          ? { summary: prev.next_unlock.summary, unlocks: prev.next_unlock.unlocks }
+          : null;
+      triggerRankUp(prev.rank, me.rank, unlocked);
+    }
+    prevMeRef.current = me;
+  }, [demoRank, me, triggerRankUp]);
+
+  useEffect(() => {
+    if (!demoMode) {
+      prevDemoRankRef.current = null;
+      return;
+    }
+    if (demoRank === null) {
+      prevDemoRankRef.current = null;
+      return;
+    }
+    const fallback = me?.rank ?? demoRank;
+    const prevRank = prevDemoRankRef.current ?? fallback;
+    if (demoRank <= prevRank) {
+      prevDemoRankRef.current = demoRank;
+      return;
+    }
+    const unlocked =
+      me?.next_unlock && prevRank < me.next_unlock.min_rank && demoRank >= me.next_unlock.min_rank
+        ? { summary: me.next_unlock.summary, unlocks: me.next_unlock.unlocks }
+        : null;
+    triggerRankUp(prevRank, demoRank, unlocked);
+    prevDemoRankRef.current = demoRank;
+  }, [demoMode, demoRank, me?.next_unlock, me?.rank, prevDemoRankRef, triggerRankUp]);
+
+  useEffect(() => {
+    if (!celebrateNodesOnNextRefreshRef.current) {
+      prevNodesRef.current = nodes;
+      return;
+    }
+
+    const prevNodes = prevNodesRef.current ?? [];
+    const prevIds = new Set(prevNodes.map((n) => n.id));
+    const added = nodes.filter((n) => !prevIds.has(n.id));
+    if (added.length) {
+      addMapRipples(added);
+      pushToast("New nodes available", added.slice(0, 5).map((n) => n.name));
+    }
+    celebrateNodesOnNextRefreshRef.current = false;
+    prevNodesRef.current = nodes;
+  }, [addMapRipples, nodes, pushToast]);
+
   useEffect(() => {
     return () => {
+      if (rankUpDismissTimeoutRef.current !== null) window.clearTimeout(rankUpDismissTimeoutRef.current);
+      timeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeoutsRef.current = [];
       nodeFetchAbortRef.current?.abort();
       if (nodeFetchDebounceRef.current !== null) window.clearTimeout(nodeFetchDebounceRef.current);
     };
@@ -445,6 +638,17 @@ export function MapRoute() {
               : "Wait for a stronger GPS fix before retrying.",
             nextStep: "Stay still for a moment and retry."
           });
+        } else if (err.code === "rank_locked") {
+          const currentRank = getNumberDetail(details, "current_rank") ?? me?.rank;
+          const requiredRank = getNumberDetail(details, "required_rank") ?? getNumberDetail(details, "node_min_rank");
+          const detailParts: string[] = [];
+          if (currentRank !== undefined) detailParts.push(`Your rank: ${currentRank}.`);
+          if (requiredRank !== undefined) detailParts.push(`Unlock at rank ${requiredRank}.`);
+          setCheckinFailure({
+            title: "Node locked",
+            detail: detailParts.length ? detailParts.join(" ") : err.message,
+            nextStep: "Verify more captures to increase your rank."
+          });
         } else if (err.code === "outside_geofence") {
           const distance = getNumberDetail(details, "distance_m");
           const radius = getNumberDetail(details, "radius_m");
@@ -548,8 +752,32 @@ export function MapRoute() {
     []
   );
 
-  const nextUnlockLine = me ? formatNextUnlockLine(me) : null;
-  const capsNotes = me ? formatRankCapsNotes(me.rank_breakdown) : [];
+  async function handleRefreshNotifications() {
+    setNotificationsStatus("loading");
+    setNotificationsError(null);
+    try {
+      const res = await listNotifications();
+      setNotifications(res.notifications);
+      setNotificationsStatus("ready");
+    } catch (err) {
+      setNotificationsStatus("error");
+      setNotificationsError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleMarkNotificationRead(notificationId: string) {
+    try {
+      const updated = await markNotificationRead(notificationId);
+      setNotifications((prev) => prev.map((item) => (item.id === notificationId ? updated : item)));
+    } catch {
+      // ignore
+    }
+  }
+
+  const viewMe = useMemo(() => (me && demoRank !== null ? { ...me, rank: demoRank } : me), [demoRank, me]);
+  const nextUnlockLine = viewMe ? formatNextUnlockLine(viewMe) : null;
+  const capsNotes = viewMe ? formatRankCapsNotes(viewMe.rank_breakdown) : [];
+  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
 
   return (
     <div className={`layout ${isPanelVisible ? "" : "layout-panel-hidden"}`}>
@@ -1037,6 +1265,15 @@ export function MapRoute() {
             onIdle={handleMapIdle}
             options={mapOptions}
           >
+            {mapRipples.map((ripple) => (
+              <OverlayView
+                key={ripple.id}
+                position={ripple.position}
+                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+              >
+                <div className="ga-map-ripple" />
+              </OverlayView>
+            ))}
             {nodes.map((n) => (
               <Marker key={n.id} position={{ lat: n.lat, lng: n.lng }} onClick={() => setSelectedNodeId(n.id)} />
             ))}
@@ -1063,6 +1300,9 @@ export function MapRoute() {
           </GoogleMap>
         )}
       </div>
+
+      <RankUpOverlay event={rankUpEvent} onDismiss={dismissRankUp} />
+      <ToastStack toasts={toasts} onDismiss={(toastId) => setToasts((prev) => prev.filter((t) => t.id !== toastId))} />
     </div>
   );
 }

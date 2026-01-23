@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeGetResponse",
+  "type": "object",
+  "required": ["node"],
+  "properties": {
+    "node": {
+      "oneOf": [
+        { "$ref": "./node_public.json" },
+        { "$ref": "./node_locked.json" }
+      ]
+    }
+  }
+}

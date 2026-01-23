@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NodeCapturesResponse",
+  "type": "object",
+  "required": ["node", "captures"],
+  "properties": {
+    "node": {
+      "oneOf": [
+        { "$ref": "./node_public.json" },
+        { "$ref": "./node_locked.json" }
+      ]
+    },
+    "captures": {
+      "type": "array",
+      "items": { "$ref": "./capture_public.json" }
+    }
+  }
+}

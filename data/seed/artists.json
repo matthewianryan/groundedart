@@ -1,0 +1,14 @@
+[
+  {
+    "id": "1c2a71c1-3947-4d1d-a469-6c86d331a4b1",
+    "display_name": "Ava Ndlovu",
+    "solana_recipient_pubkey": "8v2kR5mH7qX3bT9nY1cD4fG6pJ2sZ5uW8aQ7eV3rL9",
+    "node_ids": ["b752b4c2-6da5-4bba-bdc1-5687db128123"]
+  },
+  {
+    "id": "4e2d5d9e-2c9b-4e73-8c8f-58ac90e1b66d",
+    "display_name": "Noah K" ,
+    "solana_recipient_pubkey": "4Qx7mN8pT2cZ5vB3sW6yH9kJ1rE7uV2aD8fG5t",
+    "node_ids": ["ad39607d-011f-4021-bfd3-7e5514d4268e"]
+  }
+]

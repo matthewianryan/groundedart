@@ -83,6 +83,22 @@ class Settings(BaseSettings):
         default=5,
         description="Maximum reports per user per rate window.",
     )
+    tip_intent_ttl_seconds: int = Field(
+        default=60 * 60,
+        description="Time-to-live for tip intents, in seconds.",
+    )
+    tip_receipt_reconciliation_interval_seconds: int = Field(
+        default=60,
+        description="Minimum interval between tip receipt reconciliation checks, in seconds.",
+    )
+    tip_receipt_reconciliation_cutoff_seconds: int = Field(
+        default=60 * 60,
+        description="Cutoff window before marking missing tip receipts as failed, in seconds.",
+    )
+    solana_rpc_url: AnyHttpUrl = Field(
+        default="https://api.devnet.solana.com",
+        description="Solana JSON-RPC endpoint for tip receipt verification.",
+    )
 
     media_dir: str = "./.local_media"
     upload_allowed_mime_types: list[str] = Field(

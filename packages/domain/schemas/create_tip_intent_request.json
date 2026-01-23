@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreateTipIntentRequest",
+  "type": "object",
+  "required": ["node_id", "amount_lamports"],
+  "properties": {
+    "node_id": { "type": "string", "format": "uuid" },
+    "amount_lamports": { "type": "integer", "minimum": 1 }
+  }
+}

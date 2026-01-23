@@ -6,7 +6,11 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from groundedart_api.db.models import Capture
-from groundedart_api.domain.capture_events import apply_capture_transition_with_audit
+from groundedart_api.domain.attribution_rights import missing_public_requirements
+from groundedart_api.domain.capture_events import (
+    apply_capture_transition_with_audit,
+    record_capture_published_event,
+)
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
 from groundedart_api.domain.rank_events import CAPTURE_VERIFIED_EVENT_TYPE, append_rank_event
@@ -14,6 +18,7 @@ from groundedart_api.domain.rank_materialization import (
     get_capture_verified_event_day,
     refresh_rank_for_user_day,
 )
+from groundedart_api.domain.notifications import record_capture_verified_notification
 from groundedart_api.domain.verification_events import VerificationEventEmitter
 from groundedart_api.observability.ops import observe_operation
 
@@ -54,6 +59,29 @@ async def transition_capture_state(
 
         days_to_refresh: set[dt.date] = set()
         if target_state == CaptureState.verified:
+            missing_fields = missing_public_requirements(capture)
+            published = False
+            if capture.publish_requested and not missing_fields and capture.visibility != "public":
+                previous_visibility = capture.visibility
+                capture.visibility = "public"
+                record_capture_published_event(
+                    db=db,
+                    capture=capture,
+                    actor_type=actor_type,
+                    actor_user_id=actor_user_id,
+                    details={
+                        "previous_visibility": previous_visibility,
+                        "auto_publish": True,
+                    },
+                )
+                published = True
+            db.add(
+                record_capture_verified_notification(
+                    capture=capture,
+                    missing_fields=missing_fields,
+                    published=published,
+                )
+            )
             event = await append_rank_event(
                 db=db,
                 user_id=capture.user_id,

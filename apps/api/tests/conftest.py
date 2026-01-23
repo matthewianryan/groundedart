@@ -61,7 +61,7 @@ async def reset_db(db_sessionmaker):
             text(
                 "TRUNCATE abuse_events, capture_events, content_reports, captures, "
                 "checkin_tokens, checkin_challenges, curator_rank_cache, curator_rank_daily, "
-                "nodes, rank_events, devices, sessions, users "
+                "tip_receipts, tip_intents, nodes, artists, rank_events, devices, sessions, users "
                 "RESTART IDENTITY CASCADE"
             )
         )
