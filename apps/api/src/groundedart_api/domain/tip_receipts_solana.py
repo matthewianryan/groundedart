@@ -20,17 +20,22 @@ from groundedart_api.settings import Settings, get_settings
 _MEMO_PROGRAM_ID = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
 
 
-async def fetch_solana_transaction(rpc_url: str, tx_signature: str) -> dict[str, Any]:
+async def fetch_solana_transaction(
+    rpc_url: str, tx_signature: str, *, commitment: str | None = None
+) -> dict[str, Any]:
+    params: dict[str, Any] = {
+        "encoding": "jsonParsed",
+        "maxSupportedTransactionVersion": 0,
+    }
+    if commitment:
+        params["commitment"] = commitment
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
         "method": "getTransaction",
         "params": [
             tx_signature,
-            {
-                "encoding": "jsonParsed",
-                "maxSupportedTransactionVersion": 0,
-            },
+            params,
         ],
     }
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -110,7 +115,11 @@ class SolanaTipReceiptProvider:
         expected_amount_lamports: int,
     ) -> TipReceiptVerification:
         try:
-            response = await fetch_solana_transaction(self._rpc_url, tx_signature)
+            response = await fetch_solana_transaction(
+                self._rpc_url,
+                tx_signature,
+                commitment="confirmed",
+            )
         except (httpx.HTTPError, ValueError):
             return TipReceiptVerificationFailure(reason=TipReceiptFailureReason.RPC_ERROR)
 

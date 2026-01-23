@@ -102,7 +102,10 @@ async def test_tip_receipt_reconciliation_updates_finalized(db_sessionmaker) -> 
 
     calls: list[str] = []
 
-    async def _fake_fetch(_rpc_url: str, tx_signature: str) -> dict[str, object]:
+    async def _fake_fetch(
+        _rpc_url: str, tx_signature: str, commitment: str | None
+    ) -> dict[str, object]:
+        assert commitment == "finalized"
         calls.append(tx_signature)
         return {
             "result": {
