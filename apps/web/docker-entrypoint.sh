@@ -13,8 +13,13 @@ LOCK_HASH="$(
 STAMP_FILE="node_modules/.ga_package_lock_sha256"
 
 if [ ! -d node_modules ] || [ ! -f "$STAMP_FILE" ] || [ "$(cat "$STAMP_FILE")" != "$LOCK_HASH" ]; then
-  echo "[web] Installing dependencies (npm ci)…"
-  npm ci
+  echo "[web] Installing dependencies…"
+  if npm ci 2>/dev/null; then
+    echo "[web] Dependencies installed with npm ci"
+  else
+    echo "[web] npm ci failed, falling back to npm install…"
+    npm install
+  fi
   mkdir -p node_modules
   echo "$LOCK_HASH" > "$STAMP_FILE"
 fi
