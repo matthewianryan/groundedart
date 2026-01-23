@@ -3,13 +3,15 @@ from __future__ import annotations
 import datetime as dt
 import re
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import desc, func, select
 
 from groundedart_api.api.schemas import (
     ConfirmTipRequest,
     CreateTipIntentRequest,
+    NodeTipsResponse,
     TipIntentResponse,
     TipReceiptPublic,
 )
@@ -31,6 +33,8 @@ router = APIRouter(prefix="/v1", tags=["tips"])
 _PUBKEY_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")
 _MEMO_PREFIX = "ga_tip_intent:"
 _CLUSTER = "devnet"
+_LAMPORTS_PER_SOL = Decimal("1000000000")
+_TOTAL_STATUSES = ("confirmed", "finalized")
 
 
 def _is_valid_pubkey(value: str) -> bool:
@@ -55,6 +59,11 @@ def _receipt_public(receipt: TipReceipt) -> TipReceiptPublic:
         last_checked_at=receipt.last_checked_at,
         failure_reason=receipt.failure_reason,
     )
+
+
+def _format_sol_from_lamports(amount_lamports: int) -> str:
+    sol_amount = Decimal(amount_lamports) / _LAMPORTS_PER_SOL
+    return format(sol_amount.quantize(Decimal("0.000000001")), "f")
 
 
 @router.post("/tips/intents", response_model=TipIntentResponse)
@@ -217,3 +226,38 @@ async def confirm_tip(
     db.add(receipt)
     await db.commit()
     return _receipt_public(receipt)
+
+
+@router.get("/nodes/{node_id}/tips", response_model=NodeTipsResponse)
+async def get_node_tips(node_id: uuid.UUID, db: DbSessionDep) -> NodeTipsResponse:
+    """Return node tip totals (confirmed + finalized only) and recent receipts."""
+    node = await db.get(Node, node_id)
+    if node is None:
+        raise AppError(code="node_not_found", message="Node not found", status_code=404)
+
+    total_query = (
+        select(func.coalesce(func.sum(TipReceipt.amount_lamports), 0))
+        .select_from(TipReceipt)
+        .join(TipIntent, TipReceipt.tip_intent_id == TipIntent.id)
+        .where(
+            TipIntent.node_id == node_id,
+            TipReceipt.confirmation_status.in_(_TOTAL_STATUSES),
+        )
+    )
+    total_amount_lamports = int(await db.scalar(total_query) or 0)
+
+    receipts_query = (
+        select(TipReceipt)
+        .join(TipIntent, TipReceipt.tip_intent_id == TipIntent.id)
+        .where(TipIntent.node_id == node_id)
+        .order_by(desc(TipReceipt.first_seen_at))
+        .limit(10)
+    )
+    receipts = (await db.scalars(receipts_query)).all()
+
+    return NodeTipsResponse(
+        node_id=node_id,
+        total_amount_lamports=total_amount_lamports,
+        total_amount_sol=_format_sol_from_lamports(total_amount_lamports),
+        recent_receipts=[_receipt_public(receipt) for receipt in receipts],
+    )

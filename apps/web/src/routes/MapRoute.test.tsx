@@ -13,6 +13,8 @@ const markNotificationRead = vi.fn();
 
 vi.mock("@react-google-maps/api", async () => {
   const ReactModule = await import("react");
+  const OverlayView = ({ children }: any) => <div data-testid="overlay-view">{children}</div>;
+  (OverlayView as any).OVERLAY_MOUSE_TARGET = "overlayMouseTarget";
   return {
     useJsApiLoader: () => ({ isLoaded: true, loadError: undefined }),
     GoogleMap: ({ children, onLoad, onIdle }: any) => {
@@ -32,6 +34,7 @@ vi.mock("@react-google-maps/api", async () => {
         marker
       </button>
     ),
+    OverlayView,
     DirectionsRenderer: () => <div data-testid="directions-renderer" />,
     DirectionsService: () => <div data-testid="directions-service" />
   };

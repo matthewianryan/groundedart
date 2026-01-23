@@ -145,6 +145,13 @@ class TipReceiptPublic(BaseModel):
     failure_reason: str | None = None
 
 
+class NodeTipsResponse(BaseModel):
+    node_id: uuid.UUID
+    total_amount_lamports: int
+    total_amount_sol: str
+    recent_receipts: list[TipReceiptPublic]
+
+
 class CreateCaptureRequest(BaseModel):
     node_id: uuid.UUID
     checkin_token: str
