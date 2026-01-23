@@ -18,6 +18,7 @@ from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.capture_moderation import transition_capture_state
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
+from groundedart_api.domain.verification_events import VerificationEventEmitterDep
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -68,6 +69,7 @@ async def transition_capture(
     capture_id: uuid.UUID,
     body: AdminCaptureTransitionRequest,
     db: DbSessionDep,
+    verification_events: VerificationEventEmitterDep,
 ) -> AdminCaptureTransitionResponse:
     try:
         target_state = CaptureState(body.target_state)
@@ -91,6 +93,7 @@ async def transition_capture(
         reason_code=body.reason_code,
         actor_type="admin",
         actor_user_id=None,
+        verification_events=verification_events,
         details=body.details,
     )
     return AdminCaptureTransitionResponse(capture=capture_to_admin(capture))

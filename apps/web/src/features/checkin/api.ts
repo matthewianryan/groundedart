@@ -8,8 +8,10 @@ export type CheckinErrorCode =
   | "invalid_challenge"
   | "challenge_used"
   | "challenge_expired"
+  | "checkin_challenge_rate_limited"
   | "location_accuracy_too_low"
-  | "outside_geofence";
+  | "outside_geofence"
+  | "capture_rate_limited";
 export type CheckinErrorDetails = {
   accuracy_m?: number;
   max_allowed_m?: number;

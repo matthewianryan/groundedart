@@ -290,3 +290,33 @@ async def test_checkin_success_marks_challenge_used_and_reuse_fails(
     assert reuse_response.status_code == 400
     reuse_payload = reuse_response.json()
     assert reuse_payload["error"]["code"] == "challenge_used"
+
+
+@pytest.mark.asyncio
+async def test_checkin_challenge_rate_limited(db_sessionmaker) -> None:
+    settings = get_settings()
+    now = dt.datetime(2024, 1, 1, tzinfo=dt.UTC)
+    client, _ = make_client_with_time(now)
+    node_id = await create_node(db_sessionmaker)
+
+    async with client:
+        user_id = await create_session(client)
+        created_at = now - dt.timedelta(seconds=settings.checkin_challenge_rate_window_seconds - 1)
+        async with db_sessionmaker() as session:
+            for _ in range(settings.max_checkin_challenges_per_user_node_per_window):
+                session.add(
+                    CheckinChallenge(
+                        id=uuid.uuid4(),
+                        user_id=user_id,
+                        node_id=node_id,
+                        created_at=created_at,
+                        expires_at=now + dt.timedelta(seconds=30),
+                    )
+                )
+            await session.commit()
+
+        response = await client.post(f"/v1/nodes/{node_id}/checkins/challenge")
+
+    assert response.status_code == 429
+    payload = response.json()
+    assert payload["error"]["code"] == "checkin_challenge_rate_limited"

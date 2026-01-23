@@ -55,6 +55,26 @@ class Settings(BaseSettings):
     max_location_accuracy_m: int = Field(
         default=50, description="Maximum allowed reported location accuracy, in meters."
     )
+    checkin_challenge_rate_window_seconds: int = Field(
+        default=5 * 60,
+        description="Rolling window for check-in challenge rate limits, in seconds.",
+    )
+    max_checkin_challenges_per_user_node_per_window: int = Field(
+        default=5,
+        description="Maximum check-in challenges per user per node per rate window.",
+    )
+    capture_rate_window_seconds: int = Field(
+        default=24 * 60 * 60,
+        description="Rolling window for capture rate limits, in seconds.",
+    )
+    max_captures_per_user_node_per_day: int = Field(
+        default=5,
+        description="Maximum captures per user per node per rate window.",
+    )
+    max_pending_verification_captures_per_node: int = Field(
+        default=50,
+        description="Maximum pending verification captures per node.",
+    )
 
     media_dir: str = "./.local_media"
     upload_allowed_mime_types: list[str] = Field(

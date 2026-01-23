@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import datetime as dt
 import uuid
 
 from fastapi import APIRouter, Depends, UploadFile
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from groundedart_api.api.schemas import CapturePublic, CreateCaptureRequest, CreateCaptureResponse
 from groundedart_api.auth.deps import CurrentUser
@@ -14,6 +15,7 @@ from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.capture_state_events import apply_capture_transition_with_audit
 from groundedart_api.domain.capture_transitions import validate_capture_state_reason
 from groundedart_api.domain.errors import AppError
+from groundedart_api.domain.verification_events import VerificationEventEmitterDep
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.storage.deps import MediaStorageDep
 from groundedart_api.time import UtcNow, get_utcnow
@@ -40,6 +42,7 @@ async def create_capture(
     settings: Settings = Depends(get_settings),
     now: UtcNow = Depends(get_utcnow),
 ) -> CreateCaptureResponse:
+    now_time = now()
     token_hash = hash_opaque_token(body.checkin_token, settings)
     token = await db.scalar(
         select(CheckinToken).where(
@@ -53,14 +56,35 @@ async def create_capture(
             message="Invalid check-in token",
             status_code=400,
         )
-    if now() >= token.expires_at:
+    if now_time >= token.expires_at:
         raise AppError(
             code="checkin_token_expired",
             message="Check-in token expired",
             status_code=400,
         )
 
-    token.used_at = now()
+    window_start = now_time - dt.timedelta(seconds=settings.capture_rate_window_seconds)
+    recent_captures = await db.scalar(
+        select(func.count())
+        .select_from(Capture)
+        .where(
+            Capture.user_id == user.id,
+            Capture.node_id == body.node_id,
+            Capture.created_at >= window_start,
+        )
+    )
+    if (recent_captures or 0) >= settings.max_captures_per_user_node_per_day:
+        raise AppError(
+            code="capture_rate_limited",
+            message="Capture rate limit exceeded",
+            status_code=429,
+            details={
+                "max_per_window": settings.max_captures_per_user_node_per_day,
+                "window_seconds": settings.capture_rate_window_seconds,
+            },
+        )
+
+    token.used_at = now_time
     capture = Capture(
         user_id=user.id,
         node_id=body.node_id,
@@ -96,6 +120,8 @@ async def upload_capture_image(
     db: DbSessionDep,
     user: CurrentUser,
     storage: MediaStorageDep,
+    verification_events: VerificationEventEmitterDep,
+    settings: Settings = Depends(get_settings),
 ) -> CapturePublic:
     capture = await db.get(Capture, capture_id)
     if capture is None:
@@ -103,9 +129,29 @@ async def upload_capture_image(
     if capture.user_id != user.id:
         raise AppError(code="forbidden", message="Forbidden", status_code=403)
 
+    if capture.state == CaptureState.draft.value:
+        pending_count = await db.scalar(
+            select(func.count())
+            .select_from(Capture)
+            .where(
+                Capture.node_id == capture.node_id,
+                Capture.state == CaptureState.pending_verification.value,
+            )
+        )
+        if (pending_count or 0) >= settings.max_pending_verification_captures_per_node:
+            raise AppError(
+                code="pending_verification_cap_reached",
+                message="Pending verification cap reached",
+                status_code=429,
+                details={
+                    "max_pending_per_node": settings.max_pending_verification_captures_per_node,
+                },
+            )
+
     stored = await storage.save_capture_image(capture_id=capture.id, upload=file)
     capture.image_path = stored.path
     capture.image_mime = stored.mime
+    promoted = False
     if capture.state == CaptureState.draft.value:
         apply_capture_transition_with_audit(
             db=db,
@@ -115,6 +161,13 @@ async def upload_capture_image(
             actor_type="user",
             actor_user_id=user.id,
         )
+        promoted = True
     await db.commit()
     await db.refresh(capture)
+    if promoted:
+        await verification_events.capture_uploaded(
+            capture_id=capture.id,
+            node_id=capture.node_id,
+            user_id=capture.user_id,
+        )
     return capture_to_public(capture)

@@ -145,11 +145,33 @@ async def create_checkin_challenge(
     settings: Settings = Depends(get_settings),
     now: UtcNow = Depends(get_utcnow),
 ) -> CheckinChallengeResponse:
+    now_time = now()
     node = await db.get(Node, node_id)
     if node is None:
         raise AppError(code="node_not_found", message="Node not found", status_code=404)
 
-    expires_at = now() + dt.timedelta(seconds=settings.checkin_challenge_ttl_seconds)
+    window_start = now_time - dt.timedelta(seconds=settings.checkin_challenge_rate_window_seconds)
+    recent_challenges = await db.scalar(
+        select(func.count())
+        .select_from(CheckinChallenge)
+        .where(
+            CheckinChallenge.user_id == user.id,
+            CheckinChallenge.node_id == node.id,
+            CheckinChallenge.created_at >= window_start,
+        )
+    )
+    if (recent_challenges or 0) >= settings.max_checkin_challenges_per_user_node_per_window:
+        raise AppError(
+            code="checkin_challenge_rate_limited",
+            message="Check-in challenge rate limit exceeded",
+            status_code=429,
+            details={
+                "max_per_window": settings.max_checkin_challenges_per_user_node_per_window,
+                "window_seconds": settings.checkin_challenge_rate_window_seconds,
+            },
+        )
+
+    expires_at = now_time + dt.timedelta(seconds=settings.checkin_challenge_ttl_seconds)
     challenge = CheckinChallenge(user_id=user.id, node_id=node.id, expires_at=expires_at)
     db.add(challenge)
     await db.commit()
@@ -165,6 +187,7 @@ async def check_in(
     settings: Settings = Depends(get_settings),
     now: UtcNow = Depends(get_utcnow),
 ) -> CheckinResponse:
+    now_time = now()
     challenge = await db.get(CheckinChallenge, body.challenge_id)
     if challenge is None or challenge.user_id != user.id or challenge.node_id != node_id:
         logger.warning(
@@ -186,7 +209,7 @@ async def check_in(
             message="Check-in challenge already used",
             status_code=400,
         )
-    if now() >= challenge.expires_at:
+    if now_time >= challenge.expires_at:
         raise AppError(
             code="challenge_expired",
             message="Check-in challenge expired",
@@ -236,11 +259,32 @@ async def check_in(
             details=details,
         )
 
-    challenge.used_at = now()
+    window_start = now_time - dt.timedelta(seconds=settings.capture_rate_window_seconds)
+    recent_captures = await db.scalar(
+        select(func.count())
+        .select_from(Capture)
+        .where(
+            Capture.user_id == user.id,
+            Capture.node_id == node.id,
+            Capture.created_at >= window_start,
+        )
+    )
+    if (recent_captures or 0) >= settings.max_captures_per_user_node_per_day:
+        raise AppError(
+            code="capture_rate_limited",
+            message="Capture rate limit exceeded",
+            status_code=429,
+            details={
+                "max_per_window": settings.max_captures_per_user_node_per_day,
+                "window_seconds": settings.capture_rate_window_seconds,
+            },
+        )
+
+    challenge.used_at = now_time
 
     token = generate_opaque_token()
     token_hash = hash_opaque_token(token, settings)
-    expires_at = now() + dt.timedelta(seconds=settings.checkin_token_ttl_seconds)
+    expires_at = now_time + dt.timedelta(seconds=settings.checkin_token_ttl_seconds)
     db.add(
         CheckinToken(
             user_id=user.id,

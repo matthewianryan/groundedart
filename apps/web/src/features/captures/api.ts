@@ -22,7 +22,9 @@ export type CaptureErrorCode =
   | "auth_required"
   | "file_too_large"
   | "invalid_media_type"
-  | "upload_incomplete";
+  | "upload_incomplete"
+  | "capture_rate_limited"
+  | "pending_verification_cap_reached";
 
 export type CaptureErrorResponse = {
   error: { code: CaptureErrorCode; message: string; details: Record<string, unknown> };
