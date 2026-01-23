@@ -31,7 +31,7 @@ class NodePublic(BaseModel):
     category: str
     lat: float
     lng: float
-    radius_m: int
+    radius_m: int = Field(ge=25)
     min_rank: int
 
 

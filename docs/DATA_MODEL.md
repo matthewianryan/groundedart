@@ -10,7 +10,7 @@ This is a shared vocabulary for product + engineering. It is intentionally imple
 
 ### Node
 - A physical place users can visit.
-- Has a geometry (polygon or radius) and metadata (name, description, category).
+- Has a geometry (MVP: center point + radius_m, with `radius_m >= 25`) and metadata (name, description, category).
 
 ### Artwork
 - An identifiable piece associated with a node (or optionally independent, if the same piece appears elsewhere).
@@ -43,4 +43,3 @@ This is a shared vocabulary for product + engineering. It is intentionally imple
 - **Attribution policy**: what fields are required to publish/show publicly.
 - **Consent/rights flags**: default rules (e.g., “personal capture” vs “public post”).
 - **Moderation state**: `draft`, `pending`, `verified`, `rejected`, `hidden`.
-

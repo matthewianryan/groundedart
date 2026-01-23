@@ -10,8 +10,7 @@
     "category": { "type": "string" },
     "lat": { "type": "number" },
     "lng": { "type": "number" },
-    "radius_m": { "type": "integer", "minimum": 0 },
+    "radius_m": { "type": "integer", "minimum": 25 },
     "min_rank": { "type": "integer", "minimum": 0 }
   }
 }
-

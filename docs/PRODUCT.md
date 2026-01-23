@@ -45,5 +45,5 @@ To avoid becoming a “scrape-and-repost” machine:
 - support takedown/reporting and creator claims as first-class flows.
 
 ## Visual Design Practices
-- Color Pallette: Cream, Dark Charcoal text and Pomegranate Red highlights
+- Color Pallette: #FFFEF2 for background, Dark Charcoal text and Pomegranate Red highlights
 - Minimalistic UI. Only features absolutely essential to the app should be visible.

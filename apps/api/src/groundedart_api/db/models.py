@@ -4,7 +4,7 @@ import datetime as dt
 import uuid
 
 from geoalchemy2 import Geometry
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -99,6 +99,7 @@ class CuratorProfile(Base):
 
 class Node(Base):
     __tablename__ = "nodes"
+    __table_args__ = (CheckConstraint("radius_m >= 25", name="ck_nodes_radius_m_min_25"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
