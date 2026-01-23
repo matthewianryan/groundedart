@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html,
 body,
 #root {
@@ -10,6 +14,11 @@ body,
   display: grid;
   grid-template-columns: 360px 1fr;
   grid-template-areas: "panel map";
+  transition: grid-template-columns 0.3s ease;
+}
+
+.layout-panel-hidden {
+  grid-template-columns: 0 1fr;
 }
 
 .detail-layout {
@@ -25,6 +34,11 @@ body,
   padding: 12px;
   overflow: auto;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.panel-hidden {
+  display: none;
 }
 
 .detail {
@@ -276,5 +290,270 @@ body,
 
   .detail {
     width: 100%;
+  }
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  html {
+    background-color: #F5F5F4; /* grounded-parchment */
+    color: #1A1715; /* grounded-charcoal */
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  html.dark {
+    background-color: #1A1715; /* grounded-charcoal */
+    color: #F5F5F4; /* grounded-parchment */
+  }
+
+  body {
+    @apply font-sans;
+    background-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  /* Typography - Serif for "Lore" and "Story" headings */
+  h1, h2, h3, h4, h5, h6 {
+    &.lore, &.story {
+      @apply font-serif;
+    }
+  }
+}
+
+@layer components {
+  .text-shadow {
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Tactile Button Styles */
+  .btn-tactile {
+    @apply relative px-6 py-3 font-bold uppercase tracking-wide transition-all duration-300;
+    @apply focus:outline-none focus:ring-2 focus:ring-[#D97706] focus:ring-offset-2;
+  }
+
+  .btn-tactile-light {
+    @apply btn-tactile;
+    @apply bg-white;
+    color: #1A1715; /* grounded-charcoal */
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-tactile-light */
+    @apply active:shadow-inner active:scale-[0.98];
+  }
+
+  .btn-tactile-light:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04); /* shadow-organic-light */
+  }
+
+  .btn-tactile-dark {
+    @apply btn-tactile;
+    background-color: #1A1715; /* grounded-charcoal */
+    color: #F5F5F4; /* grounded-parchment */
+    border: 1px solid rgba(217, 119, 6, 0.3); /* grounded-copper/30 */
+    box-shadow: 0 0 8px rgba(217, 119, 6, 0.3), 0 0 16px rgba(217, 119, 6, 0.1); /* shadow-tactile-dark */
+    @apply backdrop-blur-sm;
+    @apply active:scale-[0.98];
+  }
+
+  .btn-tactile-dark:hover {
+    border-color: rgba(217, 119, 6, 0.5); /* grounded-copper/50 */
+  }
+
+  /* Card Styles */
+  .card-light {
+    @apply bg-white rounded-lg;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04); /* shadow-organic-light */
+    @apply transition-shadow duration-300;
+  }
+
+  .card-dark {
+    background-color: rgba(26, 23, 21, 0.8); /* grounded-charcoal/80 */
+    @apply backdrop-blur-md rounded-lg;
+    border: 1px solid rgba(217, 119, 6, 0.2); /* grounded-copper/20 */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1); /* shadow-glassmorphism */
+    @apply transition-all duration-300;
+  }
+
+  /* Woven/Beaded Border Effect */
+  .border-woven {
+    position: relative;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .border-woven::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    padding: 2px;
+    background: repeating-linear-gradient(
+      45deg,
+      currentColor 0,
+      currentColor 2px,
+      transparent 2px,
+      transparent 4px
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .border-beaded {
+    position: relative;
+    border: 2px dashed currentColor;
+    border-radius: 8px;
+  }
+
+  .border-beaded::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: radial-gradient(circle, currentColor 1px, transparent 1px);
+    background-size: 8px 8px;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* Verified Badge Style */
+  .badge-verified {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide;
+    @apply border-beaded;
+    background-color: rgba(217, 119, 6, 0.1); /* grounded-copper/10 */
+    color: #D97706; /* grounded-copper */
+  }
+
+  .dark .badge-verified {
+    background-color: rgba(217, 119, 6, 0.2); /* grounded-copper/20 */
+    color: #D97706; /* grounded-copper */
+  }
+
+  /* Typography Utilities */
+  .text-lore {
+    @apply font-serif text-2xl md:text-3xl lg:text-4xl;
+    color: #1A1715; /* grounded-charcoal */
+  }
+
+  .dark .text-lore {
+    color: #F5F5F4; /* grounded-parchment */
+  }
+
+  .text-story {
+    @apply font-serif text-lg md:text-xl lg:text-2xl;
+    color: #1A1715; /* grounded-charcoal */
+  }
+
+  .dark .text-story {
+    color: #F5F5F4; /* grounded-parchment */
+  }
+
+  .text-data {
+    @apply font-sans text-sm md:text-base;
+    color: rgba(26, 23, 21, 0.8); /* grounded-charcoal/80 */
+  }
+
+  .dark .text-data {
+    color: rgba(245, 245, 244, 0.8); /* grounded-parchment/80 */
+  }
+
+  .text-ui {
+    @apply font-sans text-base md:text-lg;
+    color: #1A1715; /* grounded-charcoal */
+  }
+
+  .dark .text-ui {
+    color: #F5F5F4; /* grounded-parchment */
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism utility */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md;
+    @apply border border-white/20;
+  }
+
+  .dark .glass {
+    background-color: rgba(26, 23, 21, 0.8); /* grounded-charcoal/80 */
+    border-color: rgba(217, 119, 6, 0.2); /* grounded-copper/20 */
+  }
+
+  /* Copper glow effect for dark mode */
+  .glow-copper {
+    filter: drop-shadow(0 0 8px rgba(217, 119, 6, 0.4));
+  }
+
+  /* Scroll Grid Animations */
+  .scroll-grid-section {
+    perspective: 1000px;
+  }
+
+  .scroll-grid-img {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Grid image hover effects */
+  .grid-img-wrapper {
+    position: relative;
+    overflow: hidden;
+    background: #1A1715; /* grounded-charcoal */
+  }
+
+  .dark .grid-img-wrapper {
+    background: #F5F5F4; /* grounded-parchment */
+  }
+
+  .grid-img-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.1) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .grid-img-wrapper:hover::before {
+    opacity: 1;
+  }
+
+  /* Hero section gradient fade */
+  .hero-gradient {
+    background: linear-gradient(to bottom, transparent 0%, transparent 70%, rgba(245, 245, 244, 0.95) 100%);
+  }
+
+  .dark .hero-gradient {
+    background: linear-gradient(to bottom, transparent 0%, transparent 70%, rgba(26, 23, 21, 0.95) 100%);
+  }
+
+  /* Transition gradient between sections */
+  .transition-gradient {
+    background: linear-gradient(to bottom, rgba(245, 245, 244, 0.95) 0%, rgba(245, 245, 244, 1) 100%);
+  }
+
+  .dark .transition-gradient {
+    background: linear-gradient(to bottom, rgba(26, 23, 21, 0.95) 0%, rgba(26, 23, 21, 1) 100%);
   }
 }
