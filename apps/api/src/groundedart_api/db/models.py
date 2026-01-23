@@ -299,14 +299,14 @@ class CuratorRankEvent(Base):
     __tablename__ = "rank_events"
     __table_args__ = (
         UniqueConstraint(
-            "event_type",
-            "capture_id",
-            name="uq_rank_events_event_type_capture_id",
+            "deterministic_id",
+            name="uq_rank_events_deterministic_id",
         ),
         Index("ix_rank_events_user_created", "user_id", "created_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    deterministic_id: Mapped[str] = mapped_column(String(64), nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )

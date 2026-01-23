@@ -32,6 +32,33 @@ This is a shared vocabulary for product + engineering. It is intentionally imple
 - Derived from verified actions (captures, endorsements, moderation approvals).
 - Used for feature gating (which nodes/content a user can see or do).
 
+### Rank event (rank_events)
+- Append-only ledger of rank-affecting actions.
+- Canonical input for rank computation and rebuildable materialization caches.
+
+Proposed concrete fields (DB):
+- `id` (UUID, PK): internal row identifier (random UUID).
+- `deterministic_id` (string, unique): retry-safe idempotency key derived from the event identity spec in `docs/RANK_GATING.md`.
+- `user_id` (FK): the user whose rank changes.
+- `event_type` (string): semantic event type (`capture_verified`, …).
+- `rank_version` (string): scoring/version namespace (`v1_points`, …).
+- `delta` (int): points change for this version/type.
+- `capture_id` (nullable FK): present for capture-derived events.
+- `node_id` (nullable FK): optional denormalized reference for projection/caps.
+- `created_at` (timestamp): audit ordering (not part of deterministic identity).
+- `details` (JSON): audit/debug payload (not part of deterministic identity).
+
+Constraints:
+- Uniqueness is enforced on `deterministic_id` so retries cannot double-count.
+- Do not enforce uniqueness on `(event_type, capture_id)` alone (it does not cover events without `capture_id`, and it prevents multiple `rank_version`s for the same source).
+
+Migration plan (existing `rank_events` rows):
+1. Add nullable `rank_events.deterministic_id`.
+2. Backfill `deterministic_id` for existing rows using the canonical identity spec.
+   - For current `capture_verified` rows: `source_kind="capture"`, `source_id=capture_id`.
+3. Add a unique constraint on `deterministic_id` and make it non-null.
+4. Remove the legacy uniqueness constraint on `(event_type, capture_id)` once backfill is complete.
+
 ## Key relationships (high level)
 - `Node` 1—* `Capture`
 - `Artwork` 1—* `Capture` (optional link for early MVP; can be strict later)

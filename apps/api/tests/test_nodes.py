@@ -10,6 +10,7 @@ from httpx import AsyncClient
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
 from groundedart_api.db.models import Capture, CuratorRankEvent, Node, Session, User
 from groundedart_api.domain.capture_state import CaptureState
+from groundedart_api.domain.rank_events import compute_rank_event_deterministic_id
 from groundedart_api.settings import get_settings
 
 
@@ -62,6 +63,13 @@ async def create_user_session(
                 session.add(
                     CuratorRankEvent(
                         id=uuid.uuid4(),
+                        deterministic_id=compute_rank_event_deterministic_id(
+                            event_type="capture_verified",
+                            rank_version="v1_points",
+                            user_id=user.id,
+                            source_kind="capture",
+                            source_id=capture_id,
+                        ),
                         user_id=user.id,
                         event_type="capture_verified",
                         delta=1,

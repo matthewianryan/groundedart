@@ -26,6 +26,42 @@ To avoid scanning all rank events on hot read paths, we materialize:
 
 Rank remains canonically derived from `rank_events` (materialization is a cache that can be rebuilt).
 
+### Rank event identity + idempotency (deterministic)
+Rank event writes must be **retry-safe**: if the same semantic event is submitted more than once (client retry, job replay),
+it must not double-count.
+
+Each rank event therefore has a **deterministic identity** derived from its defining attributes. The DB enforces uniqueness
+on this identity so repeated inserts become no-ops.
+
+#### Canonical identity inputs
+The identity is the canonical JSON object:
+- `v`: integer identity schema version (currently `1`)
+- `event_type`: lowercased string (e.g. `capture_verified`)
+- `rank_version`: lowercased string (e.g. `v1_points`)
+- `user_id`: UUID string (lowercase)
+- `source_kind`: lowercased string (e.g. `capture`, `node`, `system`)
+- `source_id`: string (UUID string lowercase when applicable)
+- `attributes` (optional): event-type-specific stable attributes (JSON object)
+
+#### Normalization rules
+- `event_type`, `rank_version`, `source_kind`: `strip()` then lowercase.
+- UUIDs: canonical lowercase string form (e.g. `550e8400-e29b-41d4-a716-446655440000`).
+- `attributes`: omit keys with `null` values; only include stable, semantic fields (never timestamps).
+- `created_at` and `details` are **not** part of identity.
+
+#### Hashing algorithm / stored key
+`deterministic_id = SHA-256( canonical_json(identity) )` where `canonical_json` is UTF-8 JSON with:
+- keys sorted (`sort_keys=true`)
+- compact separators (no whitespace)
+
+`deterministic_id` is stored as a 64-char lowercase hex string and must be unique.
+
+#### Event-type requirements (v1)
+- `capture_verified`:
+  - `source_kind = "capture"`
+  - `source_id = capture_id`
+  - `attributes` omitted (empty) for `v1_points`
+
 ### Moderation effects
 - If a verified capture is later hidden, it no longer counts toward rank.
 - Rank is recomputed from the current set of still-verified captures, so rank can go down.

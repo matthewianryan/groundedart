@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from groundedart_api.db.models import Capture, CaptureEvent, CuratorRankEvent
 from groundedart_api.db.session import create_sessionmaker
 from groundedart_api.domain.capture_state import CaptureState
-from groundedart_api.domain.rank_events import DEFAULT_RANK_VERSION
+from groundedart_api.domain.rank_events import DEFAULT_RANK_VERSION, compute_rank_event_deterministic_id
 from groundedart_api.domain.rank_projection import CAPTURE_VERIFIED_EVENT_TYPE
 from groundedart_api.settings import get_settings
 
@@ -49,9 +49,17 @@ async def main() -> None:
 
         values = []
         for row in rows:
+            deterministic_id = compute_rank_event_deterministic_id(
+                event_type=CAPTURE_VERIFIED_EVENT_TYPE,
+                rank_version=DEFAULT_RANK_VERSION,
+                user_id=row.user_id,
+                source_kind="capture",
+                source_id=row.id,
+            )
             values.append(
                 {
                     "id": uuid.uuid4(),
+                    "deterministic_id": deterministic_id,
                     "user_id": row.user_id,
                     "event_type": CAPTURE_VERIFIED_EVENT_TYPE,
                     "delta": 1,
@@ -66,7 +74,7 @@ async def main() -> None:
         insert_stmt = (
             insert(CuratorRankEvent)
             .values(values)
-            .on_conflict_do_nothing(constraint="uq_rank_events_event_type_capture_id")
+            .on_conflict_do_nothing(constraint="uq_rank_events_deterministic_id")
             .returning(CuratorRankEvent.id)
         )
         result = await db.execute(insert_stmt)

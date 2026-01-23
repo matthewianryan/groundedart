@@ -88,34 +88,23 @@ If a check-in token must be consumed before upload begins, you need an idempoten
 - When mobile uploads regularly exceed acceptable timeouts even after compression.
 
 ## TODO:
-On-chain tipping (Solana), targeting specific artists (hackathon scope)
+
+How it works: deploy a contract that forwards funds to the artist and emits Tip(sender, recipient, amount, token, node_id/capture_id); web calls contract; API verifies logs and stores receipts.
+
+Repo changes
+
+DB/schema: add payout fields (likely on Node in models.py (line 135)) or introduce Artist/Artwork tables; add tips/tip_receipts table linked to user_id, node_id/capture_id, chain_id, tx_hash, amount, token, from_address, timestamps.
+API: new endpoints like POST /v1/nodes/{node_id}/tips (create intent) + POST /v1/tips/confirm (submit tx hash) + GET /v1/nodes/{node_id}/tips (stats/history); add shared contracts in packages/domain/schemas/.
+Web: add wallet connect + tipping UI (new feature module + button on NodeDetailRoute.tsx (line 1)); optionally add SIWE to link wallet↔session.
+
+External setup
+
+RPC provider (Alchemy/Infura/etc), chain selection, contract deployment (Option 2/3), WalletConnect project/app IDs, explorer links, paymaster/bundler config (Option 3), plus env vars for VITE_* (web) and server-side RPC/contract config (API).
 
 ### What we are choosing between (native-only vs USDC vs either)
 These choices determine **what assets users can tip with** and what we must implement in the client + API verification.
 
-1) **Native-only (SOL)**
-   - **Meaning:** tips are paid in SOL via a standard system transfer.
-   - **Functional translation (on-chain):**
-     - Web wallet signs a transaction containing `SystemProgram.transfer(from=payer, to=artist_pubkey, lamports=...)`.
-     - Optional: include a `Memo` instruction encoding `tip_intent_id` / `artist_id` / `capture_id` for auditability.
-   - **Implications:**
-     - Simplest UX and verification.
-     - If the user has SOL, they can tip; no SPL token account complexity.
-
-2) **USDC-only (SPL token)**
-   - **Meaning:** tips are paid in USDC (an SPL token), not SOL.
-   - **Functional translation (on-chain):**
-     - Web wallet signs a transaction containing SPL token instructions:
-       - Ensure sender USDC token account exists (it will).
-       - Ensure recipient **Associated Token Account (ATA)** exists; create it if missing.
-       - `transfer_checked` (or equivalent) from sender ATA → recipient ATA for the USDC mint.
-     - Optional: include a `Memo` instruction encoding `tip_intent_id` / `artist_id` / `capture_id`.
-   - **Implications:**
-     - More implementation surface (ATA creation, mint/decimals, token program IDs).
-     - **User still needs SOL** to pay transaction fees, even if tipping in USDC (unless we add a relayer/gasless flow).
-     - Requires choosing a USDC mint per network (devnet vs mainnet mints differ).
-
-3) **Either (SOL + USDC)**
+Decision: **Either (SOL + USDC)**
    - **Meaning:** users can choose SOL or USDC at tip time.
    - **Functional translation (on-chain):**
      - Same as above, but the tip flow becomes “asset-aware”:
@@ -134,19 +123,7 @@ These choices determine **what assets users can tip with** and what we must impl
 ### “Fully integrated” on Solana: receipt strategy options
 Solana doesn’t have EVM-style “events” in the same way; the closest equivalents are **transaction logs**, **program-owned receipt accounts**, and **indexable references/memos**.
 
-Option A — **No custom program (fastest): transfer + memo/reference**
-- Web constructs a normal transfer (SOL or USDC) and includes a `Memo` (and/or Solana Pay-style “reference”) that ties it to an in-app `tip_intent_id`.
-- API verifies the transaction by signature:
-  - Fetch via RPC (`getTransaction`) and assert:
-    - the expected recipient address is paid,
-    - the amount matches,
-    - the expected mint (for USDC) matches,
-    - the memo/reference matches the `tip_intent_id`,
-    - the transaction is confirmed at the chosen commitment level.
-- Pros: no on-chain program deployment; minimal risk.
-- Cons: tying a payment to an in-app entity is “convention” (memo/reference), not enforced by a program; needs robust verification logic.
-
-Option B — **Custom TipReceipt program (strongest integration)**
+Decision: **Custom TipReceipt program (strongest integration)**
 - Deploy a Solana program that:
   - validates inputs (artist recipient, amount, optional platform fee/splits),
   - transfers funds (SOL and/or SPL),
