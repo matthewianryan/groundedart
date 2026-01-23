@@ -71,10 +71,11 @@ const Layout = ({ children }: LayoutProps) => {
 
   // Only show 3D background on landing and registration pages
   const show3DBackground = location.pathname === '/' || location.pathname === '/register';
+  const isMapRoute = location.pathname === '/map';
 
   return (
     <ThemeProvider>
-      <div ref={containerRef} className="relative w-full min-h-screen">
+      <div ref={containerRef} className={`relative w-full ${isMapRoute ? 'h-screen' : 'min-h-screen'}`}>
         {/* 3D Background - scroll-responsive (only on landing and registration pages) */}
         {show3DBackground && (
           <motion.div
@@ -120,7 +121,7 @@ const Layout = ({ children }: LayoutProps) => {
         )}
 
         {/* Page Content */}
-        <main className="relative z-10 w-full">{children}</main>
+        <main className={`relative z-10 w-full ${isMapRoute ? 'h-full' : ''}`}>{children}</main>
       </div>
     </ThemeProvider>
   );

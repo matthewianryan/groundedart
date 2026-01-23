@@ -193,6 +193,7 @@ export function MapRoute() {
   const lastBboxRef = useRef<string | undefined>(undefined);
   const mapRef = useRef<google.maps.Map | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [isPanelVisible, setIsPanelVisible] = useState<boolean>(true);
   const uploadQueue = useUploadQueue();
 
   useEffect(() => {
@@ -548,9 +549,26 @@ export function MapRoute() {
   const capsNotes = me ? formatRankCapsNotes(me.rank_breakdown) : [];
 
   return (
-    <div className="layout">
-      <div className="panel">
-        <h1>Grounded Art (MVP scaffold)</h1>
+    <div className={`layout ${isPanelVisible ? "" : "layout-panel-hidden"}`}>
+      <div className={`panel ${isPanelVisible ? "" : "panel-hidden"}`}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+          <h1 style={{ margin: 0 }}>Grounded Art (MVP scaffold)</h1>
+          <button
+            onClick={() => setIsPanelVisible(false)}
+            style={{
+              padding: "4px 8px",
+              backgroundColor: "transparent",
+              border: "1px solid #e5e7eb",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+              color: "#6b7280"
+            }}
+            title="Hide panel"
+          >
+            ✕
+          </button>
+        </div>
         <div className="muted">{status}</div>
 
         {me ? (
@@ -791,6 +809,27 @@ export function MapRoute() {
       </div>
 
       <div className="map-area">
+        {!isPanelVisible && (
+          <button
+            onClick={() => setIsPanelVisible(true)}
+            style={{
+              position: "absolute",
+              top: "12px",
+              left: "12px",
+              zIndex: 1000,
+              padding: "8px 12px",
+              backgroundColor: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+            }}
+          >
+            ☰ Show Panel
+          </button>
+        )}
         {!googleMapsApiKey ? (
           <div className="muted" style={{ padding: 12 }}>
             Set VITE_GOOGLE_MAPS_API_KEY in .env to load the map.
