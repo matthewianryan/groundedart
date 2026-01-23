@@ -112,7 +112,7 @@ export function CaptureRoute() {
             <div>Unable to load capture</div>
             <div className="muted">{loadError}</div>
             <div style={{ marginTop: 8 }}>
-              <button onClick={() => navigate("/map")}>Back to map</button>
+              <button onClick={() => navigate(`/map${location.search}`)}>Back to map</button>
             </div>
           </div>
         ) : nodeId ? (
@@ -123,9 +123,9 @@ export function CaptureRoute() {
             captureId={captureId ?? null}
             initialAsset={initialAsset}
             initialIntent={initialIntent}
-            onCaptureCreated={(id) => navigate(`/capture/${id}`, { replace: true })}
-            onDone={() => navigate("/map")}
-            onCancel={() => navigate("/map")}
+            onCaptureCreated={(id) => navigate(`/capture/${id}${location.search}`, { replace: true })}
+            onDone={() => navigate(`/map${location.search}`)}
+            onCancel={() => navigate(`/map${location.search}`)}
           />
         ) : isLoading ? (
           <div className="muted" style={{ marginTop: 12 }}>
@@ -136,7 +136,7 @@ export function CaptureRoute() {
             <div>Missing node context</div>
             <div className="muted">Return to the map and start capture again.</div>
             <div style={{ marginTop: 8 }}>
-              <button onClick={() => navigate("/map")}>Back to map</button>
+              <button onClick={() => navigate(`/map${location.search}`)}>Back to map</button>
             </div>
           </div>
         ) : null}

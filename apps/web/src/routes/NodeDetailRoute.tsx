@@ -303,7 +303,7 @@ export function NodeDetailRoute() {
           </div>
         )}
         <div style={{ marginTop: 12 }}>
-          <Link to="/map">Back to map</Link>
+          <Link to={`/map${location.search}`}>Back to map</Link>
         </div>
       </div>
     </div>

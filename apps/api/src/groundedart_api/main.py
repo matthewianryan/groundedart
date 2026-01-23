@@ -49,7 +49,8 @@ def create_app() -> FastAPI:
     app.add_api_route("/metrics", render_metrics, methods=["GET"], include_in_schema=False)
 
     Path(settings.media_dir).mkdir(parents=True, exist_ok=True)
-    app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
+    if settings.media_serve_static:
+        app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
     install_error_handlers(app)
     configure_tracing(app)
     return app

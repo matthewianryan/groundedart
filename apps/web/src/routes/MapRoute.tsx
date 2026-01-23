@@ -238,6 +238,23 @@ function readStoredString(key: string, fallback: string): string {
   return fallback;
 }
 
+function normalizeAccuracyM(value: number, fallback = 8): number {
+  const rounded = Math.round(value);
+  if (!Number.isFinite(rounded)) return fallback;
+  return Math.min(50, Math.max(1, rounded));
+}
+
+function describeGeolocationError(err: unknown): string | null {
+  if (!err || typeof err !== "object") return null;
+  if (!("code" in err) || typeof (err as { code: unknown }).code !== "number") return null;
+  const geoError = err as { code: number; message?: unknown };
+  const suffix = typeof geoError.message === "string" && geoError.message.trim() ? ` (${geoError.message.trim()})` : "";
+  if (geoError.code === 1) return `Location permission denied${suffix}. Allow location access to get directions.`;
+  if (geoError.code === 2) return `Location unavailable${suffix}. We could not get a GPS fix.`;
+  if (geoError.code === 3) return `Location timed out${suffix}. GPS did not respond in time.`;
+  return `Location error${suffix}.`;
+}
+
 export function MapRoute() {
   const [nodes, setNodes] = useState<NodePublic[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -408,7 +425,7 @@ export function MapRoute() {
       window.localStorage.setItem(DEMO_ENABLED_STORAGE_KEY, "true");
       window.localStorage.setItem(DEMO_AUTO_VERIFY_STORAGE_KEY, String(Boolean(demoAutoVerify)));
       window.localStorage.setItem(DEMO_PUPPET_ENABLED_STORAGE_KEY, String(Boolean(puppetEnabled)));
-      window.localStorage.setItem(DEMO_PUPPET_ACCURACY_STORAGE_KEY, String(Math.max(1, Math.round(puppetAccuracyM))));
+      window.localStorage.setItem(DEMO_PUPPET_ACCURACY_STORAGE_KEY, String(normalizeAccuracyM(puppetAccuracyM)));
       window.localStorage.setItem(DEMO_CLICK_TO_MOVE_STORAGE_KEY, String(Boolean(demoClickToMove)));
       if (demoAdminToken.trim() && !(import.meta.env.VITE_ADMIN_API_TOKEN as string | undefined)) {
         window.localStorage.setItem(DEMO_ADMIN_TOKEN_STORAGE_KEY, demoAdminToken.trim());
@@ -620,8 +637,11 @@ export function MapRoute() {
     if (demoMode && puppetEnabled) {
       const fallback = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
       const loc = puppetLocation ?? fallback;
-      const accuracy_m = Math.max(1, Math.round(puppetAccuracyM));
+      const accuracy_m = normalizeAccuracyM(puppetAccuracyM);
       return { lat: loc.lat, lng: loc.lng, accuracy_m };
+    }
+    if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== "function") {
+      throw new Error("Geolocation is not available in this browser.");
     }
     const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
       navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000 })
@@ -816,14 +836,16 @@ export function MapRoute() {
 
   function handleStartCapture() {
     if (!selectedNode || !checkinToken) return;
-    navigate("/capture", {
+    const search = demoMode ? "?demo=1" : "";
+    navigate(`/capture${search}`, {
       state: { node: selectedNode, checkinToken }
     });
   }
 
   function handleOpenDetails() {
     if (!selectedNode) return;
-    navigate(`/nodes/${selectedNode.id}`, { state: { node: selectedNode } });
+    const search = demoMode ? "?demo=1" : "";
+    navigate(`/nodes/${selectedNode.id}${search}`, { state: { node: selectedNode } });
   }
 
   async function handleRequestDirections() {
@@ -848,7 +870,12 @@ export function MapRoute() {
       });
       setStatus("Requesting directions…");
     } catch (err) {
-      setStatus(`Directions error: ${String(err)}`);
+      const geoMessage = describeGeolocationError(err);
+      if (geoMessage) {
+        setStatus(`Directions error: ${geoMessage}`);
+        return;
+      }
+      setStatus(`Directions error: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -909,29 +936,29 @@ export function MapRoute() {
 
   useEffect(() => {
     if (!demoMode) return;
-    const handler = (event: Event) => {
+    const handleUploaded = (event: Event) => {
       const detail = (event as CustomEvent<CaptureUploadedEventDetail>).detail;
       if (!detail?.captureId) return;
       pushToast("Upload complete", [`Capture ${detail.captureId.slice(0, 8)}…`]);
       if (!demoAutoVerify) return;
       const token = demoAdminToken.trim();
-      if (!token) {
-        pushToast("Auto-verify skipped", ["Missing admin token (set in demo controls)."]);
-        return;
-      }
-      adminTransitionCapture(detail.captureId, token, { target_state: "verified" })
-        .then(() => {
-          pushToast("Capture verified", ["Rank + notifications updated."]);
-          refreshMe(true);
-          void handleRefreshNotifications();
-        })
-        .catch((err) => {
-          const message = err instanceof Error ? err.message : String(err);
-          pushToast("Verify failed", [message]);
-        });
+      if (!token) pushToast("Auto-verify skipped", ["Missing admin token (set in demo controls)."]);
     };
-    window.addEventListener(CAPTURE_UPLOADED_EVENT, handler as EventListener);
-    return () => window.removeEventListener(CAPTURE_UPLOADED_EVENT, handler as EventListener);
+
+    const handleVerified = (event: Event) => {
+      const detail = (event as CustomEvent<CaptureVerifiedEventDetail>).detail;
+      if (!detail?.captureId) return;
+      pushToast("Capture verified", [`Capture ${detail.captureId.slice(0, 8)}…`]);
+      refreshMe(true);
+      void handleRefreshNotifications();
+    };
+
+    window.addEventListener(CAPTURE_UPLOADED_EVENT, handleUploaded as EventListener);
+    window.addEventListener(CAPTURE_VERIFIED_EVENT, handleVerified as EventListener);
+    return () => {
+      window.removeEventListener(CAPTURE_UPLOADED_EVENT, handleUploaded as EventListener);
+      window.removeEventListener(CAPTURE_VERIFIED_EVENT, handleVerified as EventListener);
+    };
   }, [demoAdminToken, demoAutoVerify, demoMode, handleRefreshNotifications, pushToast, refreshMe]);
 
   const handleNewDemoUser = useCallback(async () => {
@@ -1080,7 +1107,7 @@ export function MapRoute() {
                 <div className="muted" style={{ marginTop: 6 }}>
                   Puppet:{" "}
                   {puppetLocation ? `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}` : "unset"} •
-                  Accuracy: {Math.max(1, Math.round(puppetAccuracyM))}m
+                  Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
                 </div>
                 <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
@@ -1112,8 +1139,8 @@ export function MapRoute() {
                       min={1}
                       max={50}
                       step={1}
-                      value={Math.max(1, Math.round(puppetAccuracyM))}
-                      onChange={(event) => setPuppetAccuracyM(Number(event.target.value))}
+                      value={normalizeAccuracyM(puppetAccuracyM)}
+                      onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
                     />
                   </label>
                 </div>

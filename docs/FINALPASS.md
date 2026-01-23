@@ -77,6 +77,10 @@ What it does:
 - Tips (Solana devnet receipts):
   - Data model: `artists` + `nodes.default_artist_id`, `tip_intents`, `tip_receipts`.
   - `POST /v1/tips/intents` creates a server-issued intent (amount + recipient derived from node default artist) and returns memo text that contains the `tip_intent_id`.
+  - Contract notes:
+    - Devnet-only: both API verification and web wallet RPC must point at **Solana devnet**.
+    - Seeded `solana_recipient_pubkey` values are demo placeholders (addresses only) and do not confer control of funds.
+    - Intent creation alone is not a payment; a wallet must sign and send an on-chain transfer + memo, then the API verifies the tx signature.
   - `POST /v1/tips/confirm` verifies a submitted Solana tx signature against:
     - presence of the intent id in a Memo instruction, and
     - a system transfer matching recipient + lamports amount,
@@ -206,8 +210,8 @@ Also see `docs/COMMANDS.md` for the current runbook-style commands.
 
 ---
 
-## Potentially urgent outstanding items
-- Web feature flag drift: tips are gated by `VITE_TIPS_ENABLED`, but `.env.example` does not document it; demo setups may miss that toggle.
-- The verification event emitter (`apps/api/src/groundedart_api/domain/verification_events.py`) is currently a no-op; if you intend to integrate external workflows (webhooks/queues), that boundary still needs a real implementation.
-- Media serving is dev-oriented (`/media/*` is static and unauthenticated); do not treat it as production-ready access control.
-- Cookie security is configured for local dev (`secure=False`); any deployment needs a deliberate `secure`/domain/SameSite review with CORS origins.
+## Demo/deployment notes (easy-to-miss toggles)
+- Tips UI is gated by `VITE_TIPS_ENABLED` (documented in `.env.example`; defaults to `false`).
+- Verification workflow boundary events are emitted via `VERIFICATION_EVENTS_MODE` (defaults to `log`; optional `webhook` for external workflows).
+- Media serving: `/media/*` is optional unauthenticated static file serving (`MEDIA_SERVE_STATIC=true` is dev-oriented). For production, prefer object storage/CDN + set `MEDIA_SERVE_STATIC=false` and `MEDIA_PUBLIC_BASE_URL=...`.
+- Cookie security is configurable (`SESSION_COOKIE_SECURE`/`SESSION_COOKIE_DOMAIN`/`SESSION_COOKIE_SAMESITE`); any deployment needs a deliberate review in conjunction with `API_CORS_ORIGINS`.

@@ -23,7 +23,7 @@ export function buildTipTransaction(intent: TipIntentResponse, fromPubkey: Publi
     new TransactionInstruction({
       keys: [],
       programId: MEMO_PROGRAM_ID,
-      data: new TextEncoder().encode(intent.memo_text)
+      data: new TextEncoder().encode(intent.memo_text) as unknown as Buffer
     })
   );
 

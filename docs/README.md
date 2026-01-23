@@ -15,6 +15,7 @@ Users start with a sparse map of starter nodes. By physically visiting real-worl
 6. `docs/TASKS.md` — active milestone task checklist
 7. `docs/REPO_STRUCTURE.md` — directory layout and boundaries
 8. `docs/FINALPASS.md` — last-mile demo readiness checklist
+9. `docs/TIPS_DEVNET.md` — Solana devnet tip contract + setup checklist
 
 ## Success rubrics
 ### Product

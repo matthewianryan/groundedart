@@ -256,4 +256,43 @@ describe("MapRoute", () => {
     await waitFor(() => expect(screen.getByText("Not inside the zone")).toBeInTheDocument());
     expect(screen.getByText(/zone radius/)).toBeInTheDocument();
   });
+
+  it("formats geolocation errors when requesting directions", async () => {
+    listNodes.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "node_1",
+          visibility: "visible",
+          name: "Test node",
+          category: "Mural",
+          description: "",
+          lat: 1,
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
+        }
+      ]
+    });
+
+    const user = await renderMap();
+
+    Object.defineProperty(navigator, "geolocation", {
+      value: {
+        getCurrentPosition: vi.fn((_success: PositionCallback, error: PositionErrorCallback) =>
+          error({ code: 1, message: "User denied Geolocation" } as GeolocationPositionError)
+        )
+      },
+      configurable: true
+    });
+
+    await user.click(screen.getByRole("button", { name: "Check in" }));
+    await waitFor(() => expect(screen.getByText("Location permission denied")).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Get directions" }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Directions error: Location permission denied/i)).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/\[object GeolocationPositionError\]/)).not.toBeInTheDocument();
+  });
 });

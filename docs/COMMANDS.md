@@ -102,10 +102,23 @@ Prereqs:
 - API + web app running.
 - Migrations applied (nodes are seeded via Alembic).
 
+Start here (contract + setup checklist): `docs/TIPS_DEVNET.md`
+
+Quick start (bootstraps devnet wallet + seed data, then runs compose):
+
+```bash
+./scripts/dev_up.sh
+```
+
 Env vars (for tips):
 - `SOLANA_RPC_URL` for the API (devnet RPC).
 - `VITE_SOLANA_RPC_URL` for the web wallet adapter (same devnet RPC; optional if using defaults).
-- Cluster: devnet only (wallet adapter is configured for devnet).
+- `VITE_TIPS_ENABLED=true` to show the tip UI in the web app.
+- Cluster: **devnet only**. If either RPC points at non-devnet, the demo tip loop will fail.
+
+Important:
+- The recipient pubkeys in `data/seed/artists.json` are **demo placeholders** (addresses only). They do not confer control of funds.
+- Sending a tip requires a **devnet wallet you control** (because the transfer + memo must be signed).
 
 Seed a demo artist recipient pubkey:
 1. Bootstrap a devnet wallet + seed data (interactive):

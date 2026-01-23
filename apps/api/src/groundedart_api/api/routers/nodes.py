@@ -187,7 +187,10 @@ async def list_node_captures(
         captures = [capture for capture in captures if is_capture_publicly_visible(capture)]
     return NodeCapturesResponse(
         node=_row_to_node_public(node_row),
-        captures=[capture_to_public(capture) for capture in captures],
+        captures=[
+            capture_to_public(capture, base_media_url=settings.media_public_base_url)
+            for capture in captures
+        ],
     )
 
 
