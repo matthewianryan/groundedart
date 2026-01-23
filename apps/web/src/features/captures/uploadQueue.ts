@@ -35,6 +35,8 @@ const MAX_BACKOFF_MS = 30_000;
 const DEMO_ENABLED_STORAGE_KEY = "groundedart.demo.enabled";
 const DEMO_ADMIN_TOKEN_STORAGE_KEY = "groundedart.demo.adminToken";
 const DEMO_AUTO_VERIFY_STORAGE_KEY = "groundedart.demo.autoVerify";
+const DEMO_MODE_ENV = import.meta.env.VITE_DEMO_MODE as string | undefined;
+const DEMO_AUTO_VERIFY_ENV = import.meta.env.VITE_DEMO_AUTO_VERIFY as string | undefined;
 
 function nowIso() {
   return new Date().toISOString();
@@ -52,6 +54,7 @@ function isDemoEnabled(): boolean {
   if (typeof window === "undefined") return false;
   const query = new URLSearchParams(window.location.search);
   if (query.has("demo")) return true;
+  if (DEMO_MODE_ENV === "true") return true;
   return readStorageValue(DEMO_ENABLED_STORAGE_KEY) === "true";
 }
 
@@ -63,6 +66,8 @@ function getDemoAdminToken(): string | null {
 }
 
 function shouldAutoVerify(): boolean {
+  if (DEMO_AUTO_VERIFY_ENV === "false") return false;
+  if (DEMO_AUTO_VERIFY_ENV === "true") return true;
   return readStorageValue(DEMO_AUTO_VERIFY_STORAGE_KEY) !== "false";
 }
 

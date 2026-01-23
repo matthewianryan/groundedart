@@ -48,6 +48,12 @@ const DEMO_PUPPET_LNG_STORAGE_KEY = "groundedart.demo.puppetLng";
 const DEMO_PUPPET_ACCURACY_STORAGE_KEY = "groundedart.demo.puppetAccuracyM";
 const DEMO_CLICK_TO_MOVE_STORAGE_KEY = "groundedart.demo.clickToMove";
 
+const DEMO_MODE_ENV = import.meta.env.VITE_DEMO_MODE as string | undefined;
+const DEMO_PUPPET_ENABLED_ENV = import.meta.env.VITE_DEMO_PUPPET_ENABLED as string | undefined;
+const DEMO_AUTO_VERIFY_ENV = import.meta.env.VITE_DEMO_AUTO_VERIFY as string | undefined;
+const DEMO_PUPPET_ACCURACY_ENV = import.meta.env.VITE_DEMO_PUPPET_ACCURACY_M as string | undefined;
+const DEMO_CLICK_TO_MOVE_ENV = import.meta.env.VITE_DEMO_CLICK_TO_MOVE as string | undefined;
+
 type MapStylePresetKey = "default" | "ultra-minimal" | "streets" | "context";
 type MapStylePreset = {
   label: string;
@@ -217,6 +223,13 @@ function readStoredBool(key: string, fallback: boolean): boolean {
   return fallback;
 }
 
+function readEnvBool(value: string | undefined, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
 function readStoredNumber(key: string, fallback: number): number {
   try {
     const raw = window.localStorage.getItem(key);
@@ -291,7 +304,13 @@ export function MapRoute() {
   const mapRef = useRef<google.maps.Map | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const uploadQueue = useUploadQueue();
-  const demoMode = useMemo(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).has("demo") : false), []);
+  const demoMode = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("demo")) return true;
+    if (readEnvBool(DEMO_MODE_ENV, false)) return true;
+    return readStoredBool(DEMO_ENABLED_STORAGE_KEY, false);
+  }, []);
   const [demoRank, setDemoRank] = useState<number | null>(null);
   const prevDemoRankRef = useRef<number | null>(null);
   const [demoAdminToken, setDemoAdminToken] = useState<string>(() => {
@@ -301,10 +320,10 @@ export function MapRoute() {
     return readStoredString(DEMO_ADMIN_TOKEN_STORAGE_KEY, "");
   });
   const [demoAutoVerify, setDemoAutoVerify] = useState<boolean>(() =>
-    demoMode ? readStoredBool(DEMO_AUTO_VERIFY_STORAGE_KEY, true) : false
+    demoMode ? readStoredBool(DEMO_AUTO_VERIFY_STORAGE_KEY, readEnvBool(DEMO_AUTO_VERIFY_ENV, true)) : false
   );
   const [puppetEnabled, setPuppetEnabled] = useState<boolean>(() =>
-    demoMode ? readStoredBool(DEMO_PUPPET_ENABLED_STORAGE_KEY, true) : false
+    demoMode ? readStoredBool(DEMO_PUPPET_ENABLED_STORAGE_KEY, readEnvBool(DEMO_PUPPET_ENABLED_ENV, true)) : false
   );
   const [puppetLocation, setPuppetLocation] = useState<google.maps.LatLngLiteral | null>(() => {
     if (!demoMode) return null;
@@ -314,10 +333,17 @@ export function MapRoute() {
     return { lat, lng };
   });
   const [puppetAccuracyM, setPuppetAccuracyM] = useState<number>(() =>
-    demoMode ? readStoredNumber(DEMO_PUPPET_ACCURACY_STORAGE_KEY, 8) : 8
+    demoMode
+      ? normalizeAccuracyM(
+          readStoredNumber(
+            DEMO_PUPPET_ACCURACY_STORAGE_KEY,
+            DEMO_PUPPET_ACCURACY_ENV ? Number(DEMO_PUPPET_ACCURACY_ENV) : 8
+          )
+        )
+      : 8
   );
   const [demoClickToMove, setDemoClickToMove] = useState<boolean>(() =>
-    demoMode ? readStoredBool(DEMO_CLICK_TO_MOVE_STORAGE_KEY, true) : false
+    demoMode ? readStoredBool(DEMO_CLICK_TO_MOVE_STORAGE_KEY, readEnvBool(DEMO_CLICK_TO_MOVE_ENV, true)) : false
   );
 
   const meFetchAbortRef = useRef<AbortController | null>(null);
@@ -933,24 +959,6 @@ export function MapRoute() {
       destination
     )}&travelmode=walking`;
   }, [selectedNode, userLocation]);
-  const nodesCountLabel =
-    nodesStatus === "loading" ? "..." : nodesStatus === "error" ? "!" : String(nodes.length);
-  const notificationsCountLabel =
-    notificationsStatus === "loading" ? "..." : notificationsStatus === "error" ? "!" : String(unreadCount);
-  const uploadsCountLabel = String(uploadQueue.items.length);
-  const notificationsSummary =
-    notificationsStatus === "loading"
-      ? "Loading..."
-      : notificationsStatus === "error"
-      ? "Unavailable"
-      : unreadCount
-      ? `${unreadCount} unread`
-      : "All caught up";
-  const uploadSummaryParts: string[] = [];
-  if (uploadQueue.uploadingCount) uploadSummaryParts.push(`${uploadQueue.uploadingCount} uploading`);
-  if (uploadQueue.pendingCount) uploadSummaryParts.push(`${uploadQueue.pendingCount} queued`);
-  if (uploadQueue.failedCount) uploadSummaryParts.push(`${uploadQueue.failedCount} failed`);
-  const uploadSummary = uploadSummaryParts.length ? uploadSummaryParts.join(" | ") : "Clear";
 
   useEffect(() => {
     if (!demoMode) return;
@@ -1020,14 +1028,487 @@ export function MapRoute() {
   ]);
 
   return (
-    <div className="map-shell">
+    <div className="layout">
+      <div className="panel">
+        <h1>Grounded Art (MVP scaffold)</h1>
+        <div className="muted">{status}</div>
+
+        {viewMe ? (
+          <div className="node">
+            <div className="node-header">
+              <RankBadge rank={viewMe.rank} pulseKey={rankPulseKey} />
+              <div className="node-actions">
+                <button type="button" onClick={() => refreshMe(true)} disabled={meStatus === "loading"}>
+                  Refresh rank
+                </button>
+              </div>
+            </div>
+            {demoRank !== null ? (
+              <div className="muted" style={{ marginTop: 6 }}>
+                Demo override: displaying rank {demoRank}.
+              </div>
+            ) : null}
+            {viewMe.next_unlock ? (
+              <>
+                <div className="muted">Next unlock at rank {viewMe.next_unlock.min_rank}.</div>
+                {nextUnlockLine ? <div className="muted">{nextUnlockLine}</div> : null}
+              </>
+            ) : (
+              <div className="muted">Top tier unlocked.</div>
+            )}
+            {capsNotes.map((note) => (
+              <div key={note} className="muted">
+                {note}
+              </div>
+            ))}
+          </div>
+        ) : meStatus === "loading" ? (
+          <div className="muted" style={{ marginTop: 8 }}>
+            Loading rank…
+          </div>
+        ) : meStatus === "error" ? (
+          <div className="muted" style={{ marginTop: 8 }}>
+            Rank unavailable.
+          </div>
+        ) : null}
+
+        {demoMode ? (
+          <details className="settings">
+            <summary>Demo controls</summary>
+            <div className="settings-body">
+              <div className="settings-group">
+                <div className="settings-label">Rank simulation</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => setDemoRank((prev) => (prev ?? viewMe?.rank ?? 0) + 1)}
+                    disabled={!viewMe}
+                  >
+                    Rank up (+1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDemoRank(viewMe?.next_unlock?.min_rank ?? null)}
+                    disabled={!viewMe?.next_unlock}
+                  >
+                    Jump to next unlock
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sample = nodes.slice(0, 3);
+                      addMapRipples(sample);
+                      pushToast("New nodes available", sample.map((n) => n.name));
+                    }}
+                    disabled={!nodes.length}
+                  >
+                    Simulate node splash
+                  </button>
+                  <button type="button" onClick={() => setDemoRank(null)} disabled={demoRank === null}>
+                    Clear demo
+                  </button>
+                </div>
+                <div className="muted" style={{ marginTop: 6 }}>
+                  Tip: open `?demo=1` to show these controls.
+                </div>
+              </div>
+              <div className="settings-group">
+                <div className="settings-label">Puppet location</div>
+                <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={puppetEnabled}
+                    onChange={(event) => setPuppetEnabled(event.target.checked)}
+                  />
+                  <span>Use puppet location (no GPS prompts)</span>
+                </label>
+                <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={demoClickToMove}
+                    onChange={(event) => setDemoClickToMove(event.target.checked)}
+                  />
+                  <span>Click map to move puppet</span>
+                </label>
+                <div className="muted" style={{ marginTop: 6 }}>
+                  Puppet:{" "}
+                  {puppetLocation ? `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}` : "unset"} •
+                  Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
+                </div>
+                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
+                      setPuppetLocationFromLatLng(center);
+                    }}
+                    disabled={!isLoaded}
+                  >
+                    Set to map center
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedNode) return;
+                      setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                    }}
+                    disabled={!selectedNode}
+                  >
+                    Set to selected node
+                  </button>
+                </div>
+                <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                  <label>
+                    <div className="muted">Puppet accuracy (meters)</div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      step={1}
+                      value={normalizeAccuracyM(puppetAccuracyM)}
+                      onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
+                    />
+                  </label>
+                </div>
+              </div>
+              <div className="settings-group">
+                <div className="settings-label">Auto-verify (rank up)</div>
+                <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={demoAutoVerify}
+                    onChange={(event) => setDemoAutoVerify(event.target.checked)}
+                  />
+                  <span>After upload, verify capture as admin</span>
+                </label>
+                <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                  <div className="muted">Admin token (X-Admin-Token)</div>
+                  <input
+                    type="password"
+                    value={demoAdminToken}
+                    onChange={(event) => setDemoAdminToken(event.target.value)}
+                    placeholder="Paste ADMIN_API_TOKEN (or set VITE_ADMIN_API_TOKEN)"
+                  />
+                </label>
+              </div>
+              <div className="settings-group">
+                <div className="settings-label">Session</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" onClick={() => void handleNewDemoUser()}>
+                    New demo user
+                  </button>
+                </div>
+              </div>
+            </div>
+          </details>
+        ) : null}
+
+        <div className="node">
+          <div className="node-header">
+            <div>
+              <div className="muted">Notifications</div>
+              <div>
+                {notificationsStatus === "loading"
+                  ? "Loading…"
+                  : notificationsStatus === "error"
+                    ? "Unavailable"
+                    : unreadCount
+                      ? `${unreadCount} unread`
+                      : "All caught up"}
+              </div>
+            </div>
+            <div className="node-actions">
+              <button onClick={handleRefreshNotifications} disabled={notificationsStatus === "loading"}>
+                {notificationsStatus === "error" ? "Retry" : "Refresh"}
+              </button>
+            </div>
+          </div>
+          {notificationsStatus === "error" ? (
+            <div className="alert">
+              <div>Could not load notifications.</div>
+              <div className="muted">{notificationsError ?? "Unknown error"}</div>
+            </div>
+          ) : null}
+          {notificationsStatus !== "loading" && notifications.length === 0 ? (
+            <div className="muted">No notifications yet.</div>
+          ) : null}
+          {notifications.length ? (
+            <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
+              {notifications.map((notification) => {
+                const missing = formatMissingFields(notification.details?.missing_fields);
+                return (
+                  <div key={notification.id} style={{ display: "grid", gap: 4 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <div>
+                        <strong>{notification.title}</strong>
+                        <div className="muted">{formatNotificationTimestamp(notification.created_at)}</div>
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => void handleMarkNotificationRead(notification.id)}
+                          disabled={Boolean(notification.read_at)}
+                        >
+                          {notification.read_at ? "Read" : "Mark read"}
+                        </button>
+                      </div>
+                    </div>
+                    {notification.body ? <div className="muted">{notification.body}</div> : null}
+                    {missing ? <div className="muted">Missing: {missing}</div> : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        <details className="settings">
+          <summary>Global settings</summary>
+          <div className="settings-body">
+            <div className="settings-group">
+              <div className="settings-label">Map style preset</div>
+              <div className="settings-options">
+                {MAP_STYLE_ORDER.map((presetKey) => (
+                  <label key={presetKey} className="settings-option">
+                    <input
+                      type="radio"
+                      name="map-style-preset"
+                      value={presetKey}
+                      checked={mapStylePreset === presetKey}
+                      onChange={handleMapStyleChange}
+                    />
+                    <span>{MAP_STYLE_PRESETS[presetKey].label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="muted">{MAP_STYLE_PRESETS[mapStylePreset].description}</div>
+            </div>
+          </div>
+        </details>
+
+        {uploadQueue.persistenceError ? (
+          <div className="alert">
+            <div>Upload persistence unavailable</div>
+            <div className="muted">{uploadQueue.persistenceError}</div>
+          </div>
+        ) : null}
+
+        {uploadQueue.items.length ? (
+          <div className="node">
+            <div className="node-header">
+              <div>
+                <div className="muted">Pending uploads</div>
+                <div>
+                  {uploadQueue.uploadingCount ? `${uploadQueue.uploadingCount} uploading` : null}
+                  {uploadQueue.uploadingCount && (uploadQueue.pendingCount || uploadQueue.failedCount) ? " • " : null}
+                  {uploadQueue.pendingCount ? `${uploadQueue.pendingCount} queued` : null}
+                  {uploadQueue.pendingCount && uploadQueue.failedCount ? " • " : null}
+                  {uploadQueue.failedCount ? `${uploadQueue.failedCount} failed` : null}
+                </div>
+              </div>
+              <div className="node-actions">
+                <button
+                  onClick={() => uploadQueue.items.filter((i) => i.status === "failed").forEach((i) => void uploadQueue.retryNow(i.captureId))}
+                  disabled={!uploadQueue.failedCount}
+                >
+                  Retry failed
+                </button>
+              </div>
+            </div>
+            {!isOnline ? <div className="muted" style={{ marginTop: 4 }}>Offline — uploads resume when you reconnect.</div> : null}
+            <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
+              {uploadQueue.items.map((item) => {
+                const nextAttemptMs = item.nextAttemptAt ? Date.parse(item.nextAttemptAt) : null;
+                const secondsUntilRetry =
+                  nextAttemptMs && Number.isFinite(nextAttemptMs) ? Math.max(0, Math.round((nextAttemptMs - Date.now()) / 1000)) : null;
+                const progressPct =
+                  item.progress?.total && item.progress.total > 0
+                    ? Math.min(100, Math.round((item.progress.loaded / item.progress.total) * 100))
+                    : null;
+
+                return (
+                  <div key={item.captureId} style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                    <div>
+                      <div>Capture {item.captureId.slice(0, 8)}…</div>
+                      <div className="muted">
+                        {item.status === "uploading"
+                          ? progressPct !== null
+                            ? `Uploading (${progressPct}%)`
+                            : "Uploading"
+                          : item.status === "pending"
+                            ? secondsUntilRetry && secondsUntilRetry > 0
+                              ? `Retrying in ${formatSeconds(secondsUntilRetry)}`
+                              : "Queued"
+                            : "Failed"}
+                        {item.lastError?.code ? ` • ${item.lastError.code}` : null}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {item.status === "failed" ? (
+                        <button onClick={() => void uploadQueue.retryNow(item.captureId)} disabled={!isOnline}>
+                          Retry
+                        </button>
+                      ) : null}
+                      <button onClick={() => void uploadQueue.remove(item.captureId)}>Remove</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="node">
+          <div className="node-header">
+            <div>
+              <div className="muted">Nodes in view</div>
+              <div>
+                {nodesStatus === "loading"
+                  ? "Loading nodes…"
+                  : nodesStatus === "error"
+                  ? "Unable to load"
+                  : nodes.length}
+              </div>
+            </div>
+            <div className="node-actions">
+              <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)} disabled={nodesStatus === "loading"}>
+                {nodesStatus === "error" ? "Retry" : "Refresh"}
+              </button>
+            </div>
+          </div>
+          {nodesStatus === "loading" ? <div className="muted">Fetching the latest nodes…</div> : null}
+          {nodesStatus === "ready" && nodes.length === 0 ? (
+            <div className="muted">No nodes in this viewport yet.</div>
+          ) : null}
+          {nodesStatus === "error" ? (
+            <div className="alert">
+              <div>Could not load nodes.</div>
+              <div className="muted">{nodesError ?? "Unknown error"}</div>
+              <button onClick={() => scheduleNodesRefresh(lastBboxRef.current)}>Try again</button>
+            </div>
+          ) : null}
+        </div>
+
+        {selectedNode ? (
+          <div className="node">
+            <div>
+              <strong>{selectedNode.name}</strong>
+            </div>
+            <div className="muted">{selectedNode.category}</div>
+            {selectedNode.description ? <div>{selectedNode.description}</div> : null}
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={handleOpenDetails}>Open detail</button>
+              <button
+                onClick={handleCheckIn}
+                disabled={
+                  !isOnline ||
+                  checkinState === "requesting_location" ||
+                  checkinState === "challenging" ||
+                  checkinState === "verifying"
+                }
+              >
+                {checkinState === "requesting_location"
+                  ? "Locating…"
+                  : checkinState === "challenging"
+                  ? "Creating challenge…"
+                  : checkinState === "verifying"
+                  ? "Verifying…"
+                  : "Check in"}
+              </button>
+              <button onClick={handleRequestDirections} disabled={!isLoaded}>
+                Directions
+              </button>
+              {demoMode && puppetEnabled ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                    void handleCheckIn();
+                  }}
+                >
+                  Teleport & check in
+                </button>
+              ) : null}
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <div className="muted">Check-in status</div>
+              <div>
+                {checkinState === "idle"
+                  ? "Not checked in yet."
+                  : checkinState === "success"
+                  ? "Checked in."
+                  : checkinState === "failure"
+                  ? "Check-in failed."
+                  : "Checking in…"}
+              </div>
+              <div className="muted" style={{ marginTop: 4 }}>
+                Accuracy: {formatMeters(checkinAccuracyM)} | Distance: {formatMeters(checkinDistanceM)} | Radius:{" "}
+                {formatMeters(checkinRadiusM)}
+              </div>
+              {checkinFailure ? (
+                <div className="alert" style={{ marginTop: 8 }}>
+                  <div>{checkinFailure.title}</div>
+                  {checkinFailure.detail ? <div className="muted">{checkinFailure.detail}</div> : null}
+                  {checkinFailure.nextStep ? <div className="muted">{checkinFailure.nextStep}</div> : null}
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button onClick={handleCheckIn} disabled={!isOnline}>
+                      Retry check-in
+                    </button>
+                    <button onClick={handleRequestDirections} disabled={!isLoaded}>
+                      Get directions
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className="muted" style={{ marginTop: 8 }}>
+              Token: {checkinToken ? `${checkinToken.slice(0, 8)}…` : "none"} | Directions:{" "}
+              {directionsResult ? "ready" : "not requested"}
+            </div>
+            {directionsLeg ? (
+              <div style={{ marginTop: 10 }}>
+                <div className="muted">
+                  Route: {directionsLeg.distance?.text ?? "?"} • {directionsLeg.duration?.text ?? "?"}
+                </div>
+                {directionsUrl ? (
+                  <div className="muted" style={{ marginTop: 4 }}>
+                    <a href={directionsUrl} target="_blank" rel="noreferrer">
+                      Open in Google Maps
+                    </a>
+                  </div>
+                ) : null}
+                {directionsLeg.steps?.length ? (
+                  <ol style={{ marginTop: 8, paddingLeft: 18, display: "grid", gap: 6 }}>
+                    {directionsLeg.steps.slice(0, 8).map((step, idx) => (
+                      <li key={`${idx}-${step.instructions ?? ""}`} className="muted">
+                        {stripHtml(step.instructions ?? "")}
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+              </div>
+            ) : null}
+            <div style={{ marginTop: 8 }}>
+              <button onClick={handleStartCapture} disabled={!checkinToken}>
+                Take photo
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="node">
+            <div className="muted">Select a node marker to check in.</div>
+          </div>
+        )}
+      </div>
+
       <div className="map-area">
         {!googleMapsApiKey ? (
-          <div className="map-message muted">
+          <div className="muted" style={{ padding: 12 }}>
             Set VITE_GOOGLE_MAPS_API_KEY in .env to load the map.
           </div>
         ) : !isLoaded ? (
-          <div className="map-message muted">Loading Google Maps...</div>
+          <div className="muted" style={{ padding: 12 }}>
+            Loading Google Maps…
+          </div>
         ) : (
           <GoogleMap
             mapContainerStyle={MAP_CONTAINER_STYLE}
@@ -1085,504 +1566,6 @@ export function MapRoute() {
             ) : null}
           </GoogleMap>
         )}
-      </div>
-
-      <div className="map-ui">
-        <div className="hud-column hud-left">
-          <div className="glass-card brand-card">
-            <div className="glass-header">
-              <div>
-                <div className="brand-title">Grounded Art</div>
-                <div className="status-row">
-                  <span className={`status-dot ${sessionReady ? "ready" : "busy"}`} />
-                  <span className="muted">{status}</span>
-                </div>
-              </div>
-              <div className="toolbar">
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => scheduleNodesRefresh(lastBboxRef.current)}
-                  disabled={nodesStatus === "loading"}
-                >
-                  {nodesStatus === "loading" ? "Scanning..." : nodesStatus === "error" ? "Retry nodes" : "Refresh nodes"}
-                </button>
-              </div>
-            </div>
-            <div className="stat-grid">
-              <div className="stat">
-                <div className="stat-label">Nodes</div>
-                <div className={`stat-value ${nodesStatus === "error" ? "warn" : ""}`}>{nodesCountLabel}</div>
-              </div>
-              <div className="stat">
-                <div className="stat-label">Unread</div>
-                <div className={`stat-value ${notificationsStatus === "error" ? "warn" : ""}`}>
-                  {notificationsCountLabel}
-                </div>
-              </div>
-              <div className="stat">
-                <div className="stat-label">Uploads</div>
-                <div className="stat-value">{uploadsCountLabel}</div>
-              </div>
-              <div className="stat">
-                <div className="stat-label">Network</div>
-                <div className={`stat-value ${isOnline ? "ok" : "warn"}`}>{isOnline ? "Online" : "Offline"}</div>
-              </div>
-            </div>
-            {nodesStatus === "error" ? (
-              <div className="alert-inline">
-                <div>Nodes unavailable.</div>
-                <div className="muted">{nodesError ?? "Unknown error"}</div>
-              </div>
-            ) : nodesStatus === "ready" && nodes.length === 0 ? (
-              <div className="alert-inline">
-                <div>No nodes in view yet.</div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="glass-card rank-card">
-            <div className="glass-header">
-              <div className="glass-title">Rank</div>
-              <button type="button" className="ghost" onClick={() => refreshMe(true)} disabled={meStatus === "loading"}>
-                {meStatus === "loading" ? "Refreshing..." : "Refresh"}
-              </button>
-            </div>
-            {viewMe ? (
-              <div className="rank-grid">
-                <RankBadge rank={viewMe.rank} pulseKey={rankPulseKey} />
-                <div className="rank-meta">
-                  {demoRank !== null ? <div className="pill">Demo rank active</div> : null}
-                  {viewMe.next_unlock ? (
-                    <div>Next unlock at rank {viewMe.next_unlock.min_rank}.</div>
-                  ) : (
-                    <div>Top tier unlocked.</div>
-                  )}
-                  {nextUnlockLine ? <div className="muted">{nextUnlockLine}</div> : null}
-                  {capsNotes.map((note) => (
-                    <div key={note} className="muted">
-                      {note}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : meStatus === "loading" ? (
-              <div className="muted">Loading rank...</div>
-            ) : meStatus === "error" ? (
-              <div className="muted">Rank unavailable.</div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="hud-column hud-right">
-          <div className="glass-card activity-card">
-            <div className="glass-header">
-              <div className="glass-title">Activity</div>
-              <div className="toolbar">
-                <button onClick={handleRefreshNotifications} disabled={notificationsStatus === "loading"}>
-                  {notificationsStatus === "error" ? "Retry" : "Refresh"}
-                </button>
-                {uploadQueue.failedCount ? (
-                  <button
-                    onClick={() =>
-                      uploadQueue.items
-                        .filter((i) => i.status === "failed")
-                        .forEach((i) => void uploadQueue.retryNow(i.captureId))
-                    }
-                    disabled={!uploadQueue.failedCount}
-                  >
-                    Retry failed
-                  </button>
-                ) : null}
-              </div>
-            </div>
-
-            {uploadQueue.persistenceError ? (
-              <div className="alert">
-                <div>Upload persistence unavailable</div>
-                <div className="muted">{uploadQueue.persistenceError}</div>
-              </div>
-            ) : null}
-
-            <div className="activity-section">
-              <div className="section-header">
-                <div className="section-title">Notifications</div>
-                <div className="muted">{notificationsSummary}</div>
-              </div>
-              {notificationsStatus === "error" ? (
-                <div className="alert">
-                  <div>Could not load notifications.</div>
-                  <div className="muted">{notificationsError ?? "Unknown error"}</div>
-                </div>
-              ) : null}
-              {notificationsStatus !== "loading" && notifications.length === 0 ? (
-                <div className="muted">No notifications yet.</div>
-              ) : null}
-              {notifications.length ? (
-                <div className="list">
-                  {notifications.map((notification) => {
-                    const missing = formatMissingFields(notification.details?.missing_fields);
-                    return (
-                      <div key={notification.id} className="notification-item">
-                        <div className="notification-header">
-                          <div>
-                            <strong>{notification.title}</strong>
-                            <div className="muted">{formatNotificationTimestamp(notification.created_at)}</div>
-                          </div>
-                          <div>
-                            <button
-                              className="ghost small"
-                              onClick={() => void handleMarkNotificationRead(notification.id)}
-                              disabled={Boolean(notification.read_at)}
-                            >
-                              {notification.read_at ? "Read" : "Mark read"}
-                            </button>
-                          </div>
-                        </div>
-                        {notification.body ? <div className="muted">{notification.body}</div> : null}
-                        {missing ? <div className="muted">Missing: {missing}</div> : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="activity-section">
-              <div className="section-header">
-                <div className="section-title">Uploads</div>
-                <div className="muted">{uploadSummary}</div>
-              </div>
-              {!isOnline ? <div className="muted">Offline - uploads resume when you reconnect.</div> : null}
-              {uploadQueue.items.length ? (
-                <div className="list">
-                  {uploadQueue.items.map((item) => {
-                    const nextAttemptMs = item.nextAttemptAt ? Date.parse(item.nextAttemptAt) : null;
-                    const secondsUntilRetry =
-                      nextAttemptMs && Number.isFinite(nextAttemptMs)
-                        ? Math.max(0, Math.round((nextAttemptMs - Date.now()) / 1000))
-                        : null;
-                    const progressPct =
-                      item.progress?.total && item.progress.total > 0
-                        ? Math.min(100, Math.round((item.progress.loaded / item.progress.total) * 100))
-                        : null;
-
-                    return (
-                      <div key={item.captureId} className="upload-item">
-                        <div>
-                          <div>Capture {item.captureId.slice(0, 8)}...</div>
-                          <div className="muted">
-                            {item.status === "uploading"
-                              ? progressPct !== null
-                                ? `Uploading (${progressPct}%)`
-                                : "Uploading"
-                              : item.status === "pending"
-                              ? secondsUntilRetry && secondsUntilRetry > 0
-                                ? `Retrying in ${formatSeconds(secondsUntilRetry)}`
-                                : "Queued"
-                              : "Failed"}
-                            {item.lastError?.code ? ` | ${item.lastError.code}` : null}
-                          </div>
-                        </div>
-                        <div className="action-row">
-                          {item.status === "failed" ? (
-                            <button
-                              className="ghost small"
-                              onClick={() => void uploadQueue.retryNow(item.captureId)}
-                              disabled={!isOnline}
-                            >
-                              Retry
-                            </button>
-                          ) : null}
-                          <button className="ghost small" onClick={() => void uploadQueue.remove(item.captureId)}>
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="muted">No pending uploads.</div>
-              )}
-            </div>
-          </div>
-
-          <div className="glass-card settings-card">
-            <div className="glass-header">
-              <div className="glass-title">Settings</div>
-            </div>
-            <div className="settings-group">
-              <div className="settings-label">Map style</div>
-              <div className="settings-options">
-                {MAP_STYLE_ORDER.map((presetKey) => (
-                  <label key={presetKey} className="settings-option">
-                    <input
-                      type="radio"
-                      name="map-style-preset"
-                      value={presetKey}
-                      checked={mapStylePreset === presetKey}
-                      onChange={handleMapStyleChange}
-                    />
-                    <span>{MAP_STYLE_PRESETS[presetKey].label}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="muted">{MAP_STYLE_PRESETS[mapStylePreset].description}</div>
-            </div>
-
-            {demoMode ? (
-              <details className="demo-details">
-                <summary>Demo tools</summary>
-                <div className="details-body">
-                  <div className="settings-group">
-                    <div className="settings-label">Rank</div>
-                    <div className="action-row">
-                      <button
-                        type="button"
-                        onClick={() => setDemoRank((prev) => (prev ?? viewMe?.rank ?? 0) + 1)}
-                        disabled={!viewMe}
-                      >
-                        Rank +1
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDemoRank(viewMe?.next_unlock?.min_rank ?? null)}
-                        disabled={!viewMe?.next_unlock}
-                      >
-                        Jump to next unlock
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const sample = nodes.slice(0, 3);
-                          addMapRipples(sample);
-                          pushToast("New nodes available", sample.map((n) => n.name));
-                        }}
-                        disabled={!nodes.length}
-                      >
-                        Simulate node splash
-                      </button>
-                      <button type="button" onClick={() => setDemoRank(null)} disabled={demoRank === null}>
-                        Clear demo
-                      </button>
-                    </div>
-                  </div>
-                  <div className="settings-group">
-                    <div className="settings-label">Puppet location</div>
-                    <label className="settings-option">
-                      <input
-                        type="checkbox"
-                        checked={puppetEnabled}
-                        onChange={(event) => setPuppetEnabled(event.target.checked)}
-                      />
-                      <span>Use puppet location (skip GPS prompts)</span>
-                    </label>
-                    <label className="settings-option">
-                      <input
-                        type="checkbox"
-                        checked={demoClickToMove}
-                        onChange={(event) => setDemoClickToMove(event.target.checked)}
-                      />
-                      <span>Click map to move puppet</span>
-                    </label>
-                    <div className="muted">
-                      Puppet:{" "}
-                      {puppetLocation ? `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}` : "unset"} | Accuracy:{" "}
-                      {normalizeAccuracyM(puppetAccuracyM)}m
-                    </div>
-                    <div className="action-row">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
-                          setPuppetLocationFromLatLng(center);
-                        }}
-                        disabled={!isLoaded}
-                      >
-                        Set to map center
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!selectedNode) return;
-                          setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
-                        }}
-                        disabled={!selectedNode}
-                      >
-                        Set to selected node
-                      </button>
-                    </div>
-                    <label className="input-row">
-                      <div className="muted">Puppet accuracy (meters)</div>
-                      <input
-                        type="number"
-                        min={1}
-                        max={50}
-                        step={1}
-                        value={normalizeAccuracyM(puppetAccuracyM)}
-                        onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
-                      />
-                    </label>
-                  </div>
-                  <div className="settings-group">
-                    <div className="settings-label">Auto-verify</div>
-                    <label className="settings-option">
-                      <input
-                        type="checkbox"
-                        checked={demoAutoVerify}
-                        onChange={(event) => setDemoAutoVerify(event.target.checked)}
-                      />
-                      <span>After upload, verify capture as admin</span>
-                    </label>
-                    <label className="input-row">
-                      <div className="muted">Admin token (X-Admin-Token)</div>
-                      <input
-                        type="password"
-                        value={demoAdminToken}
-                        onChange={(event) => setDemoAdminToken(event.target.value)}
-                        placeholder="Paste ADMIN_API_TOKEN (or set VITE_ADMIN_API_TOKEN)"
-                      />
-                    </label>
-                  </div>
-                  <div className="settings-group">
-                    <div className="settings-label">Session</div>
-                    <div className="action-row">
-                      <button type="button" onClick={() => void handleNewDemoUser()}>
-                        New demo user
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </details>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="hud-center">
-          <div className="glass-card node-card">
-            {selectedNode ? (
-              <>
-                <div className="glass-header">
-                  <div>
-                    <div className="node-title">{selectedNode.name}</div>
-                    <div className="muted">{selectedNode.category}</div>
-                  </div>
-                  <div className="toolbar">
-                    <button className="ghost" onClick={handleOpenDetails}>
-                      Open detail
-                    </button>
-                  </div>
-                </div>
-                {selectedNode.description ? <div className="node-description">{selectedNode.description}</div> : null}
-                <div className="action-row">
-                  <button
-                    className="primary"
-                    onClick={handleCheckIn}
-                    disabled={
-                      !isOnline ||
-                      checkinState === "requesting_location" ||
-                      checkinState === "challenging" ||
-                      checkinState === "verifying"
-                    }
-                  >
-                    {checkinState === "requesting_location"
-                      ? "Locating..."
-                      : checkinState === "challenging"
-                      ? "Creating challenge..."
-                      : checkinState === "verifying"
-                      ? "Verifying..."
-                      : "Check in"}
-                  </button>
-                  <button onClick={handleRequestDirections} disabled={!isLoaded}>
-                    Get directions
-                  </button>
-                  <button onClick={handleStartCapture} disabled={!checkinToken}>
-                    Take photo
-                  </button>
-                  {demoMode && puppetEnabled ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
-                        void handleCheckIn();
-                      }}
-                    >
-                      Teleport & check in
-                    </button>
-                  ) : null}
-                </div>
-                <div className="status-grid">
-                  <div>
-                    <div className="muted">Check-in</div>
-                    <div>
-                      {checkinState === "idle"
-                        ? "Not checked in yet."
-                        : checkinState === "success"
-                        ? "Checked in."
-                        : checkinState === "failure"
-                        ? "Check-in failed."
-                        : "Checking in..."}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="muted">Accuracy</div>
-                    <div>{formatMeters(checkinAccuracyM)}</div>
-                  </div>
-                  <div>
-                    <div className="muted">Distance</div>
-                    <div>{formatMeters(checkinDistanceM)}</div>
-                  </div>
-                  <div>
-                    <div className="muted">Radius</div>
-                    <div>{formatMeters(checkinRadiusM)}</div>
-                  </div>
-                </div>
-                {checkinFailure ? (
-                  <div className="alert">
-                    <div>{checkinFailure.title}</div>
-                    {checkinFailure.detail ? <div className="muted">{checkinFailure.detail}</div> : null}
-                    {checkinFailure.nextStep ? <div className="muted">{checkinFailure.nextStep}</div> : null}
-                    <div className="action-row">
-                      <button onClick={handleCheckIn} disabled={!isOnline}>
-                        Retry check-in
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-                <div className="muted token-line">
-                  Token: {checkinToken ? `${checkinToken.slice(0, 8)}...` : "none"} | Directions:{" "}
-                  {directionsResult ? "ready" : "not requested"}
-                </div>
-                {directionsLeg ? (
-                  <details className="route-details">
-                    <summary>
-                      Route {directionsLeg.distance?.text ?? "?"} / {directionsLeg.duration?.text ?? "?"}
-                    </summary>
-                    <div className="route-body">
-                      {directionsUrl ? (
-                        <a href={directionsUrl} target="_blank" rel="noreferrer">
-                          Open in Google Maps
-                        </a>
-                      ) : null}
-                      {directionsLeg.steps?.length ? (
-                        <ol>
-                          {directionsLeg.steps.slice(0, 8).map((step, idx) => (
-                            <li key={`${idx}-${step.instructions ?? ""}`} className="muted">
-                              {stripHtml(step.instructions ?? "")}
-                            </li>
-                          ))}
-                        </ol>
-                      ) : null}
-                    </div>
-                  </details>
-                ) : null}
-              </>
-            ) : (
-              <div className="empty-state">Select a node marker to check in.</div>
-            )}
-          </div>
-        </div>
       </div>
 
       <RankUpOverlay event={rankUpEvent} onDismiss={dismissRankUp} />
