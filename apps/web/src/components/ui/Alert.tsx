@@ -54,11 +54,11 @@ export function Alert({
           </svg>
           <div className="flex-1 min-w-0">
             {title && (
-              <h3 className="font-semibold mb-1 uppercase tracking-wide text-sm">
+              <h3 className="font-semibold mb-1 uppercase tracking-wide text-xs">
                 {title}
               </h3>
             )}
-            <div className="text-sm">{children}</div>
+            <div className="text-xs">{children}</div>
           </div>
           {onClose && (
             <button

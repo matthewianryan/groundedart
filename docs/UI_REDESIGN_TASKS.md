@@ -47,71 +47,71 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
 ## Phase 2: Map Route Redesign
 
 ### Task 2.1: Redesign Map Panel Header
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/MapRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Panel header matches landing page typography
-  - [ ] Close button uses tactile button styling
-  - [ ] Smooth slide-in/out animations
-  - [ ] Dark mode support
+  - [x] Panel header matches landing page typography
+  - [x] Close button uses tactile button styling
+  - [x] Smooth slide-in/out animations
+  - [x] Dark mode support
 
 ### Task 2.2: Redesign Status & Rank Display
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/MapRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Rank display uses card styling
-  - [ ] Colors use grounded palette (copper for highlights)
-  - [ ] Smooth transitions on data updates
-  - [ ] Clear visual hierarchy
+  - [x] Rank display uses card styling
+  - [x] Colors use grounded palette (copper for highlights)
+  - [x] Smooth transitions on data updates
+  - [x] Clear visual hierarchy
 
 ### Task 2.3: Redesign Settings Section
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/MapRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Settings in styled card/accordion
-  - [ ] Map style selector matches theme
-  - [ ] Smooth animations
-  - [ ] Icons match landing page style
+  - [x] Settings in styled card/accordion
+  - [x] Map style selector matches theme
+  - [x] Smooth animations
+  - [x] Icons match landing page style
 
 ### Task 2.4: Redesign Upload Queue
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/MapRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Upload items in styled cards
-  - [ ] Status badges use grounded colors
-  - [ ] Buttons match tactile design
-  - [ ] Progress animations smooth
-  - [ ] Empty state matches landing page style
+  - [x] Upload items in styled cards
+  - [x] Status badges use grounded colors
+  - [x] Buttons match tactile design
+  - [x] Progress animations smooth
+  - [x] Empty state matches landing page style
 
 ### Task 2.5: Redesign Node Selection & Check-in
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/MapRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Node info in styled card
-  - [ ] All buttons use tactile styling
-  - [ ] Icons match design system
-  - [ ] Status messages use grounded colors
-  - [ ] Smooth state transitions
+  - [x] Node info in styled card
+  - [x] All buttons use tactile styling
+  - [x] Icons match design system
+  - [x] Status messages use grounded colors
+  - [x] Smooth state transitions
 
 ### Task 2.6: Redesign "Show Panel" Button
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **File:** `apps/web/src/routes/MapRoute.tsx`
 - **Acceptance Criteria:**
-  - [ ] Button uses tactile styling
-  - [ ] Proper icon and spacing
-  - [ ] Smooth hover effects
-  - [ ] Matches design system
+  - [x] Button uses tactile styling
+  - [x] Proper icon and spacing
+  - [x] Smooth hover effects
+  - [x] Matches design system
 
 ### Task 2.7: Update Map Panel Layout
-- **Status:** ⏳ Pending
+- **Status:** ✅ Completed
 - **Files:**
   - `apps/web/src/routes/MapRoute.tsx`
   - `apps/web/src/styles.css`
 - **Acceptance Criteria:**
-  - [ ] Panel uses grounded color palette
-  - [ ] Backdrop blur for depth
-  - [ ] Proper spacing matches landing page
-  - [ ] Smooth show/hide transitions
+  - [x] Panel uses grounded color palette
+  - [x] Backdrop blur for depth
+  - [x] Proper spacing matches landing page
+  - [x] Smooth show/hide transitions
 
 ---
 
@@ -235,9 +235,9 @@ This file tracks the implementation progress of the UI redesign plan. See `docs/
 ## Progress Summary
 
 - **Total Tasks:** 21
-- **Completed:** 3
+- **Completed:** 10
 - **In Progress:** 0
-- **Pending:** 18
+- **Pending:** 11
 
 ## Status Legend
 - ⏳ Pending

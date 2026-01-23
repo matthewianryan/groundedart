@@ -18,7 +18,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-semibold uppercase tracking-wide mb-2 text-grounded-charcoal dark:text-grounded-parchment">
+          <label className="block text-xs uppercase tracking-wide mb-1 text-muted">
             {label}
           </label>
         )}

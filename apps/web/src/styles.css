@@ -15,6 +15,11 @@ body,
   grid-template-columns: 360px 1fr;
   grid-template-areas: "panel map";
   transition: grid-template-columns 0.3s ease;
+  background-color: #F5F5F4; /* grounded-parchment */
+}
+
+.dark .layout {
+  background-color: #1A1715; /* grounded-charcoal */
 }
 
 .layout-panel-hidden {
@@ -30,11 +35,19 @@ body,
 
 .panel {
   grid-area: panel;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid rgba(26, 23, 21, 0.1);
+  background-color: #F5F5F4; /* grounded-parchment */
   padding: 12px;
   overflow: auto;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   transition: opacity 0.3s ease, transform 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.dark .panel {
+  background-color: rgba(26, 23, 21, 0.95); /* grounded-charcoal/95 */
+  border-right-color: rgba(217, 119, 6, 0.2); /* grounded-copper/20 */
+  backdrop-filter: blur(12px);
 }
 
 .panel-hidden {
