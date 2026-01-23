@@ -15,8 +15,6 @@ export type CheckinErrorDetails = {
   max_allowed_m?: number;
   radius_m?: number;
   distance_m?: number;
-  challenge_id?: string;
-  node_id?: string;
 };
 
 export function createCheckinChallenge(nodeId: string) {

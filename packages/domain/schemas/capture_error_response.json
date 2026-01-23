@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CaptureErrorResponse",
+  "allOf": [
+    { "$ref": "./error.json" },
+    {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": { "$ref": "./capture_error_code.json" }
+          }
+        }
+      }
+    }
+  ]
+}

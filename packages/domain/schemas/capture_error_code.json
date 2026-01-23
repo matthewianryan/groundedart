@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CaptureErrorCode",
+  "type": "string",
+  "enum": [
+    "invalid_checkin_token",
+    "checkin_token_expired",
+    "capture_not_found",
+    "forbidden",
+    "auth_required"
+  ]
+}

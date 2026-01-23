@@ -9,6 +9,8 @@ from geoalchemy2 import Geography
 from sqlalchemy import cast, func, select
 
 from groundedart_api.api.routers.captures import capture_to_public
+import logging
+
 from groundedart_api.api.schemas import (
     CapturesResponse,
     CheckinChallengeResponse,
@@ -26,6 +28,7 @@ from groundedart_api.domain.errors import AppError
 from groundedart_api.settings import Settings, get_settings
 
 router = APIRouter(prefix="/v1", tags=["nodes"])
+logger = logging.getLogger(__name__)
 
 
 def _node_select_with_coords():
@@ -152,11 +155,18 @@ async def check_in(
 ) -> CheckinResponse:
     challenge = await db.get(CheckinChallenge, body.challenge_id)
     if challenge is None or challenge.user_id != user.id or challenge.node_id != node_id:
+        logger.warning(
+            "Invalid check-in challenge",
+            extra={
+                "challenge_id": str(body.challenge_id),
+                "node_id": str(node_id),
+                "user_id": str(user.id),
+            },
+        )
         raise AppError(
             code="invalid_challenge",
             message="Invalid check-in challenge",
             status_code=400,
-            details={"challenge_id": str(body.challenge_id), "node_id": str(node_id)},
         )
     if challenge.used_at is not None:
         raise AppError(

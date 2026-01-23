@@ -15,7 +15,7 @@ Roadmap goal: a user can only begin a capture flow when physically inside a node
 
 Note: a baseline M1 check-in flow exists in this repo already (see `docs/M0.md`). The tasks below focus on making the MVP decision/contract explicit, hardening server invariants, and upgrading UX.
 
-### [ ] M1-01 — Make the geofence model authoritative (point + radius)
+### [x] M1-01 — Make the geofence model authoritative (point + radius)
 
 **What this achieves**
 - Establishes a single authoritative geometry model for “inside the zone” decisions so check-in, capture gating, and future verification all agree.
@@ -46,7 +46,7 @@ Note: a baseline M1 check-in flow exists in this repo already (see `docs/M0.md`)
 
 ---
 
-### [ ] M1-02 — Define domain contracts for check-in (schemas + reason codes)
+### [x] M1-02 — Define domain contracts for check-in (schemas + reason codes)
 
 **What this achieves**
 - Makes the check-in flow interoperable across API and web by defining stable request/response shapes and failure codes in `packages/domain`.
@@ -86,7 +86,7 @@ Note: a baseline M1 check-in flow exists in this repo already (see `docs/M0.md`)
 
 ---
 
-### [ ] M1-03 — Harden the server-side check-in flow (details, replay, and invariants)
+### [x] M1-03 — Harden the server-side check-in flow (details, replay, and invariants)
 
 **What this achieves**
 - Produces an auditable, abuse-resistant proof-of-presence token that downstream endpoints can rely on.
@@ -130,7 +130,7 @@ Note: a baseline M1 check-in flow exists in this repo already (see `docs/M0.md`)
 
 ---
 
-### [ ] M1-04 — Web UX for “not inside the zone” (accuracy + connectivity aware)
+### [x] M1-04 — Web UX for “not inside the zone” (accuracy + connectivity aware)
 
 **What this achieves**
 - A check-in experience that communicates “why not” clearly and guides users to success without confusing dead-ends.
@@ -166,7 +166,7 @@ Decision: **Online-only check-in** (simplest): show “Offline” state; user re
 
 ---
 
-### [ ] M1-05 — Enforce check-in token gating for capture creation (API + docs)
+### [x] M1-05 — Enforce check-in token gating for capture creation (API + docs)
 
 **What this achieves**
 - Ensures all downstream capture creation is grounded in a recent, single-use proof-of-presence token.
@@ -177,6 +177,7 @@ Decision: **Online-only check-in** (simplest): show “Offline” state; user re
 **Change plan (files)**
 - `apps/api/src/groundedart_api/api/routers/captures.py`: ensure create-capture rejects missing/expired/reused tokens with stable codes.
 - `packages/domain/schemas/`: add `create_capture_request.json` and `create_capture_response.json` (or expand an existing capture schema set).
+- `packages/domain/schemas/`: add `capture_error_code.json` and `capture_error_response.json` for capture error payloads.
 - `apps/web/src/features/captures/api.ts`: align request fields with the domain schema(s).
 - `apps/api/tests/`: add or extend tests for token gating (invalid token, expired token, reused token, wrong node).
 
@@ -190,6 +191,7 @@ Decision: **Online-only check-in** (simplest): show “Offline” state; user re
 **Acceptance criteria**
 - Capture creation cannot succeed without a valid, unused, unexpired token bound to the current user and node.
 - Error codes and shapes follow the shared domain contract (`packages/domain/schemas/error.json`).
+- Capture error responses use the shared capture error schema.
 
 **Non-goals**
 - Upload reliability/compression (Milestone 2).

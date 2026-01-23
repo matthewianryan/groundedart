@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreateCaptureRequest",
+  "type": "object",
+  "required": ["node_id", "checkin_token"],
+  "properties": {
+    "node_id": { "type": "string", "format": "uuid" },
+    "checkin_token": { "type": "string" },
+    "attribution_artist_name": { "type": ["string", "null"] },
+    "attribution_artwork_title": { "type": ["string", "null"] }
+  }
+}

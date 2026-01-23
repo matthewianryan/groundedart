@@ -1,7 +1,18 @@
 import { apiFetch } from "../../api/http";
 
 export type CreateCaptureResponse = {
-  capture: { id: string; node_id: string; state: string; created_at: string; image_url?: string | null };
+  capture: { id: string; node_id: string; state: string; created_at: string; image_url: string | null };
+};
+
+export type CaptureErrorCode =
+  | "invalid_checkin_token"
+  | "checkin_token_expired"
+  | "capture_not_found"
+  | "forbidden"
+  | "auth_required";
+
+export type CaptureErrorResponse = {
+  error: { code: CaptureErrorCode; message: string; details: Record<string, unknown> };
 };
 
 export async function createCapture(body: {
@@ -28,7 +39,6 @@ export async function uploadCaptureImage(captureId: string, file: File) {
     node_id: string;
     state: string;
     created_at: string;
-    image_url?: string | null;
+    image_url: string | null;
   };
 }
-

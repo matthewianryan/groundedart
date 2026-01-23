@@ -58,7 +58,7 @@ async def test_checkin_invalid_challenge(db_sessionmaker, client: AsyncClient):
     assert response.status_code == 400
     payload = response.json()
     assert payload["error"]["code"] == "invalid_challenge"
-    assert payload["error"]["details"]["node_id"] == str(node_id)
+    assert payload["error"]["details"] == {}
 
 
 @pytest.mark.asyncio

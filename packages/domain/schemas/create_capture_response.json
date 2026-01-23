@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreateCaptureResponse",
+  "type": "object",
+  "required": ["capture"],
+  "properties": {
+    "capture": {
+      "type": "object",
+      "required": ["id", "node_id", "state", "created_at", "image_url"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "node_id": { "type": "string", "format": "uuid" },
+        "state": {
+          "type": "string",
+          "enum": ["draft", "pending_verification", "verified", "rejected", "hidden"]
+        },
+        "created_at": { "type": "string", "format": "date-time" },
+        "image_url": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
