@@ -230,6 +230,86 @@ body,
   border-radius: 6px;
 }
 
+.tip-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+  background: #f9fafb;
+}
+
+.tip-summary {
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.tip-receipts {
+  display: grid;
+  gap: 4px;
+}
+
+.tip-receipt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tip-form {
+  display: grid;
+  gap: 8px;
+}
+
+.tip-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tip-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tip-amount {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.tip-amount.selected {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.tip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tip-status {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.tip-wallet-button {
+  margin-top: 0;
+  min-width: 180px;
+}
+
 .capture-flow {
   margin-top: 12px;
 }

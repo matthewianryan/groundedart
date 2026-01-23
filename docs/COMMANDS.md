@@ -5,7 +5,7 @@ Canonical commands for common workflows. Run from the repo root unless noted.
 ## Bring everything up (build + run)
 
 ```bash
-docker compose -f infra/docker-compose.yml up --build -d
+docker compose -f infra/docker-compose.yml up --build
 ```
 
 ## Essentials (dependencies + hydration)

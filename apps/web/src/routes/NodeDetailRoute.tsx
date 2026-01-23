@@ -11,6 +11,7 @@ import {
 import { getMe } from "../features/me/api";
 import type { MeResponse } from "../features/me/types";
 import type { NodePublic, NodeView } from "../features/nodes/types";
+import { TipFlow } from "../features/tips/TipFlow";
 
 type NodeLocationState = {
   node?: NodePublic;
@@ -31,6 +32,7 @@ export function NodeDetailRoute() {
   const [reportStatus, setReportStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [reportError, setReportError] = useState<string | null>(null);
   const [lastReportedId, setLastReportedId] = useState<string | null>(null);
+  const tipsEnabled = import.meta.env.VITE_TIPS_ENABLED === "true";
 
   const reportReasons: ReportReasonCode[] = [
     "spam",
@@ -172,6 +174,12 @@ export function NodeDetailRoute() {
                 {me ? (
                   <div style={{ marginTop: 8 }}>
                     You are rank {me.rank}; this node requires {node.min_rank}.
+                  </div>
+                ) : null}
+                {tipsEnabled ? (
+                  <div className="section">
+                    <h2>Tip the artist</h2>
+                    <TipFlow nodeId={node.id} nodeName={node.name} />
                   </div>
                 ) : null}
               </>

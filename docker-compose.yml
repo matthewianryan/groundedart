@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: groundedart
       POSTGRES_PASSWORD: groundedart
     ports:
-      - "5432:5432"
+      - "${GROUNDEDART_DB_PORT:-5433}:5432"
     volumes:
       - groundedart_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -23,13 +23,14 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
-      API_CORS_ORIGINS: http://localhost:5173
-      TOKEN_HASH_SECRET: dev-only-change-me
+      API_CORS_ORIGINS: "http://localhost:${GROUNDEDART_WEB_PORT:-5174},http://localhost:5173"
       MEDIA_DIR: /app/.local_media
     ports:
-      - "8000:8000"
+      - "${GROUNDEDART_API_PORT:-8001}:8000"
     volumes:
       - .:/app
       - api_media:/app/.local_media
@@ -45,25 +46,30 @@ services:
       dockerfile: apps/web/Dockerfile
     env_file:
       - .env
+    environment:
+      VITE_API_ORIGIN: "http://localhost:${GROUNDEDART_API_PORT:-8001}"
     ports:
-      - "5173:5173"
+      - "${GROUNDEDART_WEB_PORT:-5174}:5173"
     volumes:
       - ./apps/web:/app/apps/web
       - web_node_modules:/app/apps/web/node_modules
     working_dir: /app/apps/web
     depends_on:
       - api
-    command: npm run dev -- --host 0.0.0.0 --port 5173
+    command: >
+      sh -c 'if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ];
+      then npm ci;
+      fi;
+      npm run dev -- --host 0.0.0.0 --port 5173'
 
   tip-reconciler:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
-      SOLANA_RPC_URL: https://api.devnet.solana.com
-      TIP_RECEIPT_RECONCILIATION_INTERVAL_SECONDS: 60
-      TIP_RECEIPT_RECONCILIATION_CUTOFF_SECONDS: 3600
     volumes:
       - .:/app
     working_dir: /app/apps/api
@@ -78,6 +84,8 @@ services:
       dockerfile: apps/api/Dockerfile
     environment:
       DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
+    env_file:
+      - .env
     volumes:
       - .:/app
     working_dir: /app/apps/api
