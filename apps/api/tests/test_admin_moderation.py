@@ -10,7 +10,15 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import Capture, CaptureStateEvent, CheckinToken, Node, utcnow
+from groundedart_api.db.models import (
+    AbuseEvent,
+    Capture,
+    CaptureStateEvent,
+    CheckinToken,
+    Node,
+    User,
+    utcnow,
+)
 from groundedart_api.settings import get_settings
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -125,3 +133,45 @@ async def test_admin_transition_updates_capture_and_audit(db_sessionmaker, clien
         assert event.to_state == "verified"
         assert event.reason_code == "manual_review_pass"
         assert event.actor_type == "admin"
+
+
+@pytest.mark.asyncio
+async def test_admin_lists_abuse_events(db_sessionmaker, client: AsyncClient) -> None:
+    settings = get_settings()
+    user_id = uuid.uuid4()
+    node_id = uuid.uuid4()
+    async with db_sessionmaker() as session:
+        session.add(User(id=user_id))
+        session.add(
+            Node(
+                id=node_id,
+                name="Abuse Node",
+                category="mural",
+                description=None,
+                location=WKTElement("POINT(-122.40 37.78)", srid=4326),
+                radius_m=25,
+                min_rank=0,
+            )
+        )
+        await session.commit()
+
+    async with db_sessionmaker() as session:
+        session.add(
+            AbuseEvent(
+                event_type="capture_rate_limited",
+                user_id=user_id,
+                node_id=node_id,
+                details={"source": "capture_create"},
+            )
+        )
+        await session.commit()
+
+    response = await client.get(
+        "/v1/admin/abuse-events",
+        headers={"X-Admin-Token": settings.admin_api_token},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["events"]
+    assert payload["events"][0]["event_type"] == "capture_rate_limited"

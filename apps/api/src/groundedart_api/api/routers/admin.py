@@ -7,13 +7,15 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 
 from groundedart_api.api.schemas import (
+    AdminAbuseEvent,
+    AdminAbuseEventsResponse,
     AdminCapture,
     AdminCaptureTransitionRequest,
     AdminCaptureTransitionResponse,
     AdminCapturesResponse,
 )
 from groundedart_api.auth.deps import require_admin
-from groundedart_api.db.models import Capture
+from groundedart_api.db.models import AbuseEvent, Capture
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.capture_moderation import transition_capture_state
 from groundedart_api.domain.capture_state import CaptureState
@@ -41,6 +43,18 @@ def capture_to_admin(capture: Capture, base_media_url: str = "/media") -> AdminC
         image_url=image_url,
         attribution_artist_name=capture.attribution_artist_name,
         attribution_artwork_title=capture.attribution_artwork_title,
+    )
+
+
+def abuse_event_to_admin(event: AbuseEvent) -> AdminAbuseEvent:
+    return AdminAbuseEvent(
+        id=event.id,
+        event_type=event.event_type,
+        user_id=event.user_id,
+        node_id=event.node_id,
+        capture_id=event.capture_id,
+        created_at=event.created_at,
+        details=event.details,
     )
 
 
@@ -97,3 +111,29 @@ async def transition_capture(
         details=body.details,
     )
     return AdminCaptureTransitionResponse(capture=capture_to_admin(capture))
+
+
+@router.get("/abuse-events", response_model=AdminAbuseEventsResponse)
+async def list_abuse_events(
+    db: DbSessionDep,
+    user_id: uuid.UUID | None = Query(default=None),
+    node_id: uuid.UUID | None = Query(default=None),
+    event_type: str | None = Query(default=None),
+    created_after: dt.datetime | None = Query(default=None),
+    created_before: dt.datetime | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> AdminAbuseEventsResponse:
+    query = select(AbuseEvent)
+    if user_id is not None:
+        query = query.where(AbuseEvent.user_id == user_id)
+    if node_id is not None:
+        query = query.where(AbuseEvent.node_id == node_id)
+    if event_type is not None:
+        query = query.where(AbuseEvent.event_type == event_type)
+    if created_after is not None:
+        query = query.where(AbuseEvent.created_at >= created_after)
+    if created_before is not None:
+        query = query.where(AbuseEvent.created_at <= created_before)
+
+    events = (await db.scalars(query.order_by(AbuseEvent.created_at.desc()).limit(limit))).all()
+    return AdminAbuseEventsResponse(events=[abuse_event_to_admin(event) for event in events])

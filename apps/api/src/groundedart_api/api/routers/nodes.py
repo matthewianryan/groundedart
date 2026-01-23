@@ -23,6 +23,7 @@ from groundedart_api.auth.deps import CurrentUser, OptionalUser
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
 from groundedart_api.db.models import Capture, CheckinChallenge, CheckinToken, CuratorProfile, Node
 from groundedart_api.db.session import DbSessionDep
+from groundedart_api.domain.abuse_events import record_abuse_event
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
 from groundedart_api.settings import Settings, get_settings
@@ -161,6 +162,17 @@ async def create_checkin_challenge(
         )
     )
     if (recent_challenges or 0) >= settings.max_checkin_challenges_per_user_node_per_window:
+        await record_abuse_event(
+            db=db,
+            event_type="checkin_challenge_rate_limited",
+            user_id=user.id,
+            node_id=node.id,
+            details={
+                "max_per_window": settings.max_checkin_challenges_per_user_node_per_window,
+                "window_seconds": settings.checkin_challenge_rate_window_seconds,
+                "recent_count": int(recent_challenges or 0),
+            },
+        )
         raise AppError(
             code="checkin_challenge_rate_limited",
             message="Check-in challenge rate limit exceeded",
@@ -196,6 +208,16 @@ async def check_in(
                 "challenge_id": str(body.challenge_id),
                 "node_id": str(node_id),
                 "user_id": str(user.id),
+            },
+        )
+        await record_abuse_event(
+            db=db,
+            event_type="invalid_challenge",
+            user_id=user.id,
+            node_id=None,
+            details={
+                "challenge_id": str(body.challenge_id),
+                "node_id": str(node_id),
             },
         )
         raise AppError(
@@ -252,6 +274,16 @@ async def check_in(
         details = {"radius_m": node.radius_m}
         if distance_m is not None:
             details["distance_m"] = float(distance_m)
+        details["lat"] = body.lat
+        details["lng"] = body.lng
+        details["accuracy_m"] = body.accuracy_m
+        await record_abuse_event(
+            db=db,
+            event_type="outside_geofence",
+            user_id=user.id,
+            node_id=node.id,
+            details=details,
+        )
         raise AppError(
             code="outside_geofence",
             message="You are not inside the node geofence",
@@ -270,6 +302,18 @@ async def check_in(
         )
     )
     if (recent_captures or 0) >= settings.max_captures_per_user_node_per_day:
+        await record_abuse_event(
+            db=db,
+            event_type="capture_rate_limited",
+            user_id=user.id,
+            node_id=node.id,
+            details={
+                "source": "checkin",
+                "max_per_window": settings.max_captures_per_user_node_per_day,
+                "window_seconds": settings.capture_rate_window_seconds,
+                "recent_count": int(recent_captures or 0),
+            },
+        )
         raise AppError(
             code="capture_rate_limited",
             message="Capture rate limit exceeded",

@@ -103,3 +103,17 @@ class AdminCaptureTransitionRequest(BaseModel):
 
 class AdminCaptureTransitionResponse(BaseModel):
     capture: AdminCapture
+
+
+class AdminAbuseEvent(BaseModel):
+    id: uuid.UUID
+    event_type: str
+    user_id: uuid.UUID | None = None
+    node_id: uuid.UUID | None = None
+    capture_id: uuid.UUID | None = None
+    created_at: dt.datetime
+    details: dict[str, object] | None = None
+
+
+class AdminAbuseEventsResponse(BaseModel):
+    events: list[AdminAbuseEvent]

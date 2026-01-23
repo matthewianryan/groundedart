@@ -9,7 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from groundedart_api.auth.tokens import hash_opaque_token
-from groundedart_api.db.models import CheckinChallenge, CheckinToken, Node, utcnow
+from groundedart_api.db.models import AbuseEvent, CheckinChallenge, CheckinToken, Node, utcnow
 from groundedart_api.main import create_app
 from groundedart_api.settings import get_settings
 from groundedart_api.time import get_utcnow
@@ -320,3 +320,38 @@ async def test_checkin_challenge_rate_limited(db_sessionmaker) -> None:
     assert response.status_code == 429
     payload = response.json()
     assert payload["error"]["code"] == "checkin_challenge_rate_limited"
+
+
+@pytest.mark.asyncio
+async def test_checkin_challenge_rate_limit_records_abuse_event(db_sessionmaker) -> None:
+    settings = get_settings()
+    now = dt.datetime(2024, 1, 1, tzinfo=dt.UTC)
+    client, _ = make_client_with_time(now)
+    node_id = await create_node(db_sessionmaker)
+
+    async with client:
+        user_id = await create_session(client)
+        created_at = now - dt.timedelta(seconds=settings.checkin_challenge_rate_window_seconds - 1)
+        async with db_sessionmaker() as session:
+            for _ in range(settings.max_checkin_challenges_per_user_node_per_window):
+                session.add(
+                    CheckinChallenge(
+                        id=uuid.uuid4(),
+                        user_id=user_id,
+                        node_id=node_id,
+                        created_at=created_at,
+                        expires_at=now + dt.timedelta(seconds=30),
+                    )
+                )
+            await session.commit()
+
+        response = await client.post(f"/v1/nodes/{node_id}/checkins/challenge")
+
+    assert response.status_code == 429
+    async with db_sessionmaker() as session:
+        event = await session.scalar(
+            select(AbuseEvent).where(AbuseEvent.event_type == "checkin_challenge_rate_limited")
+        )
+        assert event is not None
+        assert event.user_id == user_id
+        assert event.node_id == node_id

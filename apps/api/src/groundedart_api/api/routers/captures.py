@@ -11,6 +11,7 @@ from groundedart_api.auth.deps import CurrentUser
 from groundedart_api.auth.tokens import hash_opaque_token
 from groundedart_api.db.models import Capture, CheckinToken
 from groundedart_api.db.session import DbSessionDep
+from groundedart_api.domain.abuse_events import record_abuse_event
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.capture_state_events import apply_capture_transition_with_audit
 from groundedart_api.domain.capture_transitions import validate_capture_state_reason
@@ -74,6 +75,18 @@ async def create_capture(
         )
     )
     if (recent_captures or 0) >= settings.max_captures_per_user_node_per_day:
+        await record_abuse_event(
+            db=db,
+            event_type="capture_rate_limited",
+            user_id=user.id,
+            node_id=token.node_id,
+            details={
+                "source": "capture_create",
+                "max_per_window": settings.max_captures_per_user_node_per_day,
+                "window_seconds": settings.capture_rate_window_seconds,
+                "recent_count": int(recent_captures or 0),
+            },
+        )
         raise AppError(
             code="capture_rate_limited",
             message="Capture rate limit exceeded",
@@ -139,6 +152,17 @@ async def upload_capture_image(
             )
         )
         if (pending_count or 0) >= settings.max_pending_verification_captures_per_node:
+            await record_abuse_event(
+                db=db,
+                event_type="pending_verification_cap_reached",
+                user_id=user.id,
+                node_id=capture.node_id,
+                capture_id=capture.id,
+                details={
+                    "max_pending_per_node": settings.max_pending_verification_captures_per_node,
+                    "pending_count": int(pending_count or 0),
+                },
+            )
             raise AppError(
                 code="pending_verification_cap_reached",
                 message="Pending verification cap reached",
