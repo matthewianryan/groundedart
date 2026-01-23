@@ -8,6 +8,10 @@ export type NodePublic = {
   lng: number;
   radius_m: number;
   min_rank: number;
+  image_url?: string | null;
+  image_attribution?: string | null;
+  image_source_url?: string | null;
+  image_license?: string | null;
 };
 
 export type NodeLocked = {

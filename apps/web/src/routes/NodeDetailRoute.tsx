@@ -152,6 +152,23 @@ export function NodeDetailRoute() {
                   </div>
                   <div className="muted">{node.category}</div>
                 </div>
+                {node.image_url ? (
+                  <div className="node-image">
+                    <img src={node.image_url} alt={node.name} loading="lazy" />
+                    {node.image_attribution ? (
+                      <div className="node-image-credit">
+                        Image credit:{" "}
+                        {node.image_source_url ? (
+                          <a href={node.image_source_url} target="_blank" rel="noreferrer">
+                            {node.image_attribution}
+                          </a>
+                        ) : (
+                          node.image_attribution
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 {node.description ? <div className="node-description">{node.description}</div> : null}
                 <dl className="metadata">
                   <div>

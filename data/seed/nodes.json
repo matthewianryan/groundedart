@@ -37,7 +37,11 @@
     "lat": -33.9272245,
     "lng": 18.455498,
     "radius_m": 90,
-    "min_rank": 0
+    "min_rank": 0,
+    "image_path": "nodes/e730a001-11ac-425e-b5f8-104323a19df3.jpg",
+    "image_attribution": "Kierano - CC BY 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWoodstockSouthCapeTown.jpg",
+    "image_license": "CC BY 3.0"
   },
   {
     "id": "b752b4c2-6da5-4bba-bdc1-5687db128123",
@@ -647,7 +651,11 @@
     "lat": -33.9280492,
     "lng": 18.4578442,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/88cbfa2d-2a4e-5e07-873c-842ca7cf6598.jpg",
+    "image_attribution": "Ebrahimabader - CC BY-SA 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AOld_Biscuit_Mill_Woodstock_Cape_Town_Taxi_Cabs.jpg",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "90c788b2-7e75-505e-800c-a7bf447f672f",
@@ -677,7 +685,11 @@
     "lat": -33.9270547,
     "lng": 18.45503,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/e56c545a-02ce-56be-bf61-b642921ae725.jpg",
+    "image_attribution": "Horst57 - CC BY 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AShop_in_Woodstock%2C_Cape_Town_-_panoramio.jpg",
+    "image_license": "CC BY 3.0"
   },
   {
     "id": "a9cab874-339c-5466-9c06-998df8810375",
@@ -777,7 +789,11 @@
     "lat": -33.9275444,
     "lng": 18.4570823,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/9a4d2a90-51f7-5560-bb3f-28a8f700b63d.jpeg",
+    "image_attribution": "axxter99 - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ABenchmarks_at_Woodstock_Cape_Town.jpeg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "9472d7f7-af10-5619-af0b-902fa0908618",
@@ -937,7 +953,11 @@
     "lat": -33.9274192,
     "lng": 18.4550442,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/03a84074-5b92-50e4-8ebe-cb12e93d86dd.jpg",
+    "image_attribution": "Axxter99 - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AMelbourne_Terrace%2C_Woodstock.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "0628998a-86e0-5b0e-a2e2-e238a61594fc",
@@ -1297,7 +1317,11 @@
     "lat": -33.9302167,
     "lng": 18.4540037,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/537fb8e9-8c89-54c0-ac68-b9e1c5ed5063.jpg",
+    "image_attribution": "Janek Szymanowski - CC BY-SA 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3A9_2_018_0290_001-Central_Redoubt-Woodstock-s.jpg",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "76a4f05a-3b6d-5784-8cb4-4995f2f0b0d0",
@@ -1427,7 +1451,11 @@
     "lat": -33.9275814,
     "lng": 18.4570851,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/23b06442-c6f6-5eb6-9191-d68d49c5f5b0.jpg",
+    "image_attribution": "Axxter99 - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3APizza_Connection_interiors.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "ca579a48-72bb-59a2-8be9-8f606c2ff2f0",
@@ -1437,7 +1465,11 @@
     "lat": -33.9266158,
     "lng": 18.4511223,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/ca579a48-72bb-59a2-8be9-8f606c2ff2f0.jpg",
+    "image_attribution": "Thomas Baines - Public domain",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AThomas_Baines-Cape_Town_from_Woodstock_beach-0645.jpg",
+    "image_license": "Public domain"
   },
   {
     "id": "242d280c-d110-5ab7-a774-31a3d9ef0fb7",
@@ -1617,7 +1649,11 @@
     "lat": -33.9272345,
     "lng": 18.451941,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/71f2e8b3-9c31-5263-816e-9e7abaf6ce22.jpg",
+    "image_attribution": "Axxter99 - CC BY-SA 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AMethodist_Church_Woodstock_sa.jpg",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "b2f7a047-8146-5d68-ae79-220cb41db37c",
@@ -1817,7 +1853,11 @@
     "lat": -33.927544,
     "lng": 18.457082,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/7564d4b2-8390-55e5-a7c9-3790d4eea8cc.jpg",
+    "image_attribution": "Janek Szymanowski - CC BY-SA 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3A9_2_018_0074_001-Victorian_Terrace_Houses-1to11_Albert_Rd-Woodstock-s.jpg",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "75205be6-29c6-566d-8de6-13b6ec9b5e47",
@@ -1997,7 +2037,11 @@
     "lat": -33.9274527,
     "lng": 18.457579,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/0d961df5-7e0d-40e5-9ef0-ac68d59e4d9b.jpg",
+    "image_attribution": "Ebrahimabader - CC BY-SA 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AOld_Biscuit_Mill_Woodstock_Cape_Town_Taxi_Cab.jpg",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "1029c320-eb18-5d49-81f1-895f6435283a",
@@ -2197,7 +2241,11 @@
     "lat": -33.9287743,
     "lng": 18.455414,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/24f12d2e-4bfa-5dfb-a154-d6f183ec2900.jpg",
+    "image_attribution": "axxter99 - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3APaper_Moon_Book_Shop.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "6bebaec2-382c-531d-9cf4-089bda05fc39",
@@ -2277,7 +2325,11 @@
     "lat": -33.9323606,
     "lng": 18.4550437,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/12ff5600-7dbe-5983-a8b5-ef7ef45b585b.jpg",
+    "image_attribution": "Axxter99 - CC BY-SA 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ARuth_Prowse_School_of_Art%2C_Cape_Town.jpg",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "c626dc9f-eb70-5d24-9fa7-087b5f3f9742",
@@ -2337,7 +2389,11 @@
     "lat": -33.9299651,
     "lng": 18.4582098,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/8f95d013-b540-576c-a56c-e2e1eeec10b5.jpg",
+    "image_attribution": "AnonymousUnknown author - Public domain",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AThe_Treaty_Tree_-_Woodstock_Cape_Town_-_Sideroxylon_inerme.jpg",
+    "image_license": "Public domain"
   },
   {
     "id": "afd461ca-99d6-50b0-ae65-7fba90efff67",
@@ -2437,7 +2493,11 @@
     "lat": -33.9275927,
     "lng": 18.4557043,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/0c6994c3-dc07-5cff-a13b-740645f34c4c.jpg",
+    "image_attribution": "Horst57 - CC BY 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AShop_in_Woodstock%2C_Cape_Town_-_panoramio_%281%29.jpg",
+    "image_license": "CC BY 3.0"
   },
   {
     "id": "d50f9d7a-4e07-5b96-87be-11fbbf47e922",
@@ -2587,7 +2647,11 @@
     "lat": -33.9281099,
     "lng": 18.4578781,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/eb6eee0f-a605-5a70-8fb5-a3b9404f12f7.jpg",
+    "image_attribution": "Ossewa - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACity_Supermarket%2C_Woodstock.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "f70cad83-4ce7-55fb-91ac-5581c212fe96",
@@ -2747,7 +2811,11 @@
     "lat": -33.9283485,
     "lng": 18.459095,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/3a721924-717f-5582-9017-525dd86ed9cc.jpg",
+    "image_attribution": "Roché Petersen - CC BY-SA 3.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACentral_or_French_Redoubt_Conical_tower.jpg",
+    "image_license": "CC BY-SA 3.0"
   },
   {
     "id": "8296dbc0-f6e2-55f1-83b4-812a897b3d0c",
@@ -2777,7 +2845,11 @@
     "lat": -33.927451,
     "lng": 18.4581374,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/910bd3d9-39d1-4afc-8dd7-5c31ccb75ac1.jpg",
+    "image_attribution": "Axxter99 - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWoodstock_Brewery.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "61f613d6-23f6-57a6-86b2-095dec4bd511",
@@ -2857,7 +2929,11 @@
     "lat": -33.92719110000001,
     "lng": 18.4519698,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/6e2f4156-10e9-56bc-900c-7d4a060efdd9.jpg",
+    "image_attribution": "Axxter99 - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3ACissie_Gool_House.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "115eda50-9af9-50f7-af6f-f7a9b6af7007",
@@ -3117,7 +3193,11 @@
     "lat": -33.9275444,
     "lng": 18.4570823,
     "radius_m": 70,
-    "min_rank": 1
+    "min_rank": 1,
+    "image_path": "nodes/386584ee-1809-5855-8826-9a47c2c6a430.jpg",
+    "image_attribution": "Axxter99 - CC BY-SA 4.0",
+    "image_source_url": "https://commons.wikimedia.org/wiki/File%3AWoodstock_-_post_wall_box.jpg",
+    "image_license": "CC BY-SA 4.0"
   },
   {
     "id": "4f5ec979-4842-5d82-96ce-385f7a434cd1",

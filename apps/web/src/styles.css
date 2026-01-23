@@ -27,6 +27,88 @@ body,
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  position: relative;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.modal {
+  background: #ffffff;
+  width: min(720px, 100%);
+  max-height: min(90vh, 800px);
+  overflow: auto;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-body {
+  display: grid;
+  gap: 16px;
+}
+
+.modal-section {
+  display: grid;
+  gap: 8px;
+}
+
+.modal-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .detail {
   border-right: none;
   max-width: 640px;
@@ -121,6 +203,24 @@ body,
 
 .node-description {
   margin-top: 8px;
+}
+
+.node-image {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.node-image img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.node-image-credit {
+  font-size: 11px;
+  color: #6b7280;
 }
 
 .metadata {

@@ -33,6 +33,10 @@ async def main() -> None:
                         location=location,
                         radius_m=int(row["radius_m"]),
                         min_rank=int(row["min_rank"]),
+                        image_path=row.get("image_path"),
+                        image_attribution=row.get("image_attribution"),
+                        image_source_url=row.get("image_source_url"),
+                        image_license=row.get("image_license"),
                     )
                 )
             else:
@@ -42,6 +46,10 @@ async def main() -> None:
                 existing.location = location
                 existing.radius_m = int(row["radius_m"])
                 existing.min_rank = int(row["min_rank"])
+                existing.image_path = row.get("image_path")
+                existing.image_attribution = row.get("image_attribution")
+                existing.image_source_url = row.get("image_source_url")
+                existing.image_license = row.get("image_license")
 
         await db.commit()
 

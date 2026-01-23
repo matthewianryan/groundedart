@@ -165,6 +165,10 @@ class Node(Base):
     )
     radius_m: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
     min_rank: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    image_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    image_attribution: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    image_source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    image_license: Mapped[str | None] = mapped_column(String(100), nullable=True)
     default_artist_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("artists.id"), nullable=True
     )
