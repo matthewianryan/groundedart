@@ -87,6 +87,10 @@ class Settings(BaseSettings):
         default=60 * 60,
         description="Time-to-live for tip intents, in seconds.",
     )
+    solana_rpc_url: AnyHttpUrl = Field(
+        default="https://api.devnet.solana.com",
+        description="Solana JSON-RPC endpoint for tip receipt verification.",
+    )
 
     media_dir: str = "./.local_media"
     upload_allowed_mime_types: list[str] = Field(

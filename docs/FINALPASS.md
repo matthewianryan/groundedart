@@ -55,15 +55,17 @@ If your API and web are on unrelated domains, the session cookie will not behave
 ## 2) “From Scratch” Bring-up (fresh machine sanity)
 
 ### One-command local bring-up
+- [ ] `cp .env.example .env` and set `VITE_GOOGLE_MAPS_API_KEY` (restart web after changes)
 - [ ] `docker compose -f infra/docker-compose.yml up --build -d`
 - [ ] Web at `http://localhost:5173`
 - [ ] API at `http://localhost:8000`
 - [ ] `GET http://localhost:8000/health` returns `{"status":"ok"}`
 
 ### Seed data present (nodes)
-- [ ] Map shows seeded nodes in Cape Town once the map loads.
-- [ ] If nodes are missing, run migrations (seed nodes are included in Alembic migrations):
-  - `cd apps/api && alembic -c alembic.ini upgrade head`
+- [ ] Seed the demo nodes dataset (one-time per fresh DB volume):
+  - Local Python: `source .venv311/bin/activate && python apps/api/scripts/seed_nodes.py`
+  - Or via Docker: `docker compose -f infra/docker-compose.yml exec -T api python scripts/seed_nodes.py`
+- [ ] Map shows seeded nodes near Cape Town once the map loads (default map center is Cape Town).
 
 ---
 
@@ -90,13 +92,13 @@ Use these to debug without the web UI.
 - [ ] `curl -s http://localhost:8000/health`
 
 ### Anonymous session (cookie set)
-- [ ] `curl -i -s -X POST http://localhost:8000/v1/sessions/anonymous -H 'Content-Type: application/json' -d '{\"device_id\":\"00000000-0000-0000-0000-000000000000\"}' | rg -n 'set-cookie|ga_session|user_id'`
+- [ ] `curl -i -s -X POST http://localhost:8000/v1/sessions/anonymous -H 'Content-Type: application/json' -d '{"device_id":"00000000-0000-0000-0000-000000000000"}' | rg -ni 'set-cookie|ga_session|user_id'`
 
 ### Nodes list (bbox around Cape Town CBD)
 - [ ] `curl -s 'http://localhost:8000/v1/nodes?bbox=18.40,-33.94,18.44,-33.90' | rg -n 'nodes|name'`
 
 ### Admin: list pending captures
-- [ ] `curl -s -H \"X-Admin-Token: $ADMIN_API_TOKEN\" 'http://localhost:8000/v1/admin/captures/pending?limit=10'`
+- [ ] `curl -s -H "X-Admin-Token: $ADMIN_API_TOKEN" 'http://localhost:8000/v1/admin/captures/pending?limit=10'`
 
 ---
 
@@ -150,7 +152,7 @@ This requires admin action.
 
 - [ ] After upload, copy the capture id from the URL `/capture/<captureId>`.
 - [ ] Admin transitions it to verified:
-  - `curl -s -X POST \"http://localhost:8000/v1/admin/captures/<captureId>/transition\" -H \"X-Admin-Token: $ADMIN_API_TOKEN\" -H 'Content-Type: application/json' -d '{\"target_state\":\"verified\",\"reason_code\":\"manual\"}'`
+  - `curl -s -X POST "http://localhost:8000/v1/admin/captures/<captureId>/transition" -H "X-Admin-Token: $ADMIN_API_TOKEN" -H 'Content-Type: application/json' -d '{"target_state":"verified","reason_code":"manual"}'`
 - [ ] In the web app, the user sees a new notification:
   - “Capture verified & published” if fields were complete and auto-publish was requested.
   - Otherwise “Capture verified” plus “Missing to publish: …”.
@@ -162,9 +164,9 @@ This requires admin action.
 - [ ] On Node detail, click **Report** on a publicly visible capture.
 - [ ] Submit a report and confirm the UI shows “Reported”.
 - [ ] Admin lists reports:
-  - `curl -s -H \"X-Admin-Token: $ADMIN_API_TOKEN\" 'http://localhost:8000/v1/admin/reports?resolved=false&limit=10'`
+  - `curl -s -H "X-Admin-Token: $ADMIN_API_TOKEN" 'http://localhost:8000/v1/admin/reports?resolved=false&limit=10'`
 - [ ] Admin resolves with `hide_capture`:
-  - `curl -s -X POST \"http://localhost:8000/v1/admin/reports/<reportId>/resolve\" -H \"X-Admin-Token: $ADMIN_API_TOKEN\" -H 'Content-Type: application/json' -d '{\"resolution\":\"hide_capture\"}'`
+  - `curl -s -X POST "http://localhost:8000/v1/admin/reports/<reportId>/resolve" -H "X-Admin-Token: $ADMIN_API_TOKEN" -H 'Content-Type: application/json' -d '{"resolution":"hide_capture"}'`
 - [ ] Capture no longer appears publicly in node captures.
 
 ---
@@ -209,4 +211,3 @@ Have a fallback:
 - No tipping/on-chain receipts in the current demo loop.
 - No production-grade media access control (local `/media` mount is dev-oriented).
 - No async workers/queues for verification (admin-driven for hackathon).
-

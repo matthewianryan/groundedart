@@ -14,6 +14,7 @@ Users start with a sparse map of starter nodes. By physically visiting real-worl
 5. `docs/ROADMAP.md` — MVP breakdown and milestones
 6. `docs/TASKS.md` — active milestone task checklist
 7. `docs/REPO_STRUCTURE.md` — directory layout and boundaries
+8. `docs/FINALPASS.md` — last-mile demo readiness checklist
 
 ## Success rubrics
 ### Product

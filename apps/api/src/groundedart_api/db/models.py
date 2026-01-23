@@ -205,6 +205,42 @@ class TipIntent(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
 
 
+class TipReceipt(Base):
+    __tablename__ = "tip_receipts"
+    __table_args__ = (
+        CheckConstraint(
+            "confirmation_status in ('seen', 'confirmed', 'finalized', 'failed')",
+            name="ck_tip_receipts_confirmation_status",
+        ),
+        UniqueConstraint("tip_intent_id", name="uq_tip_receipts_tip_intent_id"),
+        UniqueConstraint("tx_signature", name="uq_tip_receipts_tx_signature"),
+        Index("ix_tip_receipts_confirmation_status", "confirmation_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tip_intent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tip_intents.id"), nullable=False
+    )
+    tx_signature: Mapped[str] = mapped_column(String(128), nullable=False)
+    from_pubkey: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    to_pubkey: Mapped[str] = mapped_column(String(64), nullable=False)
+    amount_lamports: Mapped[int] = mapped_column(Integer, nullable=False)
+    slot: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    block_time: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    confirmation_status: Mapped[str] = mapped_column(String(16), nullable=False)
+    first_seen_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        nullable=False,
+    )
+    last_checked_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        nullable=False,
+    )
+    failure_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
 class CheckinChallenge(Base):
     __tablename__ = "checkin_challenges"
     __table_args__ = (

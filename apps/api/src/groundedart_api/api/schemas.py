@@ -123,6 +123,28 @@ class TipIntentResponse(BaseModel):
     memo_text: str
 
 
+TipReceiptStatus = Literal["seen", "confirmed", "finalized", "failed"]
+
+
+class ConfirmTipRequest(BaseModel):
+    tip_intent_id: uuid.UUID
+    tx_signature: str
+
+
+class TipReceiptPublic(BaseModel):
+    tip_intent_id: uuid.UUID
+    tx_signature: str
+    from_pubkey: str | None = None
+    to_pubkey: str
+    amount_lamports: int
+    slot: int | None = None
+    block_time: dt.datetime | None = None
+    confirmation_status: TipReceiptStatus
+    first_seen_at: dt.datetime
+    last_checked_at: dt.datetime
+    failure_reason: str | None = None
+
+
 class CreateCaptureRequest(BaseModel):
     node_id: uuid.UUID
     checkin_token: str

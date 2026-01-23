@@ -6,6 +6,9 @@
     "artist_missing_recipient_pubkey",
     "invalid_tip_amount",
     "node_missing_default_artist",
-    "node_not_found"
+    "node_not_found",
+    "tip_intent_already_confirmed",
+    "tip_intent_not_found",
+    "tx_signature_already_used"
   ]
 }

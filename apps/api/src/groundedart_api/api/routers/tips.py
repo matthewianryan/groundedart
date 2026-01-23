@@ -5,12 +5,24 @@ import re
 import uuid
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 
-from groundedart_api.api.schemas import CreateTipIntentRequest, TipIntentResponse
+from groundedart_api.api.schemas import (
+    ConfirmTipRequest,
+    CreateTipIntentRequest,
+    TipIntentResponse,
+    TipReceiptPublic,
+)
 from groundedart_api.auth.deps import CurrentUser
-from groundedart_api.db.models import Artist, Node, TipIntent
+from groundedart_api.db.models import Artist, Node, TipIntent, TipReceipt
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.errors import AppError
+from groundedart_api.domain.tip_receipts import (
+    TipReceiptFailureReason,
+    TipReceiptProvider,
+    TipReceiptVerificationFailure,
+)
+from groundedart_api.domain.tip_receipts_solana import get_solana_tip_receipt_provider
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.time import UtcNow, get_utcnow
 
@@ -27,6 +39,22 @@ def _is_valid_pubkey(value: str) -> bool:
 
 def _build_memo_text(tip_intent_id: uuid.UUID) -> str:
     return f"{_MEMO_PREFIX}{tip_intent_id}"
+
+
+def _receipt_public(receipt: TipReceipt) -> TipReceiptPublic:
+    return TipReceiptPublic(
+        tip_intent_id=receipt.tip_intent_id,
+        tx_signature=receipt.tx_signature,
+        from_pubkey=receipt.from_pubkey,
+        to_pubkey=receipt.to_pubkey,
+        amount_lamports=receipt.amount_lamports,
+        slot=receipt.slot,
+        block_time=receipt.block_time,
+        confirmation_status=receipt.confirmation_status,
+        first_seen_at=receipt.first_seen_at,
+        last_checked_at=receipt.last_checked_at,
+        failure_reason=receipt.failure_reason,
+    )
 
 
 @router.post("/tips/intents", response_model=TipIntentResponse)
@@ -89,3 +117,103 @@ async def create_tip_intent(
         cluster=_CLUSTER,
         memo_text=memo_text,
     )
+
+
+@router.post("/tips/confirm", response_model=TipReceiptPublic)
+async def confirm_tip(
+    payload: ConfirmTipRequest,
+    db: DbSessionDep,
+    user: CurrentUser,
+    provider: TipReceiptProvider = Depends(get_solana_tip_receipt_provider),
+    now: UtcNow = Depends(get_utcnow),
+) -> TipReceiptPublic:
+    tip_intent = await db.get(TipIntent, payload.tip_intent_id)
+    if tip_intent is None:
+        raise AppError(
+            code="tip_intent_not_found",
+            message="Tip intent not found",
+            status_code=404,
+        )
+
+    existing_receipt = await db.scalar(
+        select(TipReceipt).where(TipReceipt.tip_intent_id == payload.tip_intent_id)
+    )
+    if existing_receipt:
+        if existing_receipt.tx_signature != payload.tx_signature:
+            raise AppError(
+                code="tip_intent_already_confirmed",
+                message="Tip intent already confirmed",
+                status_code=409,
+            )
+        return _receipt_public(existing_receipt)
+
+    existing_signature = await db.scalar(
+        select(TipReceipt).where(TipReceipt.tx_signature == payload.tx_signature)
+    )
+    if existing_signature:
+        raise AppError(
+            code="tx_signature_already_used",
+            message="Transaction signature already used",
+            status_code=409,
+        )
+
+    now_at = now()
+    if now_at >= tip_intent.expires_at or tip_intent.status != "open":
+        receipt = TipReceipt(
+            tip_intent_id=payload.tip_intent_id,
+            tx_signature=payload.tx_signature,
+            from_pubkey=None,
+            to_pubkey=tip_intent.to_pubkey,
+            amount_lamports=tip_intent.amount_lamports,
+            slot=None,
+            block_time=None,
+            confirmation_status="failed",
+            first_seen_at=now_at,
+            last_checked_at=now_at,
+            failure_reason=TipReceiptFailureReason.INTENT_EXPIRED,
+        )
+        db.add(receipt)
+        await db.commit()
+        return _receipt_public(receipt)
+
+    verification = await provider.verify_tip_receipt(
+        tip_intent_id=payload.tip_intent_id,
+        tx_signature=payload.tx_signature,
+        expected_to_pubkey=tip_intent.to_pubkey,
+        expected_amount_lamports=tip_intent.amount_lamports,
+    )
+
+    if isinstance(verification, TipReceiptVerificationFailure):
+        receipt = TipReceipt(
+            tip_intent_id=payload.tip_intent_id,
+            tx_signature=payload.tx_signature,
+            from_pubkey=None,
+            to_pubkey=tip_intent.to_pubkey,
+            amount_lamports=tip_intent.amount_lamports,
+            slot=verification.slot,
+            block_time=verification.block_time,
+            confirmation_status="failed",
+            first_seen_at=now_at,
+            last_checked_at=now_at,
+            failure_reason=verification.reason,
+        )
+        db.add(receipt)
+        await db.commit()
+        return _receipt_public(receipt)
+
+    receipt = TipReceipt(
+        tip_intent_id=payload.tip_intent_id,
+        tx_signature=payload.tx_signature,
+        from_pubkey=verification.from_pubkey,
+        to_pubkey=verification.to_pubkey,
+        amount_lamports=verification.amount_lamports,
+        slot=verification.slot,
+        block_time=verification.block_time,
+        confirmation_status=verification.confirmation_status,
+        first_seen_at=now_at,
+        last_checked_at=now_at,
+        failure_reason=None,
+    )
+    db.add(receipt)
+    await db.commit()
+    return _receipt_public(receipt)

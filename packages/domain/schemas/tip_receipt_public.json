@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TipReceiptPublic",
+  "type": "object",
+  "required": [
+    "tip_intent_id",
+    "tx_signature",
+    "to_pubkey",
+    "amount_lamports",
+    "confirmation_status",
+    "first_seen_at",
+    "last_checked_at"
+  ],
+  "properties": {
+    "tip_intent_id": { "type": "string", "format": "uuid" },
+    "tx_signature": { "type": "string" },
+    "from_pubkey": { "type": ["string", "null"] },
+    "to_pubkey": { "type": "string" },
+    "amount_lamports": { "type": "integer", "minimum": 1 },
+    "slot": { "type": ["integer", "null"] },
+    "block_time": { "type": ["string", "null"], "format": "date-time" },
+    "confirmation_status": { "$ref": "tip_receipt_status.json" },
+    "first_seen_at": { "type": "string", "format": "date-time" },
+    "last_checked_at": { "type": "string", "format": "date-time" },
+    "failure_reason": { "type": ["string", "null"] }
+  }
+}

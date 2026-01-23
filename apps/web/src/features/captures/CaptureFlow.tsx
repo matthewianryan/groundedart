@@ -3,7 +3,7 @@ import { isApiError } from "../../api/http";
 import { formatNextUnlockLine, formatUnlockRequirement } from "../me/copy";
 import { getMe } from "../me/api";
 import type { MeResponse } from "../me/types";
-import { createCapture } from "./api";
+import { createCapture, type CaptureRightsBasis } from "./api";
 import { type CaptureAsset, type CaptureFailure, type CaptureFlowStatus, type CaptureIntent } from "./captureFlowState";
 import { clearActiveCaptureDraft, saveActiveCaptureDraft } from "./captureDraftStore";
 import {
@@ -67,7 +67,7 @@ export function CaptureFlow({
   const [attributionArtworkTitle, setAttributionArtworkTitle] = useState("");
   const [attributionSource, setAttributionSource] = useState("");
   const [attributionSourceUrl, setAttributionSourceUrl] = useState("");
-  const [rightsBasis, setRightsBasis] = useState("");
+  const [rightsBasis, setRightsBasis] = useState<CaptureRightsBasis | "">("");
   const [rightsAttestation, setRightsAttestation] = useState(false);
   const [publishRequested, setPublishRequested] = useState(false);
   const submitLock = useRef(false);
@@ -581,7 +581,10 @@ export function CaptureFlow({
             <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
               <label>
                 <div className="muted">Rights basis</div>
-                <select value={rightsBasis} onChange={(event) => setRightsBasis(event.target.value)}>
+                <select
+                  value={rightsBasis}
+                  onChange={(event) => setRightsBasis(event.target.value as CaptureRightsBasis | "")}
+                >
                   <option value="">Select a basis</option>
                   <option value="i_took_photo">I took the photo</option>
                   <option value="permission_granted">Permission granted</option>
