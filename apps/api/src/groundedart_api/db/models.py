@@ -204,20 +204,51 @@ class Capture(Base):
     image_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
 
-class CaptureStateEvent(Base):
-    __tablename__ = "capture_state_events"
-    __table_args__ = (Index("ix_capture_state_events_capture_created", "capture_id", "created_at"),)
+class CaptureEvent(Base):
+    __tablename__ = "capture_events"
+    __table_args__ = (Index("ix_capture_events_capture_created", "capture_id", "created_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     capture_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("captures.id"), nullable=False
     )
-    from_state: Mapped[str] = mapped_column(String(32), nullable=False)
-    to_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    from_state: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    to_state: Mapped[str | None] = mapped_column(String(32), nullable=True)
     reason_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     actor_type: Mapped[str] = mapped_column(String(32), nullable=False)
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    details: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
+
+
+class CuratorRankEvent(Base):
+    __tablename__ = "rank_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "event_type",
+            "capture_id",
+            name="uq_rank_events_event_type_capture_id",
+        ),
+        Index("ix_rank_events_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    delta: Mapped[int] = mapped_column(Integer, nullable=False)
+    rank_version: Mapped[str] = mapped_column(String(32), nullable=False, default="v1_points")
+    capture_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("captures.id"), nullable=True
+    )
+    node_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("nodes.id"), nullable=True
     )
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False

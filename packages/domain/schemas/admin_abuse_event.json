@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AdminAbuseEvent",
+  "type": "object",
+  "required": [
+    "id",
+    "event_type",
+    "user_id",
+    "node_id",
+    "capture_id",
+    "created_at",
+    "details"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "event_type": { "type": "string" },
+    "user_id": { "type": ["string", "null"], "format": "uuid" },
+    "node_id": { "type": ["string", "null"], "format": "uuid" },
+    "capture_id": { "type": ["string", "null"], "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "details": { "type": ["object", "null"] }
+  }
+}

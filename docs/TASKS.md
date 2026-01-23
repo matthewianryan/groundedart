@@ -61,7 +61,7 @@ Decision: extend `GET /v1/me` to include rank breakdown + next unlock.
 
 **Context (what/why)**
 - M4 requires an **auditable event log** so rank can be derived, debugged, and explained.
-- The existing capture audit log (`capture_state_events`) shows verification transitions, but there is no rank-side ledger.
+- The existing capture audit log (`capture_events`) shows verification transitions, but there is no rank-side ledger.
 
 **Change plan (specific files)**
 - DB model + migration:

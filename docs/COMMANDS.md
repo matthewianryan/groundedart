@@ -53,6 +53,28 @@ cd apps/api
 uvicorn groundedart_api.main:app --reload --port 8000
 ```
 
+## Admin moderation (API-only)
+
+Prereqs:
+- API server running.
+- `ADMIN_API_TOKEN` set (matches `.env`).
+
+List pending captures:
+
+```bash
+cd apps/api
+python scripts/admin_list_pending_captures.py --limit 50
+```
+
+List abuse events:
+
+```bash
+cd apps/api
+python scripts/admin_list_abuse_events.py --limit 50
+```
+
+Optional: set `GROUNDEDART_API_BASE_URL` for non-local endpoints.
+
 ## Run the web app
 
 ```bash

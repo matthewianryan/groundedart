@@ -10,9 +10,9 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import Capture, CaptureStateEvent, CheckinToken, Node, utcnow
+from groundedart_api.db.models import Capture, CaptureEvent, CheckinToken, Node, utcnow
 from groundedart_api.domain.capture_state import CaptureState
-from groundedart_api.domain.capture_state_events import apply_capture_transition_with_audit
+from groundedart_api.domain.capture_events import apply_capture_transition_with_audit
 from groundedart_api.settings import get_settings
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -105,19 +105,27 @@ async def test_upload_promotion_creates_audit_event(db_sessionmaker, client: Asy
     assert response.status_code == 200
     async with db_sessionmaker() as session:
         result = await session.execute(
-            select(CaptureStateEvent)
-            .where(CaptureStateEvent.capture_id == capture_id)
-            .order_by(CaptureStateEvent.created_at)
+            select(CaptureEvent)
+            .where(CaptureEvent.capture_id == capture_id)
+            .order_by(CaptureEvent.created_at, CaptureEvent.id)
         )
         events = list(result.scalars())
 
-    assert len(events) == 1
-    event = events[0]
-    assert event.from_state == CaptureState.draft.value
-    assert event.to_state == CaptureState.pending_verification.value
-    assert event.reason_code == "image_uploaded"
-    assert event.actor_type == "user"
-    assert event.actor_user_id == user_id
+    assert len(events) == 2
+    created_event = events[0]
+    transition_event = events[1]
+    assert created_event.event_type == "capture_created"
+    assert created_event.from_state is None
+    assert created_event.to_state == CaptureState.draft.value
+    assert created_event.reason_code == "geo_passed"
+    assert created_event.actor_type == "user"
+    assert created_event.actor_user_id == user_id
+    assert transition_event.event_type == "state_transition"
+    assert transition_event.from_state == CaptureState.draft.value
+    assert transition_event.to_state == CaptureState.pending_verification.value
+    assert transition_event.reason_code == "image_uploaded"
+    assert transition_event.actor_type == "user"
+    assert transition_event.actor_user_id == user_id
 
 
 @pytest.mark.asyncio
@@ -146,14 +154,17 @@ async def test_admin_transition_creates_audit_event(db_sessionmaker, client: Asy
         await session.commit()
 
         result = await session.execute(
-            select(CaptureStateEvent)
-            .where(CaptureStateEvent.capture_id == capture_id)
-            .order_by(CaptureStateEvent.created_at)
+            select(CaptureEvent)
+            .where(CaptureEvent.capture_id == capture_id)
+            .order_by(CaptureEvent.created_at, CaptureEvent.id)
         )
         events = list(result.scalars())
 
-    assert len(events) == 2
+    assert len(events) == 3
+    created_event = events[0]
+    assert created_event.event_type == "capture_created"
     event = events[-1]
+    assert event.event_type == "state_transition"
     assert event.from_state == CaptureState.pending_verification.value
     assert event.to_state == CaptureState.verified.value
     assert event.reason_code == "image_uploaded"

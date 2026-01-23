@@ -13,7 +13,10 @@ from groundedart_api.db.models import Capture, CheckinToken
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.abuse_events import record_abuse_event
 from groundedart_api.domain.capture_state import CaptureState
-from groundedart_api.domain.capture_state_events import apply_capture_transition_with_audit
+from groundedart_api.domain.capture_events import (
+    apply_capture_transition_with_audit,
+    record_capture_created_event,
+)
 from groundedart_api.domain.capture_transitions import validate_capture_state_reason
 from groundedart_api.domain.errors import AppError
 from groundedart_api.domain.verification_events import VerificationEventEmitterDep
@@ -107,6 +110,14 @@ async def create_capture(
         state_reason=validate_capture_state_reason(CaptureState.draft, "geo_passed"),
     )
     db.add(capture)
+    await db.flush()
+    record_capture_created_event(
+        db=db,
+        capture=capture,
+        actor_type="user",
+        actor_user_id=user.id,
+        reason_code=capture.state_reason,
+    )
     await db.commit()
     await db.refresh(capture)
     return CreateCaptureResponse(capture=capture_to_public(capture))

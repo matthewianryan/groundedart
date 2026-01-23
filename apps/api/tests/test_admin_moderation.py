@@ -13,7 +13,7 @@ from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
 from groundedart_api.db.models import (
     AbuseEvent,
     Capture,
-    CaptureStateEvent,
+    CaptureEvent,
     CheckinToken,
     Node,
     User,
@@ -124,12 +124,13 @@ async def test_admin_transition_updates_capture_and_audit(db_sessionmaker, clien
         assert capture.state_reason == "manual_review_pass"
 
         result = await session.execute(
-            select(CaptureStateEvent)
-            .where(CaptureStateEvent.capture_id == capture_id)
-            .order_by(CaptureStateEvent.created_at.desc())
+            select(CaptureEvent)
+            .where(CaptureEvent.capture_id == capture_id)
+            .order_by(CaptureEvent.created_at.desc(), CaptureEvent.id.desc())
             .limit(1)
         )
         event = result.scalar_one()
+        assert event.event_type == "state_transition"
         assert event.to_state == "verified"
         assert event.reason_code == "manual_review_pass"
         assert event.actor_type == "admin"

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from groundedart_api.db.models import Capture
 from groundedart_api.domain.capture_state import CaptureState
-from groundedart_api.domain.capture_state_events import apply_capture_transition_with_audit
+from groundedart_api.domain.capture_events import apply_capture_transition_with_audit
 from groundedart_api.domain.errors import AppError
 from groundedart_api.domain.verification_events import VerificationEventEmitter
 

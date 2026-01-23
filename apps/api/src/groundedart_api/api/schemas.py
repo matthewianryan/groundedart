@@ -24,6 +24,22 @@ class MeResponse(BaseModel):
     rank: int = 0
 
 
+class RankEvent(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    event_type: str
+    delta: int
+    created_at: dt.datetime
+    rank_version: str
+    capture_id: uuid.UUID | None = None
+    node_id: uuid.UUID | None = None
+    details: dict[str, object] | None = None
+
+
+class RankEventsResponse(BaseModel):
+    events: list[RankEvent]
+
+
 class NodePublic(BaseModel):
     id: uuid.UUID
     name: str

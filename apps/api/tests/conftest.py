@@ -58,7 +58,7 @@ async def reset_db(db_sessionmaker):
     async with db_sessionmaker() as session:
         await session.execute(
             text(
-                "TRUNCATE abuse_events, capture_state_events, captures, checkin_tokens, "
+                "TRUNCATE abuse_events, capture_events, captures, checkin_tokens, "
                 "checkin_challenges, nodes, devices, sessions, curator_profiles, users "
                 "RESTART IDENTITY CASCADE"
             )
