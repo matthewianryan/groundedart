@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreateReportRequest",
+  "type": "object",
+  "required": ["reason"],
+  "properties": {
+    "reason": { "$ref": "report_reason_code.json" },
+    "details": { "type": ["string", "null"] }
+  }
+}

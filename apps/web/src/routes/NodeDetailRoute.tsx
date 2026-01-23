@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { isApiError } from "../api/http";
-import { listNodeCaptures, type CapturePublic } from "../features/captures/api";
+import {
+  createCaptureReport,
+  listNodeCaptures,
+  type CapturePublic,
+  type ReportReasonCode
+} from "../features/captures/api";
 import { getMe } from "../features/me/api";
 import type { MeResponse } from "../features/me/types";
 import type { NodePublic } from "../features/nodes/types";
@@ -18,6 +23,20 @@ export function NodeDetailRoute() {
   const [capturesStatus, setCapturesStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [capturesError, setCapturesError] = useState<string | null>(null);
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [reportingCaptureId, setReportingCaptureId] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState<ReportReasonCode>("other");
+  const [reportDetails, setReportDetails] = useState<string>("");
+  const [reportStatus, setReportStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [lastReportedId, setLastReportedId] = useState<string | null>(null);
+
+  const reportReasons: ReportReasonCode[] = [
+    "spam",
+    "rights_violation",
+    "privacy",
+    "harassment",
+    "other"
+  ];
 
   function formatAttribution(capture: CapturePublic): string | null {
     const artist = capture.attribution_artist_name?.trim();
@@ -69,6 +88,36 @@ export function NodeDetailRoute() {
     return () => controller.abort();
   }, []);
 
+  function startReport(captureId: string) {
+    setReportingCaptureId(captureId);
+    setReportReason("other");
+    setReportDetails("");
+    setReportStatus("idle");
+    setReportError(null);
+  }
+
+  async function submitReport(captureId: string) {
+    setReportStatus("submitting");
+    setReportError(null);
+    try {
+      await createCaptureReport(captureId, {
+        reason: reportReason,
+        details: reportDetails.trim() ? reportDetails.trim() : null
+      });
+      setLastReportedId(captureId);
+      setReportingCaptureId(null);
+      setReportDetails("");
+      setReportStatus("idle");
+    } catch (err) {
+      setReportStatus("error");
+      if (isApiError(err)) {
+        setReportError(err.message || "Unable to submit report.");
+      } else {
+        setReportError("Unable to submit report.");
+      }
+    }
+  }
+
   return (
     <div className="detail-layout">
       <div className="panel detail">
@@ -117,23 +166,85 @@ export function NodeDetailRoute() {
                   {captures.map((capture) => {
                     const attribution = formatAttribution(capture);
                     return (
-                      <div key={capture.id} className="capture-thumb">
-                        {capture.image_url ? (
-                          <img src={capture.image_url} alt="Verified capture" loading="lazy" />
-                        ) : (
-                          <div className="capture-thumb-fallback">Image pending</div>
-                        )}
+                      <div key={capture.id} className="capture-card">
+                        <div className="capture-thumb">
+                          {capture.image_url ? (
+                            <img src={capture.image_url} alt="Verified capture" loading="lazy" />
+                          ) : (
+                            <div className="capture-thumb-fallback">Image pending</div>
+                          )}
+                        </div>
                         {attribution ? (
-                          <div className="muted" style={{ marginTop: 6 }}>
+                          <div className="muted">
                             {attribution}
                             {capture.attribution_source ? ` · ${capture.attribution_source}` : ""}
                           </div>
                         ) : null}
                         {capture.attribution_source_url ? (
-                          <div className="muted" style={{ marginTop: 4 }}>
+                          <div className="muted">
                             <a href={capture.attribution_source_url} target="_blank" rel="noreferrer">
                               Source
                             </a>
+                          </div>
+                        ) : null}
+                        {me ? (
+                          <div className="report-actions">
+                            <button
+                              type="button"
+                              onClick={() => startReport(capture.id)}
+                              disabled={reportingCaptureId === capture.id && reportStatus === "submitting"}
+                            >
+                              Report
+                            </button>
+                            {lastReportedId === capture.id ? (
+                              <span className="muted">Reported</span>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {reportingCaptureId === capture.id ? (
+                          <div className="report-form">
+                            <label className="muted" htmlFor={`report-reason-${capture.id}`}>
+                              Reason
+                            </label>
+                            <select
+                              id={`report-reason-${capture.id}`}
+                              value={reportReason}
+                              onChange={(event) => setReportReason(event.target.value as ReportReasonCode)}
+                            >
+                              {reportReasons.map((reason) => (
+                                <option key={reason} value={reason}>
+                                  {reason.replace(/_/g, " ")}
+                                </option>
+                              ))}
+                            </select>
+                            <label className="muted" htmlFor={`report-details-${capture.id}`}>
+                              Details (optional)
+                            </label>
+                            <textarea
+                              id={`report-details-${capture.id}`}
+                              rows={3}
+                              value={reportDetails}
+                              onChange={(event) => setReportDetails(event.target.value)}
+                            />
+                            <div className="report-actions">
+                              <button
+                                type="button"
+                                onClick={() => submitReport(capture.id)}
+                                disabled={reportStatus === "submitting"}
+                              >
+                                Submit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setReportingCaptureId(null)}
+                                disabled={reportStatus === "submitting"}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                            {reportStatus === "error" ? (
+                              <div className="alert">{reportError ?? "Unable to submit report."}</div>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>

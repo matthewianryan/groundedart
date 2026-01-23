@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReportPublic",
+  "type": "object",
+  "required": [
+    "id",
+    "capture_id",
+    "node_id",
+    "reason",
+    "details",
+    "created_at",
+    "resolved_at",
+    "resolution"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "capture_id": { "type": "string", "format": "uuid" },
+    "node_id": { "type": ["string", "null"], "format": "uuid" },
+    "reason": { "$ref": "report_reason_code.json" },
+    "details": { "type": ["string", "null"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "resolved_at": { "type": ["string", "null"], "format": "date-time" },
+    "resolution": {
+      "oneOf": [{ "$ref": "report_resolution_code.json" }, { "type": "null" }]
+    }
+  }
+}

@@ -136,6 +136,26 @@ class CapturesResponse(BaseModel):
     captures: list[CapturePublic]
 
 
+class ReportPublic(BaseModel):
+    id: uuid.UUID
+    capture_id: uuid.UUID
+    node_id: uuid.UUID | None = None
+    reason: str
+    details: str | None = None
+    created_at: dt.datetime
+    resolved_at: dt.datetime | None = None
+    resolution: str | None = None
+
+
+class CreateReportRequest(BaseModel):
+    reason: str
+    details: str | None = None
+
+
+class CreateReportResponse(BaseModel):
+    report: ReportPublic
+
+
 class AdminCapture(BaseModel):
     id: uuid.UUID
     node_id: uuid.UUID
@@ -179,3 +199,27 @@ class AdminAbuseEvent(BaseModel):
 
 class AdminAbuseEventsResponse(BaseModel):
     events: list[AdminAbuseEvent]
+
+
+class AdminReport(BaseModel):
+    id: uuid.UUID
+    capture_id: uuid.UUID
+    node_id: uuid.UUID | None = None
+    user_id: uuid.UUID | None = None
+    reason: str
+    details: str | None = None
+    created_at: dt.datetime
+    resolved_at: dt.datetime | None = None
+    resolution: str | None = None
+
+
+class AdminReportsResponse(BaseModel):
+    reports: list[AdminReport]
+
+
+class AdminReportResolveRequest(BaseModel):
+    resolution: str
+
+
+class AdminReportResolveResponse(BaseModel):
+    report: AdminReport

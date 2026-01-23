@@ -13,14 +13,20 @@ from groundedart_api.api.schemas import (
     AdminCaptureTransitionRequest,
     AdminCaptureTransitionResponse,
     AdminCapturesResponse,
+    AdminReport,
+    AdminReportResolveRequest,
+    AdminReportResolveResponse,
+    AdminReportsResponse,
 )
 from groundedart_api.auth.deps import require_admin
-from groundedart_api.db.models import AbuseEvent, Capture
+from groundedart_api.db.models import AbuseEvent, Capture, ContentReport
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.capture_moderation import transition_capture_state
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.errors import AppError
+from groundedart_api.domain.report_resolution_code import ReportResolutionCode
 from groundedart_api.domain.verification_events import VerificationEventEmitterDep
+from groundedart_api.time import UtcNow, get_utcnow
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -60,6 +66,20 @@ def abuse_event_to_admin(event: AbuseEvent) -> AdminAbuseEvent:
         capture_id=event.capture_id,
         created_at=event.created_at,
         details=event.details,
+    )
+
+
+def report_to_admin(report: ContentReport) -> AdminReport:
+    return AdminReport(
+        id=report.id,
+        capture_id=report.capture_id,
+        node_id=report.node_id,
+        user_id=report.user_id,
+        reason=report.reason,
+        details=report.details,
+        created_at=report.created_at,
+        resolved_at=report.resolved_at,
+        resolution=report.resolution,
     )
 
 
@@ -142,3 +162,89 @@ async def list_abuse_events(
 
     events = (await db.scalars(query.order_by(AbuseEvent.created_at.desc()).limit(limit))).all()
     return AdminAbuseEventsResponse(events=[abuse_event_to_admin(event) for event in events])
+
+
+@router.get("/reports", response_model=AdminReportsResponse)
+async def list_reports(
+    db: DbSessionDep,
+    capture_id: uuid.UUID | None = Query(default=None),
+    node_id: uuid.UUID | None = Query(default=None),
+    resolved: bool | None = Query(default=None),
+    created_after: dt.datetime | None = Query(default=None),
+    created_before: dt.datetime | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> AdminReportsResponse:
+    query = select(ContentReport)
+    if capture_id is not None:
+        query = query.where(ContentReport.capture_id == capture_id)
+    if node_id is not None:
+        query = query.where(ContentReport.node_id == node_id)
+    if resolved is True:
+        query = query.where(ContentReport.resolved_at.is_not(None))
+    if resolved is False:
+        query = query.where(ContentReport.resolved_at.is_(None))
+    if created_after is not None:
+        query = query.where(ContentReport.created_at >= created_after)
+    if created_before is not None:
+        query = query.where(ContentReport.created_at <= created_before)
+
+    reports = (await db.scalars(query.order_by(ContentReport.created_at.desc()).limit(limit))).all()
+    return AdminReportsResponse(reports=[report_to_admin(report) for report in reports])
+
+
+@router.post("/reports/{report_id}/resolve", response_model=AdminReportResolveResponse)
+async def resolve_report(
+    report_id: uuid.UUID,
+    body: AdminReportResolveRequest,
+    db: DbSessionDep,
+    verification_events: VerificationEventEmitterDep,
+    now: UtcNow = Depends(get_utcnow),
+) -> AdminReportResolveResponse:
+    report = await db.get(ContentReport, report_id)
+    if report is None:
+        raise AppError(code="report_not_found", message="Report not found", status_code=404)
+    if report.resolved_at is not None:
+        raise AppError(
+            code="report_already_resolved",
+            message="Report already resolved",
+            status_code=400,
+        )
+
+    try:
+        resolution = ReportResolutionCode(body.resolution)
+    except ValueError as exc:
+        raise AppError(
+            code="invalid_report_resolution",
+            message="Invalid report resolution",
+            status_code=400,
+        ) from exc
+
+    if resolution in {ReportResolutionCode.hide_capture, ReportResolutionCode.rights_takedown}:
+        capture = await db.get(Capture, report.capture_id)
+        if capture is None:
+            raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
+        if capture.state != CaptureState.hidden.value:
+            reason_code = (
+                "rights_takedown"
+                if resolution == ReportResolutionCode.rights_takedown
+                else "report_hide"
+            )
+            await transition_capture_state(
+                db=db,
+                capture_id=report.capture_id,
+                target_state=CaptureState.hidden,
+                reason_code=reason_code,
+                actor_type="admin",
+                actor_user_id=None,
+                verification_events=verification_events,
+                details={
+                    "report_id": str(report.id),
+                    "report_reason": report.reason,
+                },
+            )
+
+    report.resolution = resolution.value
+    report.resolved_at = now()
+    await db.commit()
+    await db.refresh(report)
+    return AdminReportResolveResponse(report=report_to_admin(report))

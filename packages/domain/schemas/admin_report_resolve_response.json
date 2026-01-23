@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AdminReportResolveResponse",
+  "type": "object",
+  "required": ["report"],
+  "properties": {
+    "report": { "$ref": "admin_report.json" }
+  }
+}

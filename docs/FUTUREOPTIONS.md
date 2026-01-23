@@ -87,3 +87,116 @@ If a check-in token must be consumed before upload begins, you need an idempoten
 - When API bandwidth/cost becomes a bottleneck.
 - When mobile uploads regularly exceed acceptable timeouts even after compression.
 
+## TODO:
+On-chain tipping (Solana), targeting specific artists (hackathon scope)
+
+### What we are choosing between (native-only vs USDC vs either)
+These choices determine **what assets users can tip with** and what we must implement in the client + API verification.
+
+1) **Native-only (SOL)**
+   - **Meaning:** tips are paid in SOL via a standard system transfer.
+   - **Functional translation (on-chain):**
+     - Web wallet signs a transaction containing `SystemProgram.transfer(from=payer, to=artist_pubkey, lamports=...)`.
+     - Optional: include a `Memo` instruction encoding `tip_intent_id` / `artist_id` / `capture_id` for auditability.
+   - **Implications:**
+     - Simplest UX and verification.
+     - If the user has SOL, they can tip; no SPL token account complexity.
+
+2) **USDC-only (SPL token)**
+   - **Meaning:** tips are paid in USDC (an SPL token), not SOL.
+   - **Functional translation (on-chain):**
+     - Web wallet signs a transaction containing SPL token instructions:
+       - Ensure sender USDC token account exists (it will).
+       - Ensure recipient **Associated Token Account (ATA)** exists; create it if missing.
+       - `transfer_checked` (or equivalent) from sender ATA → recipient ATA for the USDC mint.
+     - Optional: include a `Memo` instruction encoding `tip_intent_id` / `artist_id` / `capture_id`.
+   - **Implications:**
+     - More implementation surface (ATA creation, mint/decimals, token program IDs).
+     - **User still needs SOL** to pay transaction fees, even if tipping in USDC (unless we add a relayer/gasless flow).
+     - Requires choosing a USDC mint per network (devnet vs mainnet mints differ).
+
+3) **Either (SOL + USDC)**
+   - **Meaning:** users can choose SOL or USDC at tip time.
+   - **Functional translation (on-chain):**
+     - Same as above, but the tip flow becomes “asset-aware”:
+       - For SOL: one system transfer instruction.
+       - For USDC: token transfer instructions + optional ATA creation.
+   - **Implications:**
+     - Best flexibility; most code paths.
+     - Requires the DB + API “receipt” model to include:
+       - `asset_kind` (`sol` vs `spl`)
+       - `token_mint` (for SPL; USDC mint pubkey)
+       - `amount` in base units (lamports for SOL; token base units for SPL)
+     - UI must handle decimals and formatting:
+       - SOL uses 9 decimals (lamports).
+       - USDC typically uses 6 decimals.
+
+### “Fully integrated” on Solana: receipt strategy options
+Solana doesn’t have EVM-style “events” in the same way; the closest equivalents are **transaction logs**, **program-owned receipt accounts**, and **indexable references/memos**.
+
+Option A — **No custom program (fastest): transfer + memo/reference**
+- Web constructs a normal transfer (SOL or USDC) and includes a `Memo` (and/or Solana Pay-style “reference”) that ties it to an in-app `tip_intent_id`.
+- API verifies the transaction by signature:
+  - Fetch via RPC (`getTransaction`) and assert:
+    - the expected recipient address is paid,
+    - the amount matches,
+    - the expected mint (for USDC) matches,
+    - the memo/reference matches the `tip_intent_id`,
+    - the transaction is confirmed at the chosen commitment level.
+- Pros: no on-chain program deployment; minimal risk.
+- Cons: tying a payment to an in-app entity is “convention” (memo/reference), not enforced by a program; needs robust verification logic.
+
+Option B — **Custom TipReceipt program (strongest integration)**
+- Deploy a Solana program that:
+  - validates inputs (artist recipient, amount, optional platform fee/splits),
+  - transfers funds (SOL and/or SPL),
+  - creates/updates a **TipReceipt PDA account** storing `{tipper, artist, amount, mint, capture_id/node_id, created_at}`.
+- API can verify by:
+  - checking the receipt account state (canonical),
+  - optionally indexing program logs for the demo UI.
+- Pros: canonical receipt data; easier to extend to splits/fees/gating.
+- Cons: program design, audits, deployment, and client integration cost.
+
+### Repo changes (what must land in this repo)
+**Domain model (to target specific artists)**
+- Introduce an `artists` table and link it to captures/nodes:
+  - `artists`: `id`, `display_name`, `solana_recipient_pubkey`, optional `verified/claimed` fields.
+  - One of:
+    - `captures.artist_id` (tip the artist tied to the capture), or
+    - `nodes.default_artist_id` (tip the “owner” artist for the node), or
+    - `artworks` + `artwork.artist_id` (more correct; more work).
+
+**Tip intent + receipt persistence**
+- Add `tip_intents` and `tip_receipts` (or one table if we skip intents):
+  - `tip_intents`: server-issued id, `artist_id`, `capture_id`/`node_id`, `asset_kind`, `token_mint`, `amount`, `created_by_user_id`, `expires_at`.
+  - `tip_receipts`: `tip_intent_id`, `tx_signature`, `from_pubkey`, `to_pubkey`, `token_mint` (nullable for SOL), `amount`, `confirmed_at`, `slot`, `status`.
+
+**API endpoints (illustrative)**
+- `POST /v1/tips/intents` → create intent and return the canonical “what to pay” payload.
+- `POST /v1/tips/confirm` → submit `tx_signature`; API verifies and stores receipt.
+- `GET /v1/artists/{artist_id}/tips` and/or `GET /v1/nodes/{node_id}/tips` → totals/history for UI.
+
+**Web**
+- Wallet connect (Solana Wallet Adapter: Phantom/Solflare/etc).
+- Tip UI on node/capture views:
+  - choose amount,
+  - choose asset (SOL/USDC) if we support “either”,
+  - send transaction,
+  - submit signature for confirmation and show success/receipt.
+
+### External setup (what is configured outside the repo)
+- Solana network selection: `devnet` vs `mainnet-beta` (hackathons usually start on devnet).
+- RPC provider (public RPC works for demos; managed RPC is more reliable):
+  - examples: Helius, QuickNode, Triton, Alchemy Solana.
+- If using USDC:
+  - decide the USDC mint pubkey for the chosen network and ensure faucets/fixtures exist for demo wallets.
+- If using a custom TipReceipt program:
+  - program deployment + program ID distribution to web/API.
+
+### Other “core functionality” considerations we must account for
+- **Artist wallet claiming/admin management:** how an artist sets/changes `solana_recipient_pubkey` (admin-only for hackathon vs self-serve claim flow).
+- **Verification + finality policy:** what commitment we accept (`confirmed` vs `finalized`) and how we handle dropped/expired transactions.
+- **Idempotency:** prevent the same `tx_signature` from being credited twice; prevent “intent reuse” if we model intents.
+- **Fraud checks:** verify the transfer actually pays the intended recipient/mint/amount; do not trust client-submitted fields.
+- **Fees:** users always need SOL for fees unless we add a relayer (out of scope unless explicitly chosen).
+- **Indexing strategy:** for receipts/history, decide if we rely on stored receipts only (simplest) vs chain scan by reference (more complex).

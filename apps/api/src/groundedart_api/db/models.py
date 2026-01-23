@@ -4,7 +4,17 @@ import datetime as dt
 import uuid
 
 from geoalchemy2 import Geometry
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -31,7 +41,6 @@ class User(Base):
 
     devices: Mapped[list[Device]] = relationship(back_populates="user")
     sessions: Mapped[list[Session]] = relationship(back_populates="user")
-    curator_profile: Mapped[CuratorProfile] = relationship(back_populates="user", uselist=False)
 
 
 class Device(Base):
@@ -79,22 +88,48 @@ class Session(Base):
         return utcnow() >= self.expires_at
 
 
-class CuratorProfile(Base):
-    __tablename__ = "curator_profiles"
+class CuratorRankDaily(Base):
+    __tablename__ = "curator_rank_daily"
+    __table_args__ = (
+        UniqueConstraint("user_id", "rank_version", "day", name="uq_curator_rank_daily_user_version_day"),
+        Index("ix_curator_rank_daily_user_day", "user_id", "day"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
         primary_key=True,
     )
-    rank: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    updated_at: Mapped[dt.datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=utcnow,
-        nullable=False,
-    )
+    rank_version: Mapped[str] = mapped_column(String(32), primary_key=True)
+    day: Mapped[dt.date] = mapped_column(Date, primary_key=True)
 
-    user: Mapped[User] = relationship(back_populates="curator_profile")
+    verified_captures_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    verified_captures_unique: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    points_counted: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    per_node_per_day_removed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    per_day_removed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class CuratorRankCache(Base):
+    __tablename__ = "curator_rank_cache"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        primary_key=True,
+    )
+    rank_version: Mapped[str] = mapped_column(String(32), nullable=False, default="v1_points")
+
+    points_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    verified_captures_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    verified_captures_counted: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    per_node_per_day_removed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    per_day_removed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
 class Node(Base):
@@ -209,6 +244,33 @@ class Capture(Base):
 
     image_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+
+class ContentReport(Base):
+    __tablename__ = "content_reports"
+    __table_args__ = (
+        Index("ix_content_reports_capture_created", "capture_id", "created_at"),
+        Index("ix_content_reports_created_at", "created_at"),
+        Index("ix_content_reports_resolved_at", "resolved_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    capture_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("captures.id"), nullable=False
+    )
+    node_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("nodes.id"), nullable=True
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    reason: Mapped[str] = mapped_column(String(64), nullable=False)
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    resolved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class CaptureEvent(Base):

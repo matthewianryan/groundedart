@@ -19,6 +19,13 @@ auditable system derived from verified actions only.
   4. Apply a per-user daily cap of 3 points (UTC day).
   5. Rank is the sum of remaining points across all time.
 
+### Materialization (performance)
+To avoid scanning all rank events on hot read paths, we materialize:
+- `curator_rank_daily`: per-user per-day aggregates (post caps).
+- `curator_rank_cache`: per-user snapshot totals used for gating and `/v1/me`.
+
+Rank remains canonically derived from `rank_events` (materialization is a cache that can be rebuilt).
+
 ### Moderation effects
 - If a verified capture is later hidden, it no longer counts toward rank.
 - Rank is recomputed from the current set of still-verified captures, so rank can go down.

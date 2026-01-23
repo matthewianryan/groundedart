@@ -11,6 +11,58 @@ This file is a living checklist of buildable work items. It is intentionally exp
 
 ---
 
+## Rank + gating (follow-ups)
+
+### RG-01 — Design deterministic primary keys for rank events
+- **Context (what/why):**
+  - We need a stable, retry-safe idempotency strategy for future rank event types (not all will have `capture_id`).
+  - The goal is deterministic event IDs derived from the event’s defining attributes (hash), so repeated submissions cannot double-count.
+- **Change plan (files):**
+  - Design doc updates:
+    - `docs/RANK_GATING.md` (define canonical “event identity” rules)
+    - `docs/DATA_MODEL.md` (describe new DB columns / constraints)
+  - DB + models (proposal stage first, implement after decision):
+    - Add `rank_events.deterministic_id` (or similar) and make it unique (or use it as PK).
+    - Decide whether to keep `id` as a random UUID or replace it.
+  - Domain:
+    - Update `apps/api/src/groundedart_api/domain/rank_events.py` to generate deterministic IDs for each event type.
+- **Contracts:**
+  - Define required attributes per event type that feed the hash (e.g. `event_type`, `rank_version`, `source_kind`, `source_id`, and any normalization rules).
+- **Acceptance criteria:**
+  - Written spec for deterministic ID inputs + normalization + hashing algorithm.
+  - Clear migration plan for existing `rank_events` rows and uniqueness enforcement.
+- **Non-goals:**
+  - Migrating all other event tables (this task is rank-events scoped).
+
+### RG-02 — Plan rank-based visibility and “what each rank sees” (no user-facing 404/403)
+- **Context (what/why):**
+  - We want rank to control how much content/functionality is visible (map population, node metadata, actions) without relying on user-facing 404/403 patterns for “locked content”.
+  - This needs to be an explicit product decision matrix to keep API/UI consistent and avoid leakage/UX drift.
+- **Change plan (files):**
+  - Add a rank visibility matrix doc section (or new doc) that defines:
+    - what nodes appear on the map at each rank,
+    - what node metadata is shown (name/description/category/capture counts/etc),
+    - what capture content is visible,
+    - what actions are enabled/disabled (check-in, capture creation, upload, report, etc).
+  - Update API error/response contracts accordingly:
+    - `packages/domain/schemas/*` (new/updated schemas to represent “locked” vs “visible” states)
+    - `apps/api/src/groundedart_api/api/routers/nodes.py` (list/detail semantics)
+    - `apps/api/src/groundedart_api/domain/gating.py` (remove any remaining “locked content” 404/403 conventions once the plan is finalized)
+  - Update web UI to match:
+    - `apps/web/src/routes/MapRoute.tsx` (messaging + affordances)
+    - `apps/web/src/routes/NodeDetailRoute.tsx` (locked-state UI, if applicable)
+- **Contracts:**
+  - Decide whether “locked nodes” appear as:
+    - fully hidden,
+    - visible as placeholders (ID-only, coarse location, etc),
+    - visible with partial metadata and explicit “unlock at rank N”.
+  - Define how APIs represent those states (status codes and payload shapes).
+- **Acceptance criteria:**
+  - A single doc section/table that enumerates, per rank tier, all read surfaces + write surfaces and their behavior.
+  - A concrete API contract proposal that avoids user-facing 404/403 for rank gating.
+- **Non-goals:**
+  - Implementing the full contract (this task is planning + contract definition).
+
 ## Milestone 5 — Attribution + rights (MVP → upgrade)
 
 Roadmap source: `docs/ROADMAP.md` (Milestone 5)

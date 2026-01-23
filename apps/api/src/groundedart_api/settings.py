@@ -75,6 +75,14 @@ class Settings(BaseSettings):
         default=50,
         description="Maximum pending verification captures per node.",
     )
+    report_rate_window_seconds: int = Field(
+        default=10 * 60,
+        description="Rolling window for report rate limits, in seconds.",
+    )
+    max_reports_per_user_per_window: int = Field(
+        default=5,
+        description="Maximum reports per user per rate window.",
+    )
 
     media_dir: str = "./.local_media"
     upload_allowed_mime_types: list[str] = Field(

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReportErrorCode",
+  "type": "string",
+  "enum": [
+    "auth_required",
+    "capture_not_found",
+    "invalid_report_reason",
+    "report_rate_limited",
+    "report_not_found",
+    "report_already_resolved",
+    "invalid_report_resolution"
+  ]
+}

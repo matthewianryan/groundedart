@@ -19,8 +19,26 @@ export type CapturesResponse = {
   captures: CapturePublic[];
 };
 
+export type ReportReasonCode = "spam" | "rights_violation" | "privacy" | "harassment" | "other";
+export type ReportResolutionCode = "dismissed" | "hide_capture" | "rights_takedown";
+
+export type ReportPublic = {
+  id: string;
+  capture_id: string;
+  node_id: string | null;
+  reason: ReportReasonCode;
+  details: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  resolution: ReportResolutionCode | null;
+};
+
 export type CreateCaptureResponse = {
   capture: CapturePublic;
+};
+
+export type CreateReportResponse = {
+  report: ReportPublic;
 };
 
 export type UploadCaptureImageResponse = CapturePublic;
@@ -58,6 +76,16 @@ export async function createCapture(body: {
   rights_attestation?: boolean;
 }) {
   return apiFetch<CreateCaptureResponse>("/v1/captures", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function createCaptureReport(
+  captureId: string,
+  body: { reason: ReportReasonCode; details?: string | null }
+) {
+  return apiFetch<CreateReportResponse>(`/v1/captures/${captureId}/reports`, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
 }
 
 export async function getCapture(captureId: string) {

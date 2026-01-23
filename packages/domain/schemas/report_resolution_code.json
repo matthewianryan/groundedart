@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReportResolutionCode",
+  "type": "string",
+  "enum": ["dismissed", "hide_capture", "rights_takedown"]
+}

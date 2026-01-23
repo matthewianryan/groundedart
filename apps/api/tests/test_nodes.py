@@ -8,7 +8,7 @@ from geoalchemy2.elements import WKTElement
 from httpx import AsyncClient
 
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import Capture, CuratorProfile, CuratorRankEvent, Node, Session, User
+from groundedart_api.db.models import Capture, CuratorRankEvent, Node, Session, User
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.settings import get_settings
 
@@ -32,7 +32,6 @@ async def create_user_session(
         user = User()
         session.add(user)
         await session.flush()
-        session.add(CuratorProfile(user_id=user.id, rank=rank))
         if rank > 0:
             now = dt.datetime.now(dt.UTC)
             for idx in range(rank):

@@ -10,16 +10,20 @@ from groundedart_api.api.schemas import (
     CapturePublic,
     CreateCaptureRequest,
     CreateCaptureResponse,
+    CreateReportRequest,
+    CreateReportResponse,
+    ReportPublic,
     UpdateCaptureRequest,
 )
 from groundedart_api.auth.deps import CurrentUser
 from groundedart_api.auth.tokens import hash_opaque_token
-from groundedart_api.db.models import Capture, CheckinToken, Node
+from groundedart_api.db.models import Capture, CheckinToken, ContentReport, Node
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.domain.abuse_events import record_abuse_event
 from groundedart_api.domain.attribution_rights import (
     missing_attribution_fields,
     missing_rights_fields,
+    is_capture_publicly_visible,
 )
 from groundedart_api.domain.capture_state import CaptureState
 from groundedart_api.domain.capture_events import (
@@ -31,12 +35,26 @@ from groundedart_api.domain.capture_transitions import validate_capture_state_re
 from groundedart_api.domain.errors import AppError
 from groundedart_api.domain.gating import assert_can_create_capture
 from groundedart_api.domain.rank_projection import get_rank_for_user
+from groundedart_api.domain.report_reason_code import ReportReasonCode
 from groundedart_api.domain.verification_events import VerificationEventEmitterDep
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.storage.deps import MediaStorageDep
 from groundedart_api.time import UtcNow, get_utcnow
 
 router = APIRouter(prefix="/v1", tags=["captures"])
+
+def _with_retry_after(
+    *,
+    details: dict[str, object],
+    now_time: dt.datetime,
+    retry_at: dt.datetime | None,
+) -> dict[str, object]:
+    if retry_at is None:
+        return details
+    retry_after_seconds = max(0, int((retry_at - now_time).total_seconds()))
+    details["retry_after_seconds"] = retry_after_seconds
+    details["retry_at"] = retry_at.isoformat()
+    return details
 
 
 def capture_to_public(capture: Capture, base_media_url: str = "/media") -> CapturePublic:
@@ -54,6 +72,19 @@ def capture_to_public(capture: Capture, base_media_url: str = "/media") -> Captu
         attribution_source_url=capture.attribution_source_url,
         rights_basis=capture.rights_basis,
         rights_attested_at=capture.rights_attested_at,
+    )
+
+
+def report_to_public(report: ContentReport) -> ReportPublic:
+    return ReportPublic(
+        id=report.id,
+        capture_id=report.capture_id,
+        node_id=report.node_id,
+        reason=report.reason,
+        details=report.details,
+        created_at=report.created_at,
+        resolved_at=report.resolved_at,
+        resolution=report.resolution,
     )
 
 
@@ -118,6 +149,26 @@ async def create_capture(
         if exc.code == "capture_rate_limited":
             details = dict(exc.details or {})
             details["source"] = "capture_create"
+            details["recent_count"] = recent_count
+            max_per_window = int(details.get("max_per_window") or 0)
+            window_seconds = int(details.get("window_seconds") or settings.capture_rate_window_seconds)
+            retry_at = None
+            if max_per_window > 0 and recent_count > 0:
+                offset = max(0, recent_count - max_per_window)
+                nth_oldest = await db.scalar(
+                    select(Capture.created_at)
+                    .where(
+                        Capture.user_id == user.id,
+                        Capture.node_id == body.node_id,
+                        Capture.created_at >= window_start,
+                    )
+                    .order_by(Capture.created_at.asc(), Capture.id.asc())
+                    .offset(offset)
+                    .limit(1)
+                )
+                if nth_oldest is not None:
+                    retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
+            exc.details = _with_retry_after(details=details, now_time=now_time, retry_at=retry_at)
             await record_abuse_event(
                 db=db,
                 event_type="capture_rate_limited",
@@ -200,6 +251,76 @@ async def update_capture(
     await db.commit()
     await db.refresh(capture)
     return capture_to_public(capture)
+
+
+@router.post("/captures/{capture_id}/reports", response_model=CreateReportResponse)
+async def create_report(
+    capture_id: uuid.UUID,
+    body: CreateReportRequest,
+    db: DbSessionDep,
+    user: CurrentUser,
+    settings: Settings = Depends(get_settings),
+    now: UtcNow = Depends(get_utcnow),
+) -> CreateReportResponse:
+    capture = await db.get(Capture, capture_id)
+    if capture is None:
+        raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
+    if capture.user_id != user.id and not is_capture_publicly_visible(capture):
+        raise AppError(code="capture_not_found", message="Capture not found", status_code=404)
+
+    try:
+        reason = ReportReasonCode(body.reason)
+    except ValueError as exc:
+        raise AppError(
+            code="invalid_report_reason",
+            message="Invalid report reason",
+            status_code=400,
+        ) from exc
+
+    window_start = now() - dt.timedelta(seconds=settings.report_rate_window_seconds)
+    recent_reports = await db.scalar(
+        select(func.count())
+        .select_from(ContentReport)
+        .where(
+            ContentReport.user_id == user.id,
+            ContentReport.created_at >= window_start,
+        )
+    )
+    recent_count = int(recent_reports or 0)
+    if recent_count >= settings.max_reports_per_user_per_window:
+        details = {
+            "max_per_window": settings.max_reports_per_user_per_window,
+            "window_seconds": settings.report_rate_window_seconds,
+            "recent_count": recent_count,
+            "source": "report_create",
+        }
+        await record_abuse_event(
+            db=db,
+            event_type="report_rate_limited",
+            user_id=user.id,
+            node_id=capture.node_id,
+            capture_id=capture.id,
+            details=details,
+        )
+        raise AppError(
+            code="report_rate_limited",
+            message="Report rate limit exceeded",
+            status_code=429,
+            details=details,
+        )
+
+    report = ContentReport(
+        capture_id=capture.id,
+        node_id=capture.node_id,
+        user_id=user.id,
+        reason=reason.value,
+        details=body.details,
+        created_at=now(),
+    )
+    db.add(report)
+    await db.commit()
+    await db.refresh(report)
+    return CreateReportResponse(report=report_to_public(report))
 
 
 @router.post("/captures/{capture_id}/publish", response_model=CapturePublic)

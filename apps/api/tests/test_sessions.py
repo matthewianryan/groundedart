@@ -7,7 +7,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
-from groundedart_api.db.models import CuratorProfile, Device, User
+from groundedart_api.db.models import CuratorRankCache, Device, User
 from groundedart_api.main import create_app
 from groundedart_api.settings import get_settings
 from groundedart_api.time import get_utcnow
@@ -30,7 +30,7 @@ def make_client_with_time(now: dt.datetime) -> tuple[AsyncClient, dict[str, dt.d
 
 
 @pytest.mark.asyncio
-async def test_anonymous_session_creates_user_device_profile(
+async def test_anonymous_session_creates_user_device_and_rank_cache_on_first_read(
     db_sessionmaker, client: AsyncClient
 ) -> None:
     device_id = uuid.uuid4()
@@ -48,9 +48,15 @@ async def test_anonymous_session_creates_user_device_profile(
         device = await session.scalar(select(Device).where(Device.device_id == str(device_id)))
         assert device is not None
         assert device.user_id == user_id
-        profile = await session.get(CuratorProfile, user_id)
-        assert profile is not None
-        assert profile.rank == 0
+
+    me = await client.get("/v1/me")
+    assert me.status_code == 200
+    assert me.json()["rank"] == 0
+
+    async with db_sessionmaker() as session:
+        cache = await session.get(CuratorRankCache, user_id)
+        assert cache is not None
+        assert cache.points_total == 0
 
 
 @pytest.mark.asyncio

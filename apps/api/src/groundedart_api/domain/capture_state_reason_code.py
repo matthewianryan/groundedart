@@ -9,3 +9,5 @@ class CaptureStateReasonCode(StrEnum):
     manual_review_pass = "manual_review_pass"
     manual_review_reject = "manual_review_reject"
     manual_review_hide = "manual_review_hide"
+    report_hide = "report_hide"
+    rights_takedown = "rights_takedown"

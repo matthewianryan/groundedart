@@ -39,6 +39,19 @@ from groundedart_api.time import UtcNow, get_utcnow
 router = APIRouter(prefix="/v1", tags=["nodes"])
 logger = logging.getLogger(__name__)
 
+def _with_retry_after(
+    *,
+    details: dict[str, Any],
+    now_time: dt.datetime,
+    retry_at: dt.datetime | None,
+) -> dict[str, Any]:
+    if retry_at is None:
+        return details
+    retry_after_seconds = max(0, int((retry_at - now_time).total_seconds()))
+    details["retry_after_seconds"] = retry_after_seconds
+    details["retry_at"] = retry_at.isoformat()
+    return details
+
 
 def _node_select_with_coords():
     return select(
@@ -186,6 +199,25 @@ async def create_checkin_challenge(
         if exc.code == "checkin_challenge_rate_limited":
             details = dict(exc.details or {})
             details["recent_count"] = recent_count
+            max_per_window = int(details.get("max_per_window") or 0)
+            window_seconds = int(details.get("window_seconds") or settings.checkin_challenge_rate_window_seconds)
+            retry_at = None
+            if max_per_window > 0 and recent_count > 0:
+                offset = max(0, recent_count - max_per_window)
+                nth_oldest = await db.scalar(
+                    select(CheckinChallenge.created_at)
+                    .where(
+                        CheckinChallenge.user_id == user.id,
+                        CheckinChallenge.node_id == node.id,
+                        CheckinChallenge.created_at >= window_start,
+                    )
+                    .order_by(CheckinChallenge.created_at.asc(), CheckinChallenge.id.asc())
+                    .offset(offset)
+                    .limit(1)
+                )
+                if nth_oldest is not None:
+                    retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
+            exc.details = _with_retry_after(details=details, now_time=now_time, retry_at=retry_at)
             await record_abuse_event(
                 db=db,
                 event_type="checkin_challenge_rate_limited",
@@ -328,6 +360,26 @@ async def check_in(
         if exc.code == "capture_rate_limited":
             details = dict(exc.details or {})
             details["source"] = "checkin"
+            details["recent_count"] = recent_count
+            max_per_window = int(details.get("max_per_window") or 0)
+            window_seconds = int(details.get("window_seconds") or settings.capture_rate_window_seconds)
+            retry_at = None
+            if max_per_window > 0 and recent_count > 0:
+                offset = max(0, recent_count - max_per_window)
+                nth_oldest = await db.scalar(
+                    select(Capture.created_at)
+                    .where(
+                        Capture.user_id == user.id,
+                        Capture.node_id == node.id,
+                        Capture.created_at >= window_start,
+                    )
+                    .order_by(Capture.created_at.asc(), Capture.id.asc())
+                    .offset(offset)
+                    .limit(1)
+                )
+                if nth_oldest is not None:
+                    retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
+            exc.details = _with_retry_after(details=details, now_time=now_time, retry_at=retry_at)
             await record_abuse_event(
                 db=db,
                 event_type="capture_rate_limited",

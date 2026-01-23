@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from groundedart_api.api.schemas import AnonymousSessionRequest, AnonymousSessionResponse
 from groundedart_api.auth.tokens import generate_opaque_token, hash_opaque_token
-from groundedart_api.db.models import CuratorProfile, Device, Session, User
+from groundedart_api.db.models import CuratorRankCache, Device, Session, User
 from groundedart_api.db.session import DbSessionDep
 from groundedart_api.settings import Settings, get_settings
 from groundedart_api.time import UtcNow, get_utcnow
@@ -31,7 +31,7 @@ async def create_anonymous_session(
         db.add(user)
         await db.flush()
         db.add(Device(device_id=device_id, user_id=user.id))
-        db.add(CuratorProfile(user_id=user.id, rank=0))
+        db.add(CuratorRankCache(user_id=user.id))
     else:
         user = await db.get(User, device.user_id)
         device.last_seen_at = now()
