@@ -25,6 +25,12 @@ Install the API (from repo root):
 - `source .venv311/bin/activate`
 - `pip install -e "apps/api[dev]"`
 
+Common setup issues:
+- `ModuleNotFoundError: psycopg`: you are not in the venv or deps are not installed.
+  - From repo root: `source .venv311/bin/activate && pip install -e "apps/api[dev]"`
+  - From `apps/api`: `python -m pip install -e ".[dev]"`
+  - Run tests via `python -m pytest` to guarantee the venv interpreter is used.
+
 Run migrations (includes seed nodes):
 - `cd apps/api && alembic upgrade head`
   - Alembic reads `DATABASE_URL` from the repo root `.env` (default `localhost:5432`).

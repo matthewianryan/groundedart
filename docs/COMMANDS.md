@@ -201,3 +201,28 @@ pytest
 docker compose -f infra/docker-compose.yml down -v
 docker compose -f infra/docker-compose.yml up -d
 ```
+
+open -a Docker
+for i in {1..30}; do docker info >/dev/null 2>&1 && break || sleep 2; done
+docker compose -f infra/docker-compose.yml up -d db
+source .venv311/bin/activate
+set -a && source .env && set +a
+cd apps/api
+python scripts/ensure_database.py
+alembic upgrade head
+
+mkdir -p /tmp/docker-config/cli-plugins
+ln -sf ~/.docker/cli-plugins/docker-compose /tmp/docker-config/cli-plugins/docker-compose
+printf '{"auths":{}, "currentContext":"desktop-linux"}\n' > /tmp/docker-config/config.json
+mkdir -p /tmp/docker-config/contexts
+rsync -a ~/.docker/contexts/ /tmp/docker-config/contexts/
+
+open -a Docker
+for i in {1..30}; do docker info >/dev/null 2>&1 && break || sleep 2; done
+DOCKER_CONFIG=/tmp/docker-config docker compose -f infra/docker-compose.yml up -d db
+
+source .venv311/bin/activate
+set -a && source .env && set +a
+cd apps/api
+python scripts/ensure_database.py
+alembic upgrade head
