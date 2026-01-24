@@ -3,6 +3,9 @@ import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import artworks, { Artwork } from '../utils/artworkData';
 
+const EASE_SMOOTH = [0.25, 0.46, 0.45, 0.94] as const;
+const EASE_BOUNCE = [0.34, 1.56, 0.64, 1] as const;
+
 interface ScrollGridSectionProps {
   images: Artwork[];
   title?: string;
@@ -53,7 +56,7 @@ const ScrollGridSection = ({
           transition: {
             duration: 0.8,
             delay: baseDelay,
-            ease: [0.25, 0.46, 0.45, 0.94],
+            ease: EASE_SMOOTH,
           },
         };
 
@@ -83,7 +86,7 @@ const ScrollGridSection = ({
           transition: {
             duration: 0.6,
             delay: distanceFromCenter * 0.05,
-            ease: [0.34, 1.56, 0.64, 1],
+            ease: EASE_BOUNCE,
           },
         };
 
@@ -112,7 +115,7 @@ const ScrollGridSection = ({
           transition: {
             duration: 0.7,
             delay: baseDelay,
-            ease: [0.25, 0.46, 0.45, 0.94],
+            ease: EASE_SMOOTH,
           },
         };
 
@@ -164,7 +167,7 @@ const ScrollGridSection = ({
           transition: {
             duration: 1,
             delay: distanceFactor * 0.1,
-            ease: [0.25, 0.46, 0.45, 0.94],
+            ease: EASE_SMOOTH,
           },
         };
 

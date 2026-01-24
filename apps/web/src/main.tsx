@@ -1,6 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { Buffer } from "buffer";
+import process from "process";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
@@ -10,6 +12,10 @@ import { clusterApiUrl } from "@solana/web3.js";
 import { App } from "./App";
 import "./styles.css";
 import "@solana/wallet-adapter-react-ui/styles.css";
+
+// Polyfills needed by Solana/web3 dependencies in Vite (browser).
+(globalThis as any).Buffer = Buffer;
+(globalThis as any).process = process;
 
 const network = WalletAdapterNetwork.Devnet;
 const endpoint = import.meta.env.VITE_SOLANA_RPC_URL ?? clusterApiUrl(network);

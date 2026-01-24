@@ -1,5 +1,5 @@
 import { useRef, useMemo, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import ArtworkPlane from './ArtworkPlane';
 import artworks from '../utils/artworkData';
@@ -279,11 +279,11 @@ const ArtworkScene = ({
   });
 
   // Mouse drag handler
-  const handlePointerDown = (e: React.PointerEvent) => {
+  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     setDragStart({ x: e.clientX, y: e.clientY, startAngle: orbitalAngle.current });
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
+  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
     if (dragStart) {
       const deltaX = e.clientX - dragStart.x;
       const sensitivity = 0.01;

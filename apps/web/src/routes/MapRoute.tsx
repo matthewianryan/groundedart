@@ -3,6 +3,7 @@ import {
   DirectionsRenderer,
   DirectionsService,
   GoogleMap,
+  type Libraries,
   Marker,
   OverlayView,
   useJsApiLoader
@@ -36,6 +37,7 @@ import { slideInLeft, fadeInUp, staggerContainer, staggerItem, defaultTransition
 const NODE_FETCH_DEBOUNCE_MS = 250;
 const DEFAULT_CENTER: google.maps.LatLngLiteral = { lat: -33.9249, lng: 18.4241 };
 const MAP_CONTAINER_STYLE = { height: "100%", width: "100%" };
+const GOOGLE_MAPS_LIBRARIES: Libraries = [];
 const MAP_OPTIONS: google.maps.MapOptions = {
   disableDefaultUI: true,
   zoomControl: true,
@@ -317,7 +319,7 @@ export function MapRoute() {
   const { isLoaded, loadError } = useJsApiLoader({
     id: "groundedart-google-maps",
     googleMapsApiKey: googleMapsApiKey ?? "",
-    libraries: []
+    libraries: GOOGLE_MAPS_LIBRARIES
   });
   const [directionsRequest, setDirectionsRequest] = useState<google.maps.DirectionsRequest | null>(null);
   const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
@@ -830,6 +832,16 @@ export function MapRoute() {
     setCheckinDistanceM(undefined);
     setCheckinRadiusM(undefined);
 
+    if (!sessionReady) {
+      setCheckinState("failure");
+      setCheckinFailure({
+        title: "Session not ready",
+        detail: "We’re still establishing a session with the API.",
+        nextStep: "Wait a moment and retry check-in."
+      });
+      return;
+    }
+
     if (!navigator.onLine) {
       setCheckinState("failure");
       setCheckinFailure({
@@ -1000,7 +1012,19 @@ export function MapRoute() {
       const origin = { lat: fix.lat, lng: fix.lng };
       if (demoMode && puppetEnabled) setPuppetLocationFromLatLng(origin);
       else setUserLocation(origin);
-      const destination = { lat: node.lat, lng: node.lng };
+      const destination = {
+        lat: typeof node.lat === "number" ? node.lat : Number(node.lat),
+        lng: typeof node.lng === "number" ? node.lng : Number(node.lng)
+      };
+
+      if (!Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) {
+        setStatus("Directions error: origin location is invalid (missing or non-numeric coordinates).");
+        return;
+      }
+      if (!Number.isFinite(destination.lat) || !Number.isFinite(destination.lng)) {
+        setStatus("Directions error: destination location is invalid (missing or non-numeric coordinates).");
+        return;
+      }
       setDirectionsResult(null);
       setDirectionsRequest({
         origin,
@@ -2241,6 +2265,7 @@ export function MapRoute() {
                       size="sm"
                       onClick={handleCheckIn}
                       disabled={
+                        !sessionReady ||
                         !isOnline ||
                         checkinState === "requesting_location" ||
                         checkinState === "challenging" ||
@@ -2267,7 +2292,12 @@ export function MapRoute() {
                           </>
                         )}
                     </Button>
-                    <Button variant="light" size="sm" onClick={handleRequestDirections} disabled={!isLoaded}>
+                    <Button
+                      variant="light"
+                      size="sm"
+                      onClick={() => void handleRequestDirections()}
+                      disabled={!isLoaded}
+                    >
                       <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                       </svg>
@@ -2298,10 +2328,15 @@ export function MapRoute() {
                           {checkinFailure.detail && <div className="text-xs mb-2">{checkinFailure.detail}</div>}
                           {checkinFailure.nextStep && <div className="text-xs mb-3">{checkinFailure.nextStep}</div>}
                           <div className="flex flex-wrap gap-2">
-                            <Button variant="copper" size="sm" onClick={handleCheckIn} disabled={!isOnline}>
+                            <Button variant="copper" size="sm" onClick={handleCheckIn} disabled={!sessionReady || !isOnline}>
                               Retry check-in
                             </Button>
-                            <Button variant="light" size="sm" onClick={handleRequestDirections} disabled={!isLoaded}>
+                            <Button
+                              variant="light"
+                              size="sm"
+                              onClick={() => void handleRequestDirections()}
+                              disabled={!isLoaded}
+                            >
                               Get directions
                             </Button>
                           </div>

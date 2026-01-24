@@ -18,7 +18,7 @@ const ArtworkPlane = forwardRef<THREE.Group, ArtworkPlaneProps>(
   ({ position, rotation, frontImage, backImage, imageColor, imageText, color, index = 0 }, ref) => {
     const [hovered, setHovered] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
-    const groupRef = useRef<THREE.Group>(null);
+    const groupRef = useRef<THREE.Group | null>(null);
     const scaleRef = useRef(0);
     const opacityRef = useRef(0);
 
