@@ -70,7 +70,7 @@ type MapStylePreset = {
 const MAP_STYLE_PRESETS: Record<MapStylePresetKey, MapStylePreset> = {
   default: {
     label: "Default",
-    description: "Standard Google map styling.",
+    description: "",
     styles: null
   },
   "ultra-minimal": {
@@ -325,6 +325,24 @@ function normalizeAccuracyM(value: number, fallback = 8): number {
   return Math.min(50, Math.max(1, rounded));
 }
 
+function normalizeLatLng(
+  value: google.maps.LatLngLiteral | null,
+  fallback: google.maps.LatLngLiteral
+): google.maps.LatLngLiteral {
+  if (!value) return fallback;
+  const lat = Number(value.lat);
+  const lng = Number(value.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return fallback;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return fallback;
+  return { lat, lng };
+}
+
+function getSafeMapCenter(map: google.maps.Map | null): google.maps.LatLngLiteral {
+  const center = map?.getCenter?.();
+  const next = center?.toJSON?.() ?? null;
+  return normalizeLatLng(next, DEFAULT_CENTER);
+}
+
 function isLocalhostHostname(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 }
@@ -509,6 +527,12 @@ export function MapRoute() {
   }, [refreshMe, sessionReady]);
 
   useEffect(() => {
+    if (!sessionReady || !mapRef.current) return;
+    const bounds = mapRef.current.getBounds();
+    scheduleNodesRefresh(bounds ? bboxString(bounds) : lastBboxRef.current);
+  }, [scheduleNodesRefresh, sessionReady]);
+
+  useEffect(() => {
     if (!isCreatorSurface) {
       setNotifications([]);
       setNotificationsStatus("idle");
@@ -612,7 +636,7 @@ export function MapRoute() {
   }, [demoMode, puppetEnabled]);
 
   const defaultUserMarkerIcon = useMemo(() => {
-    if (typeof google === "undefined" || !google.maps) return null;
+    if (!isLoaded || typeof google === "undefined" || !google.maps) return null;
     return {
       path: google.maps.SymbolPath.CIRCLE,
       scale: 12,
@@ -622,7 +646,7 @@ export function MapRoute() {
       strokeColor: "#ffffff",
       strokeOpacity: 0.95
     };
-  }, []);
+  }, [isLoaded]);
 
   const puppetMarkerIcon = useMemo(() => {
     if (!demoMode || !puppetEnabled) return defaultUserMarkerIcon;
@@ -860,7 +884,7 @@ export function MapRoute() {
 
   const getLocationFix = useCallback(async (): Promise<{ lat: number; lng: number; accuracy_m: number }> => {
     if (demoMode && puppetEnabled) {
-      const fallback = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
+      const fallback = getSafeMapCenter(mapRef.current);
       const loc = puppetLocation ?? fallback;
       const accuracy_m = normalizeAccuracyM(puppetAccuracyM);
       return { lat: loc.lat, lng: loc.lng, accuracy_m };
@@ -889,8 +913,9 @@ export function MapRoute() {
 
   const setPuppetLocationFromLatLng = useCallback(
     (next: google.maps.LatLngLiteral) => {
-      setPuppetLocation(next);
-      setUserLocation(next);
+      const safe = normalizeLatLng(next, DEFAULT_CENTER);
+      setPuppetLocation(safe);
+      setUserLocation(safe);
     },
     [setPuppetLocation]
   );
@@ -927,7 +952,7 @@ export function MapRoute() {
   useEffect(() => {
     if (!demoMode || !puppetEnabled) return;
     if (userLocation) return;
-    const loc = puppetLocation ?? DEFAULT_CENTER;
+    const loc = normalizeLatLng(puppetLocation, DEFAULT_CENTER);
     setPuppetLocationFromLatLng(loc);
   }, [demoMode, puppetEnabled, puppetLocation, setPuppetLocationFromLatLng, userLocation]);
 
@@ -1211,9 +1236,13 @@ export function MapRoute() {
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
   const directionsLeg = useMemo(() => directionsResult?.routes?.[0]?.legs?.[0] ?? null, [directionsResult]);
+  const statusMessage = useMemo(() => {
+    if (!status.startsWith("Directions error")) return null;
+    return status;
+  }, [status]);
   const directionsOrigin = useMemo(() => {
     if (demoMode && puppetEnabled) {
-      return puppetLocation ?? userLocation;
+      return normalizeLatLng(puppetLocation ?? userLocation, DEFAULT_CENTER);
     }
     return userLocation;
   }, [demoMode, puppetEnabled, puppetLocation, userLocation]);
@@ -1229,7 +1258,12 @@ export function MapRoute() {
 
   const demoPuppetLocation = useMemo(() => {
     if (!demoMode || !puppetEnabled) return null;
-    return puppetLocation ?? userLocation;
+    return normalizeLatLng(puppetLocation ?? userLocation, DEFAULT_CENTER);
+  }, [demoMode, puppetEnabled, puppetLocation, userLocation]);
+
+  const activeUserLocation = useMemo(() => {
+    if (demoMode && puppetEnabled) return normalizeLatLng(puppetLocation ?? userLocation, DEFAULT_CENTER);
+    return userLocation;
   }, [demoMode, puppetEnabled, puppetLocation, userLocation]);
 
   const demoPuppetLabel = useMemo(() => {
@@ -1335,48 +1369,149 @@ export function MapRoute() {
                 <div className="muted">Drag the blue dot to move.</div>
               </div>
             </div>
-            <label className="map-demo-toggle">
-              <input
-                type="checkbox"
-                checked={puppetEnabled}
-                onChange={(event) => setPuppetEnabled(event.target.checked)}
-              />
-              <span>Enable demo location</span>
-            </label>
-            <div className="map-demo-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
+            <details className="settings">
+              <summary>Demo controls</summary>
+              <div className="settings-body">
+                <div className="settings-group">
+                  <div className="settings-label">Rank simulation</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="button-primary"
+                      onClick={() => setDemoRank((prev) => (prev ?? viewMe?.rank ?? 0) + 1)}
+                      disabled={!viewMe}
+                    >
+                      Rank up (+1)
+                    </button>
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      onClick={() => setDemoRank(viewMe?.next_unlock?.min_rank ?? null)}
+                      disabled={!viewMe?.next_unlock}
+                    >
+                      Jump to next unlock
+                    </button>
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      onClick={() => {
+                        const sample = nodes.slice(0, 3);
+                        addMapRipples(sample);
+                        pushToast("New nodes available", sample.map((n) => n.name));
+                      }}
+                      disabled={!nodes.length}
+                    >
+                      Simulate node splash
+                    </button>
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      onClick={() => setDemoRank(null)}
+                      disabled={demoRank === null}
+                    >
+                      Clear demo
+                    </button>
+                  </div>
+                </div>
+                <div className="settings-group">
+                  <div className="settings-label">Puppet location</div>
+                  <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={puppetEnabled}
+                      onChange={(event) => setPuppetEnabled(event.target.checked)}
+                    />
+                    <span>Use puppet location (no GPS prompts)</span>
+                  </label>
+                  <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={demoClickToMove}
+                      onChange={(event) => setDemoClickToMove(event.target.checked)}
+                      disabled={!puppetEnabled}
+                    />
+                    <span>Click map to move puppet</span>
+                  </label>
+                  <div className="map-demo-meta muted">
+                    Location: {demoPuppetLabel} • Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
+                  </div>
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                  const center = getSafeMapCenter(mapRef.current);
                   setPuppetLocationFromLatLng(center);
-                }}
-                disabled={!isLoaded || !puppetEnabled}
-              >
-                Center on map
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!selectedNode) return;
-                  setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
-                }}
-                disabled={!selectedNode || !puppetEnabled}
-              >
-                Snap to node
-              </button>
-            </div>
-            <label className="map-demo-toggle">
-              <input
-                type="checkbox"
-                checked={demoClickToMove}
-                onChange={(event) => setDemoClickToMove(event.target.checked)}
-                disabled={!puppetEnabled}
-              />
-              <span>Click map to move</span>
-            </label>
-            <div className="map-demo-meta muted">
-              Location: {demoPuppetLabel} • Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
-            </div>
+                      }}
+                      disabled={!isLoaded || !puppetEnabled}
+                    >
+                      Set to map center
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedNode) return;
+                        setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                      }}
+                      disabled={!selectedNode || !puppetEnabled}
+                    >
+                      Set to selected node
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                    <label>
+                      <div className="muted">Puppet accuracy (meters)</div>
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        step={1}
+                        value={normalizeAccuracyM(puppetAccuracyM)}
+                        onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
+                        disabled={!puppetEnabled}
+                      />
+                    </label>
+                  </div>
+                </div>
+                <div className="settings-group">
+                  <div className="settings-label">Auto-verify (rank up)</div>
+                  <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={demoAutoVerify}
+                      onChange={(event) => setDemoAutoVerify(event.target.checked)}
+                    />
+                    <span>After upload, verify capture as admin</span>
+                  </label>
+                  <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                    <div className="muted">Admin token (X-Admin-Token)</div>
+                    <input
+                      type="password"
+                      value={demoAdminToken}
+                      onChange={(event) => setDemoAdminToken(event.target.value)}
+                      placeholder="Paste ADMIN_API_TOKEN (or set VITE_ADMIN_API_TOKEN)"
+                    />
+                  </label>
+                </div>
+                <div className="settings-group">
+                  <div className="settings-label">Session</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="button-primary"
+                      onClick={() => void handleNewDemoUser()}
+                      disabled={demoDeviceLocked}
+                    >
+                      New demo user
+                    </button>
+                  </div>
+                  {demoDeviceLocked ? (
+                    <div className="muted" style={{ marginTop: 6 }}>
+                      Demo device is locked via VITE_DEMO_DEVICE_ID.
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </details>
           </div>
         ) : null}
         {!googleMapsApiKey ? (
@@ -1422,9 +1557,9 @@ export function MapRoute() {
                 }}
               />
             ))}
-            {userLocation ? (
+            {activeUserLocation ? (
               <Marker
-                position={userLocation}
+                position={activeUserLocation}
                 title={demoMode && puppetEnabled ? "Puppet location" : "Your location"}
                 draggable={demoMode && puppetEnabled}
                 zIndex={999}
@@ -1476,6 +1611,45 @@ export function MapRoute() {
               <div>{formatMeters(selectedNode.radius_m)}</div>
             </div>
           </div>
+          <div className="node-actions">
+            <button
+              type="button"
+              className="button-primary"
+              onClick={() => void handleCheckIn()}
+              disabled={checkinState === "requesting_location" || checkinState === "challenging" || checkinState === "verifying"}
+            >
+              {checkinState === "requesting_location" || checkinState === "challenging" || checkinState === "verifying"
+                ? "Checking in..."
+                : "Check in"}
+            </button>
+            <button type="button" className="button-secondary" onClick={() => void handleRequestDirections()}>
+              Directions
+            </button>
+            {directionsUrl ? (
+              <a className="button-secondary" href={directionsUrl} target="_blank" rel="noreferrer">
+                Open in Google Maps
+              </a>
+            ) : null}
+          </div>
+          {checkinState === "success" && checkinToken ? (
+            <div className="node">
+              <div>Checked in.</div>
+              <div className="muted">Token: {checkinToken}</div>
+            </div>
+          ) : null}
+          {checkinFailure ? (
+            <div className="alert">
+              <div>{checkinFailure.title}</div>
+              {checkinFailure.detail ? <div className="muted">{checkinFailure.detail}</div> : null}
+              {checkinFailure.nextStep ? <div className="muted">{checkinFailure.nextStep}</div> : null}
+              <div className="node-actions">
+                <button type="button" className="button-secondary" onClick={() => void handleRequestDirections()}>
+                  Get directions
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {statusMessage ? <div className="alert">{statusMessage}</div> : null}
           {selectedNode.image_url ? (
             <button
               type="button"
@@ -1565,7 +1739,6 @@ export function MapRoute() {
                     Dark
                   </button>
                 </div>
-                <div className="muted">Dark mode auto-applies the Nocturne map preset.</div>
               </div>
 
               <div className="modal-section">
@@ -1618,7 +1791,7 @@ export function MapRoute() {
               {isCreatorSurface ? (
                 <div className="modal-section">
                   <div className="modal-title">Notifications</div>
-                  <div className="node">
+                  <div className="node node-compact">
                     <div className="node-header">
                       <div>
                         <div className="muted">Inbox</div>
@@ -1634,7 +1807,7 @@ export function MapRoute() {
                       </div>
                       <div className="node-actions">
                         <button
-                          className="button-primary"
+                          className="button-primary button-compact"
                           onClick={handleRefreshNotifications}
                           disabled={notificationsStatus === "loading"}
                         >
@@ -1647,9 +1820,6 @@ export function MapRoute() {
                         <div>Could not load notifications.</div>
                         <div className="muted">{notificationsError ?? "Unknown error"}</div>
                       </div>
-                    ) : null}
-                    {notificationsStatus !== "loading" && notifications.length === 0 ? (
-                      <div className="muted">No notifications yet.</div>
                     ) : null}
                     {notifications.length ? (
                       <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
@@ -1702,164 +1872,13 @@ export function MapRoute() {
                         </label>
                       ))}
                     </div>
-                    <div className="muted">{MAP_STYLE_PRESETS[mapStylePreset].description}</div>
+                    {MAP_STYLE_PRESETS[mapStylePreset].description ? (
+                      <div className="muted">{MAP_STYLE_PRESETS[mapStylePreset].description}</div>
+                    ) : null}
                   </div>
                 </div>
               </div>
 
-              {demoMode ? (
-                <div className="modal-section">
-                  <div className="modal-title">Creator tools</div>
-                  <details className="settings">
-                    <summary>Demo controls</summary>
-                    <div className="settings-body">
-                      <div className="settings-group">
-                        <div className="settings-label">Rank simulation</div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            className="button-primary"
-                            onClick={() => setDemoRank((prev) => (prev ?? viewMe?.rank ?? 0) + 1)}
-                            disabled={!viewMe}
-                          >
-                            Rank up (+1)
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary"
-                            onClick={() => setDemoRank(viewMe?.next_unlock?.min_rank ?? null)}
-                            disabled={!viewMe?.next_unlock}
-                          >
-                            Jump to next unlock
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary"
-                            onClick={() => {
-                              const sample = nodes.slice(0, 3);
-                              addMapRipples(sample);
-                              pushToast("New nodes available", sample.map((n) => n.name));
-                            }}
-                            disabled={!nodes.length}
-                          >
-                            Simulate node splash
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary"
-                            onClick={() => setDemoRank(null)}
-                            disabled={demoRank === null}
-                          >
-                            Clear demo
-                          </button>
-                        </div>
-                        <div className="muted" style={{ marginTop: 6 }}>
-                          Tip: open `?demo=1` to show these controls.
-                        </div>
-                      </div>
-                      <div className="settings-group">
-                        <div className="settings-label">Puppet location</div>
-                        <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <input
-                            type="checkbox"
-                            checked={puppetEnabled}
-                            onChange={(event) => setPuppetEnabled(event.target.checked)}
-                          />
-                          <span>Use puppet location (no GPS prompts)</span>
-                        </label>
-                        <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <input
-                            type="checkbox"
-                            checked={demoClickToMove}
-                            onChange={(event) => setDemoClickToMove(event.target.checked)}
-                          />
-                          <span>Click map to move puppet</span>
-                        </label>
-                        <div className="muted" style={{ marginTop: 6 }}>
-                          Puppet:{" "}
-                          {puppetLocation
-                            ? `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}`
-                            : "unset"}{" "}
-                          • Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
-                        </div>
-                        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
-                              setPuppetLocationFromLatLng(center);
-                            }}
-                            disabled={!isLoaded}
-                          >
-                            Set to map center
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!selectedNode) return;
-                              setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
-                            }}
-                            disabled={!selectedNode}
-                          >
-                            Set to selected node
-                          </button>
-                        </div>
-                        <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-                          <label>
-                            <div className="muted">Puppet accuracy (meters)</div>
-                            <input
-                              type="number"
-                              min={1}
-                              max={50}
-                              step={1}
-                              value={normalizeAccuracyM(puppetAccuracyM)}
-                              onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                      <div className="settings-group">
-                        <div className="settings-label">Auto-verify (rank up)</div>
-                        <label className="settings-option" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <input
-                            type="checkbox"
-                            checked={demoAutoVerify}
-                            onChange={(event) => setDemoAutoVerify(event.target.checked)}
-                          />
-                          <span>After upload, verify capture as admin</span>
-                        </label>
-                        <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
-                          <div className="muted">Admin token (X-Admin-Token)</div>
-                          <input
-                            type="password"
-                            value={demoAdminToken}
-                            onChange={(event) => setDemoAdminToken(event.target.value)}
-                            placeholder="Paste ADMIN_API_TOKEN (or set VITE_ADMIN_API_TOKEN)"
-                          />
-                        </label>
-                      </div>
-                      <div className="settings-group">
-                        <div className="settings-label">Session</div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button
-                            type="button"
-                            className="button-primary"
-                            onClick={() => void handleNewDemoUser()}
-                            disabled={demoDeviceLocked}
-                          >
-                            New demo user
-                          </button>
-                        </div>
-                        {demoDeviceLocked ? (
-                          <div className="muted" style={{ marginTop: 6 }}>
-                            Demo device is locked via VITE_DEMO_DEVICE_ID.
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </details>
-                </div>
-              ) : null}
             </div>
           </div>
         </div>

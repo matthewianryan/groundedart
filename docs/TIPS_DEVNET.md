@@ -60,49 +60,79 @@ To make a node tip to your wallet:
 4. Web calls `POST /v1/tips/confirm` with `{ tip_intent_id, tx_signature }`.
 5. API verifies the on-chain transaction via devnet RPC and stores a receipt.
 
-Option A — Phantom or Solflare (browser wallet)
+---
 
-Install the wallet:
-Phantom: install the browser extension from https://phantom.app
-Solflare: install from https://solflare.com
-Open the wallet extension and create a new wallet.
-Set the wallet network to Devnet.
-Phantom: Settings → Developer Settings → “Show Test Networks” → turn on → select Devnet.
-Solflare: Network dropdown → Devnet.
-Copy your wallet’s public address (pubkey). You’ll use this as the tip recipient.
-Fund the wallet with devnet SOL:
-Go to https://faucet.solana.com (Devnet), paste your pubkey, request an airdrop.
-Wait for the airdrop to complete in the wallet.
+## Step-by-step: devnet wallet setup + funding
 
-Integrate the devnet wallet into the repo
+### Option A — Phantom or Solflare (browser wallet)
+1. Install the wallet:
+   - Phantom: https://phantom.app
+   - Solflare: https://solflare.com
+2. Open the extension and create a new wallet.
+3. Switch the wallet network to **Devnet**.
+   - Phantom: Settings → Developer Settings → enable “Show Test Networks” → select Devnet.
+   - Solflare: Network dropdown → Devnet.
+4. Copy your wallet **public address (pubkey)**.
+5. Fund the wallet with devnet SOL:
+   - https://faucet.solana.com (Devnet) → paste pubkey → request airdrop.
+   - Wait for the airdrop to land in the wallet.
 
-Enable tips in web env
+### Option B — CLI wallet (`solana-keygen`)
+1. Install the Solana CLI.
+2. Create a devnet keypair:
+   - `solana-keygen new --outfile ~/.config/solana/devnet.json`
+3. Get the pubkey:
+   - `solana-keygen pubkey ~/.config/solana/devnet.json`
+4. Fund it on devnet:
+   - `solana airdrop 2 <PUBKEY> --url devnet`
+5. Confirm balance:
+   - `solana balance <PUBKEY> --url devnet`
 
-Open .env (or create it from .env.example) and set:
+---
+
+## Integrate the devnet wallet into the repo
+
+### 1) Enable tips in the web env
+Open `.env` (or create it from `.env.example`) and set:
+
+```
 VITE_TIPS_ENABLED=true
-api.devnet.solana.com
-api.devnet.solana.com
-These must both stay on devnet or receipt verification fails. See .env.example.
-Set the artist recipient pubkey
-Edit artists.json and replace the placeholder solana_recipient_pubkey value(s) with your devnet wallet pubkey.
-Reseed artists
+SOLANA_RPC_URL=https://api.devnet.solana.com
+VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
+```
+
+These must both stay on devnet or receipt verification fails.
+
+### 2) Set the artist recipient pubkey
+Edit `data/seed/artists.json` and replace the placeholder `solana_recipient_pubkey` value(s)
+with your devnet wallet pubkey.
+
+### 3) Reseed artists
 Run from repo root:
+
+```bash
 cd apps/api
 python scripts/seed_artists.py
-This updates the DB so the node’s default artist points at your devnet pubkey.
+```
 
-Start the stack
-
+### 4) Start the stack
 From repo root:
+
+```bash
 docker compose -f infra/docker-compose.yml up -d --build
-Open the app and test the flow
-Web UI: http://localhost:5173/
-Go to a node detail page and confirm “Tip the artist” shows (if not, check VITE_TIPS_ENABLED).
-Connect wallet and send tip
-Click Connect wallet in the Tip UI (uses your devnet wallet).
-Select a tip amount, send, then confirm.
-The API verifies the on‑chain tx and stores the receipt.
-(Optional) Run receipt reconciler
+```
+
+### 5) Open the app and send a tip
+1. Web UI: `http://localhost:5173/`
+2. Open a node detail page and confirm **Tip the artist** appears.
+3. Click **Connect wallet** and connect your devnet wallet.
+4. Choose an amount, send, and confirm.
+5. The API verifies the on-chain transaction and stores the receipt.
+
+### 6) Optional: run the receipt reconciler
 If you want finalization updates:
+
+```bash
 cd apps/api
 python scripts/reconcile_tip_receipts.py --loop
+```

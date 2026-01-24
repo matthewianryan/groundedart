@@ -299,6 +299,20 @@ textarea {
   backdrop-filter: blur(14px);
 }
 
+.node-compact {
+  padding: 8px 10px;
+  margin-top: 6px;
+}
+
+.node-compact .node-header {
+  gap: 2px;
+}
+
+.button-compact {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
 .settings {
   border: 1px solid var(--ga-border);
   border-radius: 14px;

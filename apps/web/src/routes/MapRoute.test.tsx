@@ -91,6 +91,10 @@ beforeEach(() => {
   getMe.mockReset();
   listNotifications.mockReset();
   markNotificationRead.mockReset();
+  window.localStorage.setItem("groundedart.demo.enabled", "false");
+  window.localStorage.setItem("groundedart.demo.puppetEnabled", "false");
+  window.localStorage.removeItem("groundedart.demo.puppetLat");
+  window.localStorage.removeItem("groundedart.demo.puppetLng");
   process.env.VITE_GOOGLE_MAPS_API_KEY = "test";
   Object.defineProperty(navigator, "geolocation", {
     value: {
@@ -361,5 +365,32 @@ describe("MapRoute", () => {
 
     const link = screen.getByRole("link", { name: "Open in Google Maps" });
     expect(link.getAttribute("href")).toContain("destination=1%2C2");
+  });
+
+  it("normalizes invalid demo puppet coordinates to a visible default", async () => {
+    window.localStorage.setItem("groundedart.demo.enabled", "true");
+    window.localStorage.setItem("groundedart.demo.puppetEnabled", "true");
+    window.localStorage.setItem("groundedart.demo.puppetLat", "999");
+    window.localStorage.setItem("groundedart.demo.puppetLng", "999");
+
+    listNodes.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "node_1",
+          visibility: "visible",
+          name: "Test node",
+          category: "Mural",
+          description: "",
+          lat: 1,
+          lng: 2,
+          radius_m: 25,
+          min_rank: 0
+        }
+      ]
+    });
+
+    await renderMap();
+
+    expect(screen.getByText(/Location: -33\.92490, 18\.42410/i)).toBeInTheDocument();
   });
 });
