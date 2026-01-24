@@ -40,4 +40,4 @@ Quick start:
 - `uvicorn groundedart_api.main:app --reload --port 8000`
 - `cd apps/web && npm install && npm run dev` (set `VITE_GOOGLE_MAPS_API_KEY` in `.env` for the map/Directions/Places/Geocoding APIs)
 
-Note: Alembic uses `DATABASE_URL` from the repo root `.env` (default `localhost:5432`, matching `infra/docker-compose.yml`). If you use the top-level `docker-compose.yml` (default DB port `5433`), update `DATABASE_URL` accordingly.
+Note: Alembic uses `DATABASE_URL` from the repo root `.env` (default `localhost:5434`).

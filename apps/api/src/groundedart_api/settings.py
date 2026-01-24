@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str = "postgresql+asyncpg://groundedart:groundedart@localhost:5432/groundedart"
+    database_url: str = "postgresql+asyncpg://groundedart:groundedart@localhost:5434/groundedart"
     api_cors_origins: list[AnyHttpUrl] = ["http://localhost:5173"]
 
     token_hash_secret: str = "dev-only-change-me"

@@ -43,8 +43,7 @@ alembic -c alembic.ini upgrade head
 ```
 
 Notes:
-- Alembic reads `DATABASE_URL` from the repo root `.env` (default `localhost:5432`, matching `infra/docker-compose.yml`).
-- If you’re using the top-level `docker-compose.yml` (default DB port `5433`), update `DATABASE_URL` to use `localhost:5433`.
+- Alembic reads `DATABASE_URL` from the repo root `.env` (default `localhost:5434`).
 
 Verify current revision (optional but useful when `upgrade head` prints only INFO lines):
 

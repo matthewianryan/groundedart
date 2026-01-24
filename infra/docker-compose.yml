@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: groundedart
       POSTGRES_PASSWORD: groundedart
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - groundedart_pgdata:/var/lib/postgresql/data
     healthcheck:
