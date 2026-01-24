@@ -39,6 +39,8 @@ const MAP_OPTIONS: google.maps.MapOptions = {
   gestureHandling: "greedy"
 };
 const MAP_STYLE_STORAGE_KEY = "groundedart.mapStylePreset";
+const LIGHT_MAP_STYLE_STORAGE_KEY = "groundedart.mapStylePreset.light";
+const THEME_STORAGE_KEY = "groundedart.theme";
 const DEMO_ENABLED_STORAGE_KEY = "groundedart.demo.enabled";
 const DEMO_ADMIN_TOKEN_STORAGE_KEY = "groundedart.demo.adminToken";
 const DEMO_AUTO_VERIFY_STORAGE_KEY = "groundedart.demo.autoVerify";
@@ -57,7 +59,8 @@ const DEMO_AUTO_VERIFY_ENV = import.meta.env.VITE_DEMO_AUTO_VERIFY as string | u
 const DEMO_PUPPET_ACCURACY_ENV = import.meta.env.VITE_DEMO_PUPPET_ACCURACY_M as string | undefined;
 const DEMO_CLICK_TO_MOVE_ENV = import.meta.env.VITE_DEMO_CLICK_TO_MOVE as string | undefined;
 
-type MapStylePresetKey = "default" | "ultra-minimal" | "streets" | "context";
+type MapStylePresetKey = "default" | "ultra-minimal" | "streets" | "context" | "nocturne";
+type ThemeMode = "light" | "dark";
 type MapStylePreset = {
   label: string;
   description: string;
@@ -137,10 +140,26 @@ const MAP_STYLE_PRESETS: Record<MapStylePresetKey, MapStylePreset> = {
       { featureType: "administrative.locality", elementType: "labels.text", stylers: [{ visibility: "on" }, { color: "#000000" }] },
       { featureType: "administrative.neighborhood", elementType: "labels.text", stylers: [{ visibility: "on" }, { color: "#000000" }] }
     ]
+  },
+  nocturne: {
+    label: "Nocturne",
+    description: "Dark, minimal styling tuned for night mode.",
+    styles: [
+      { elementType: "geometry", stylers: [{ color: "#181512" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#181512" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#a79b8f" }] },
+      { featureType: "poi", stylers: [{ visibility: "off" }] },
+      { featureType: "transit", stylers: [{ visibility: "off" }] },
+      { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ color: "#2a2420" }] },
+      { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#3b332c" }] },
+      { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3f352e" }, { weight: 1.5 }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f0d0b" }] }
+    ]
   }
 };
 
-const MAP_STYLE_ORDER: MapStylePresetKey[] = ["default", "ultra-minimal", "streets", "context"];
+const MAP_STYLE_ORDER: MapStylePresetKey[] = ["default", "ultra-minimal", "streets", "context", "nocturne"];
 type CheckinState = "idle" | "requesting_location" | "challenging" | "verifying" | "success" | "failure";
 
 function bboxString(bounds: google.maps.LatLngBounds): string {
@@ -203,9 +222,49 @@ function getStoredMapStylePreset(): MapStylePresetKey {
   return "default";
 }
 
+function getStoredLightMapStylePreset(): MapStylePresetKey {
+  if (typeof window === "undefined") return "default";
+  try {
+    const stored = window.localStorage.getItem(LIGHT_MAP_STYLE_STORAGE_KEY);
+    if (stored && isMapStylePresetKey(stored) && stored !== "nocturne") return stored;
+  } catch {
+    // Ignore storage failures.
+  }
+  return "default";
+}
+
 function persistMapStylePreset(preset: MapStylePresetKey) {
   try {
     window.localStorage.setItem(MAP_STYLE_STORAGE_KEY, preset);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function persistLightMapStylePreset(preset: MapStylePresetKey) {
+  if (preset === "nocturne") return;
+  try {
+    window.localStorage.setItem(LIGHT_MAP_STYLE_STORAGE_KEY, preset);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function getStoredTheme(): ThemeMode {
+  if (typeof window === "undefined") return "light";
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {
+    // Ignore storage failures.
+  }
+  if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) return "dark";
+  return "light";
+}
+
+function persistTheme(theme: ThemeMode) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
     // Ignore storage failures.
   }
@@ -318,8 +377,12 @@ export function MapRoute() {
   });
   const [directionsRequest, setDirectionsRequest] = useState<google.maps.DirectionsRequest | null>(null);
   const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
+  const directionsCacheRef = useRef<Map<string, google.maps.DirectionsResult>>(new Map());
+  const pendingDirectionsNodeIdRef = useRef<string | null>(null);
   const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null);
   const [mapStylePreset, setMapStylePreset] = useState<MapStylePresetKey>(() => getStoredMapStylePreset());
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
+  const [lastLightMapPreset, setLastLightMapPreset] = useState<MapStylePresetKey>(() => getStoredLightMapStylePreset());
   const nodeFetchAbortRef = useRef<AbortController | null>(null);
   const nodeFetchDebounceRef = useRef<number | null>(null);
   const lastBboxRef = useRef<string | undefined>(undefined);
@@ -486,6 +549,32 @@ export function MapRoute() {
   }, [mapStylePreset]);
 
   useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    persistTheme(themeMode);
+  }, [themeMode]);
+
+  useEffect(() => {
+    if (themeMode === "dark") {
+      if (mapStylePreset !== "nocturne") {
+        setLastLightMapPreset(mapStylePreset);
+        setMapStylePreset("nocturne");
+      }
+      return;
+    }
+    if (mapStylePreset === "nocturne") {
+      setMapStylePreset(lastLightMapPreset);
+    }
+  }, [lastLightMapPreset, mapStylePreset, themeMode]);
+
+  useEffect(() => {
+    if (themeMode !== "light") return;
+    if (mapStylePreset === "nocturne") return;
+    if (mapStylePreset === lastLightMapPreset) return;
+    setLastLightMapPreset(mapStylePreset);
+    persistLightMapStylePreset(mapStylePreset);
+  }, [lastLightMapPreset, mapStylePreset, themeMode]);
+
+  useEffect(() => {
     if (!demoMode) return;
     try {
       window.localStorage.setItem(DEMO_ENABLED_STORAGE_KEY, "true");
@@ -526,11 +615,12 @@ export function MapRoute() {
     if (typeof google === "undefined" || !google.maps) return null;
     return {
       path: google.maps.SymbolPath.CIRCLE,
-      scale: 6,
+      scale: 12,
       fillColor: "#4285f4",
-      fillOpacity: 0.9,
-      strokeWeight: 2,
-      strokeColor: "#ffffff"
+      fillOpacity: 1,
+      strokeWeight: 3,
+      strokeColor: "#ffffff",
+      strokeOpacity: 0.95
     };
   }, []);
 
@@ -541,12 +631,12 @@ export function MapRoute() {
     const pulse = (Math.sin(phase) + 1) / 2;
     return {
       path: google.maps.SymbolPath.CIRCLE,
-      scale: 6 + pulse * 1.8,
+      scale: 12 + pulse * 3.5,
       fillColor: "#3b82f6",
-      fillOpacity: 0.55 + pulse * 0.3,
-      strokeWeight: 2,
+      fillOpacity: 0.75 + pulse * 0.2,
+      strokeWeight: 3,
       strokeColor: "#ffffff",
-      strokeOpacity: 0.85 - pulse * 0.2
+      strokeOpacity: 0.95
     };
   }, [defaultUserMarkerIcon, demoMode, puppetEnabled, puppetPulseStep]);
 
@@ -710,8 +800,19 @@ export function MapRoute() {
   }, []);
 
   useEffect(() => {
-    setDirectionsRequest(null);
-    setDirectionsResult(null);
+    if (!selectedNodeId) {
+      pendingDirectionsNodeIdRef.current = null;
+      setDirectionsRequest(null);
+      setDirectionsResult(null);
+      return;
+    }
+
+    const cached = directionsCacheRef.current.get(selectedNodeId) ?? null;
+    setDirectionsResult(cached);
+    if (pendingDirectionsNodeIdRef.current && pendingDirectionsNodeIdRef.current !== selectedNodeId) {
+      pendingDirectionsNodeIdRef.current = null;
+      setDirectionsRequest(null);
+    }
   }, [selectedNodeId]);
 
   useEffect(() => {
@@ -805,6 +906,7 @@ export function MapRoute() {
     prevPuppetLocationRef.current = puppetLocation;
     if (directionsUpdateTimeoutRef.current !== null) window.clearTimeout(directionsUpdateTimeoutRef.current);
     directionsUpdateTimeoutRef.current = window.setTimeout(() => {
+      pendingDirectionsNodeIdRef.current = selectedNode.id;
       setDirectionsRequest({
         origin: puppetLocation,
         destination: { lat: selectedNode.lat, lng: selectedNode.lng },
@@ -1021,6 +1123,14 @@ export function MapRoute() {
       return;
     }
 
+    const cached = directionsCacheRef.current.get(node.id);
+    if (cached) {
+      pendingDirectionsNodeIdRef.current = null;
+      setDirectionsRequest(null);
+      setDirectionsResult(cached);
+      return;
+    }
+
     setStatus("Requesting location for directions…");
     try {
       const fix = await getLocationFix();
@@ -1029,6 +1139,7 @@ export function MapRoute() {
       else setUserLocation(origin);
       const destination = { lat: node.lat, lng: node.lng };
       setDirectionsResult(null);
+      pendingDirectionsNodeIdRef.current = node.id;
       setDirectionsRequest({
         origin,
         destination,
@@ -1047,21 +1158,27 @@ export function MapRoute() {
 
   const handleDirectionsResponse = useCallback(
     (res: google.maps.DirectionsResult | null, status?: google.maps.DirectionsStatus) => {
+      const pendingNodeId = pendingDirectionsNodeIdRef.current;
       if (!res) {
         if (status && status !== "OK") setStatus(`Directions error: ${status}`);
         return;
       }
 
       if (status === "OK") {
-        setDirectionsResult(res);
+        if (pendingNodeId) directionsCacheRef.current.set(pendingNodeId, res);
+        if (pendingNodeId === selectedNodeId) {
+          setDirectionsResult(res);
+        }
+        pendingDirectionsNodeIdRef.current = null;
         setDirectionsRequest(null);
         setStatus("Route ready.");
       } else if (status) {
+        pendingDirectionsNodeIdRef.current = null;
         setDirectionsRequest(null);
         setStatus(`Directions error: ${status}`);
       }
     },
-    []
+    [selectedNodeId]
   );
 
   const handleRefreshNotifications = useCallback(async () => {
@@ -1156,6 +1273,8 @@ export function MapRoute() {
     setSelectedNodeId(null);
     setDirectionsRequest(null);
     setDirectionsResult(null);
+    directionsCacheRef.current.clear();
+    pendingDirectionsNodeIdRef.current = null;
     setCheckinToken(null);
     setCheckinState("idle");
     setCheckinFailure(null);
@@ -1308,6 +1427,7 @@ export function MapRoute() {
                 position={userLocation}
                 title={demoMode && puppetEnabled ? "Puppet location" : "Your location"}
                 draggable={demoMode && puppetEnabled}
+                zIndex={999}
                 onDrag={(event) => {
                   if (!demoMode || !puppetEnabled) return;
                   const latLng = event.latLng;
@@ -1394,7 +1514,7 @@ export function MapRoute() {
                 <strong>Account & Settings</strong>
                 <div className="muted">{isCreatorSurface ? "Creator surface" : "Explorer surface"}</div>
               </div>
-              <button type="button" onClick={handleCloseSettings}>
+              <button type="button" className="button-secondary" onClick={handleCloseSettings}>
                 Close
               </button>
             </div>
@@ -1404,6 +1524,7 @@ export function MapRoute() {
                 <div className="modal-actions">
                   <button
                     type="button"
+                    className={isCreatorSurface ? "button-primary" : "button-secondary"}
                     onClick={() => {
                       navigate("/map");
                       setSettingsOpen(false);
@@ -1414,6 +1535,7 @@ export function MapRoute() {
                   </button>
                   <button
                     type="button"
+                    className={isCreatorSurface ? "button-secondary" : "button-primary"}
                     onClick={() => {
                       navigate("/creator");
                       setSettingsOpen(false);
@@ -1426,13 +1548,39 @@ export function MapRoute() {
               </div>
 
               <div className="modal-section">
+                <div className="modal-title">Theme</div>
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className={themeMode === "light" ? "button-primary" : "button-secondary"}
+                    onClick={() => setThemeMode("light")}
+                  >
+                    Light
+                  </button>
+                  <button
+                    type="button"
+                    className={themeMode === "dark" ? "button-primary" : "button-secondary"}
+                    onClick={() => setThemeMode("dark")}
+                  >
+                    Dark
+                  </button>
+                </div>
+                <div className="muted">Dark mode auto-applies the Nocturne map preset.</div>
+              </div>
+
+              <div className="modal-section">
                 <div className="modal-title">Profile</div>
                 {viewMe ? (
                   <div className="node">
                     <div className="node-header">
                       <RankBadge rank={viewMe.rank} pulseKey={rankPulseKey} />
                       <div className="node-actions">
-                        <button type="button" onClick={() => refreshMe(true)} disabled={meStatus === "loading"}>
+                        <button
+                          type="button"
+                          className="button-primary"
+                          onClick={() => refreshMe(true)}
+                          disabled={meStatus === "loading"}
+                        >
                           Refresh rank
                         </button>
                       </div>
@@ -1485,7 +1633,11 @@ export function MapRoute() {
                         </div>
                       </div>
                       <div className="node-actions">
-                        <button onClick={handleRefreshNotifications} disabled={notificationsStatus === "loading"}>
+                        <button
+                          className="button-primary"
+                          onClick={handleRefreshNotifications}
+                          disabled={notificationsStatus === "loading"}
+                        >
                           {notificationsStatus === "error" ? "Retry" : "Refresh"}
                         </button>
                       </div>
@@ -1512,6 +1664,7 @@ export function MapRoute() {
                                 </div>
                                 <div>
                                   <button
+                                    className="button-secondary"
                                     onClick={() => void handleMarkNotificationRead(notification.id)}
                                     disabled={Boolean(notification.read_at)}
                                   >
@@ -1565,6 +1718,7 @@ export function MapRoute() {
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                           <button
                             type="button"
+                            className="button-primary"
                             onClick={() => setDemoRank((prev) => (prev ?? viewMe?.rank ?? 0) + 1)}
                             disabled={!viewMe}
                           >
@@ -1572,6 +1726,7 @@ export function MapRoute() {
                           </button>
                           <button
                             type="button"
+                            className="button-secondary"
                             onClick={() => setDemoRank(viewMe?.next_unlock?.min_rank ?? null)}
                             disabled={!viewMe?.next_unlock}
                           >
@@ -1579,6 +1734,7 @@ export function MapRoute() {
                           </button>
                           <button
                             type="button"
+                            className="button-secondary"
                             onClick={() => {
                               const sample = nodes.slice(0, 3);
                               addMapRipples(sample);
@@ -1588,7 +1744,12 @@ export function MapRoute() {
                           >
                             Simulate node splash
                           </button>
-                          <button type="button" onClick={() => setDemoRank(null)} disabled={demoRank === null}>
+                          <button
+                            type="button"
+                            className="button-secondary"
+                            onClick={() => setDemoRank(null)}
+                            disabled={demoRank === null}
+                          >
                             Clear demo
                           </button>
                         </div>
@@ -1680,7 +1841,12 @@ export function MapRoute() {
                       <div className="settings-group">
                         <div className="settings-label">Session</div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button type="button" onClick={() => void handleNewDemoUser()} disabled={demoDeviceLocked}>
+                          <button
+                            type="button"
+                            className="button-primary"
+                            onClick={() => void handleNewDemoUser()}
+                            disabled={demoDeviceLocked}
+                          >
                             New demo user
                           </button>
                         </div>

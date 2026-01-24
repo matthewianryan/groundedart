@@ -59,3 +59,50 @@ To make a node tip to your wallet:
 3. A connected wallet **signs and sends** that transaction (devnet RPC).
 4. Web calls `POST /v1/tips/confirm` with `{ tip_intent_id, tx_signature }`.
 5. API verifies the on-chain transaction via devnet RPC and stores a receipt.
+
+Option A — Phantom or Solflare (browser wallet)
+
+Install the wallet:
+Phantom: install the browser extension from https://phantom.app
+Solflare: install from https://solflare.com
+Open the wallet extension and create a new wallet.
+Set the wallet network to Devnet.
+Phantom: Settings → Developer Settings → “Show Test Networks” → turn on → select Devnet.
+Solflare: Network dropdown → Devnet.
+Copy your wallet’s public address (pubkey). You’ll use this as the tip recipient.
+Fund the wallet with devnet SOL:
+Go to https://faucet.solana.com (Devnet), paste your pubkey, request an airdrop.
+Wait for the airdrop to complete in the wallet.
+
+Integrate the devnet wallet into the repo
+
+Enable tips in web env
+
+Open .env (or create it from .env.example) and set:
+VITE_TIPS_ENABLED=true
+api.devnet.solana.com
+api.devnet.solana.com
+These must both stay on devnet or receipt verification fails. See .env.example.
+Set the artist recipient pubkey
+Edit artists.json and replace the placeholder solana_recipient_pubkey value(s) with your devnet wallet pubkey.
+Reseed artists
+Run from repo root:
+cd apps/api
+python scripts/seed_artists.py
+This updates the DB so the node’s default artist points at your devnet pubkey.
+
+Start the stack
+
+From repo root:
+docker compose -f infra/docker-compose.yml up -d --build
+Open the app and test the flow
+Web UI: http://localhost:5173/
+Go to a node detail page and confirm “Tip the artist” shows (if not, check VITE_TIPS_ENABLED).
+Connect wallet and send tip
+Click Connect wallet in the Tip UI (uses your devnet wallet).
+Select a tip amount, send, then confirm.
+The API verifies the on‑chain tx and stores the receipt.
+(Optional) Run receipt reconciler
+If you want finalization updates:
+cd apps/api
+python scripts/reconcile_tip_receipts.py --loop

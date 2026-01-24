@@ -15,6 +15,17 @@ const network = WalletAdapterNetwork.Devnet;
 const endpoint = import.meta.env.VITE_SOLANA_RPC_URL ?? clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter(), new SolflareWalletAdapter({ network })];
 
+const storedTheme = typeof window === "undefined" ? null : window.localStorage.getItem("groundedart.theme");
+const resolvedTheme =
+  storedTheme === "light" || storedTheme === "dark"
+    ? storedTheme
+    : typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+if (typeof document !== "undefined") {
+  document.documentElement.dataset.theme = resolvedTheme;
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ConnectionProvider endpoint={endpoint}>
