@@ -882,34 +882,41 @@ export function MapRoute() {
     []
   );
 
-  const getLocationFix = useCallback(async (): Promise<{ lat: number; lng: number; accuracy_m: number }> => {
-    if (demoMode && puppetEnabled) {
-      const fallback = getSafeMapCenter(mapRef.current);
-      const loc = puppetLocation ?? fallback;
-      const accuracy_m = normalizeAccuracyM(puppetAccuracyM);
-      return { lat: loc.lat, lng: loc.lng, accuracy_m };
-    }
-    if (typeof window !== "undefined") {
-      const protocol = window.location?.protocol;
-      const hostname = window.location?.hostname;
-      if (protocol && protocol !== "https:" && hostname && !isLocalhostHostname(hostname)) {
-        throw new Error("Geolocation requires a secure context (HTTPS).");
+  const getLocationFix = useCallback(
+    async (override?: google.maps.LatLngLiteral): Promise<{ lat: number; lng: number; accuracy_m: number }> => {
+      if (demoMode && puppetEnabled) {
+        const fallback = getSafeMapCenter(mapRef.current);
+        const loc = normalizeLatLng(override ?? puppetLocation ?? fallback, DEFAULT_CENTER);
+        const accuracy_m = normalizeAccuracyM(puppetAccuracyM);
+        return { lat: loc.lat, lng: loc.lng, accuracy_m };
       }
-    }
-    if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== "function") {
-      throw new Error("Geolocation is not available in this browser.");
-    }
-    try {
-      const pos = await requestCurrentPosition({ enableHighAccuracy: true, timeout: 12_000, maximumAge: 30_000 });
-      return { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: pos.coords.accuracy };
-    } catch (err) {
-      if (isGeolocationError(err) && (err.code === 2 || err.code === 3)) {
-        const pos = await requestCurrentPosition({ enableHighAccuracy: false, timeout: 20_000, maximumAge: 300_000 });
+      if (typeof window !== "undefined") {
+        const protocol = window.location?.protocol;
+        const hostname = window.location?.hostname;
+        if (protocol && protocol !== "https:" && hostname && !isLocalhostHostname(hostname)) {
+          throw new Error("Geolocation requires a secure context (HTTPS).");
+        }
+      }
+      if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== "function") {
+        throw new Error("Geolocation is not available in this browser.");
+      }
+      try {
+        const pos = await requestCurrentPosition({ enableHighAccuracy: true, timeout: 12_000, maximumAge: 30_000 });
         return { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: pos.coords.accuracy };
+      } catch (err) {
+        if (isGeolocationError(err) && (err.code === 2 || err.code === 3)) {
+          const pos = await requestCurrentPosition({
+            enableHighAccuracy: false,
+            timeout: 20_000,
+            maximumAge: 300_000
+          });
+          return { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: pos.coords.accuracy };
+        }
+        throw err;
       }
-      throw err;
-    }
-  }, [demoMode, puppetAccuracyM, puppetEnabled, puppetLocation, requestCurrentPosition]);
+    },
+    [demoMode, puppetAccuracyM, puppetEnabled, puppetLocation, requestCurrentPosition]
+  );
 
   const setPuppetLocationFromLatLng = useCallback(
     (next: google.maps.LatLngLiteral) => {
@@ -976,7 +983,7 @@ export function MapRoute() {
     scheduleNodesRefresh(bboxString(bounds));
   }, [scheduleNodesRefresh]);
 
-  async function handleCheckIn() {
+  async function handleCheckIn(locationOverride?: google.maps.LatLngLiteral) {
     if (!selectedNode) return;
     setCheckinToken(null);
     setCheckinFailure(null);
@@ -996,7 +1003,7 @@ export function MapRoute() {
 
     setCheckinState("requesting_location");
     try {
-      const fix = await getLocationFix();
+      const fix = await getLocationFix(locationOverride);
       const origin = { lat: fix.lat, lng: fix.lng };
       if (demoMode && puppetEnabled) setPuppetLocationFromLatLng(origin);
       else setUserLocation(origin);
@@ -1439,8 +1446,8 @@ export function MapRoute() {
                     <button
                       type="button"
                       onClick={() => {
-                  const center = getSafeMapCenter(mapRef.current);
-                  setPuppetLocationFromLatLng(center);
+                        const center = getSafeMapCenter(mapRef.current);
+                        setPuppetLocationFromLatLng(center);
                       }}
                       disabled={!isLoaded || !puppetEnabled}
                     >
@@ -1450,7 +1457,11 @@ export function MapRoute() {
                       type="button"
                       onClick={() => {
                         if (!selectedNode) return;
-                        setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                        const snapped = { lat: selectedNode.lat, lng: selectedNode.lng };
+                        setPuppetLocationFromLatLng(snapped);
+                        if (demoMode && puppetEnabled) {
+                          void handleCheckIn(snapped);
+                        }
                       }}
                       disabled={!selectedNode || !puppetEnabled}
                     >

@@ -15,7 +15,14 @@ const network = WalletAdapterNetwork.Devnet;
 const endpoint = import.meta.env.VITE_SOLANA_RPC_URL ?? clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter(), new SolflareWalletAdapter({ network })];
 
-const storedTheme = typeof window === "undefined" ? null : window.localStorage.getItem("groundedart.theme");
+const storedTheme = (() => {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem("groundedart.theme");
+  } catch {
+    return null;
+  }
+})();
 const resolvedTheme =
   storedTheme === "light" || storedTheme === "dark"
     ? storedTheme

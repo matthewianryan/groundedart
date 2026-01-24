@@ -13,7 +13,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "PGPASSWORD=$${POSTGRES_PASSWORD} pg_isready -h $(hostname -i) -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+          "PGPASSWORD=$${POSTGRES_PASSWORD} pg_isready -h $(hostname -i) -U $${POSTGRES_USER} -d postgres",
         ]
       interval: 5s
       timeout: 5s
@@ -109,7 +109,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "alembic -c alembic.ini upgrade head && python scripts/seed_nodes.py && python scripts/seed_artists.py && python scripts/seed_node_images.py"
+    command: sh -c "python scripts/ensure_database.py && alembic -c alembic.ini upgrade head && python scripts/seed_nodes.py && python scripts/seed_artists.py && python scripts/seed_node_images.py"
 
 volumes:
   groundedart_pgdata:
