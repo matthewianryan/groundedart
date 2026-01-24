@@ -15,22 +15,23 @@ const network = WalletAdapterNetwork.Devnet;
 const endpoint = import.meta.env.VITE_SOLANA_RPC_URL ?? clusterApiUrl(network);
 const wallets = [new PhantomWalletAdapter(), new SolflareWalletAdapter({ network })];
 
-const storedTheme = (() => {
-  if (typeof window === "undefined") return null;
+function resolveTheme(): "light" | "dark" {
   try {
-    return window.localStorage.getItem("groundedart.theme");
+    if (typeof window === "undefined") return "light";
+    const stored = window.localStorage.getItem("groundedart.theme");
+    if (stored === "light" || stored === "dark") return stored;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   } catch {
-    return null;
+    return "light";
   }
-})();
-const resolvedTheme =
-  storedTheme === "light" || storedTheme === "dark"
-    ? storedTheme
-    : typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-if (typeof document !== "undefined") {
-  document.documentElement.dataset.theme = resolvedTheme;
+}
+
+try {
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.theme = resolveTheme();
+  }
+} catch {
+  // Ignore theme boot failures; app should still mount.
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
