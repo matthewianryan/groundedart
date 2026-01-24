@@ -12,6 +12,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { resetDeviceId } from "../auth/device";
 import { ensureAnonymousSession } from "../auth/session";
 import { isApiError } from "../api/http";
+import { resolveMediaUrl } from "../api/media";
 import { createCheckinChallenge, checkIn } from "../features/checkin/api";
 import { clearActiveCaptureDraft } from "../features/captures/captureDraftStore";
 import {
@@ -345,6 +346,17 @@ function getSafeMapCenter(map: google.maps.Map | null): google.maps.LatLngLitera
   return normalizeLatLng(next, DEFAULT_CENTER);
 }
 
+type MapPixelPoint = { x: number; y: number };
+
+function projectLatLngToWorldPoint(latLng: google.maps.LatLngLiteral): MapPixelPoint {
+  const siny = Math.sin((latLng.lat * Math.PI) / 180);
+  const clampedSiny = Math.min(Math.max(siny, -0.9999), 0.9999);
+  return {
+    x: 128 + (latLng.lng / 360) * 256,
+    y: 128 + (0.5 * Math.log((1 + clampedSiny) / (1 - clampedSiny))) * (-256 / (2 * Math.PI))
+  };
+}
+
 function isLocalhostHostname(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 }
@@ -370,6 +382,7 @@ export function MapRoute() {
   const [nodes, setNodes] = useState<NodePublic[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedNodeId) ?? null, [nodes, selectedNodeId]);
+  const selectedNodeImageUrl = resolveMediaUrl(selectedNode?.image_url);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [status, setStatus] = useState<string>("Starting…");
   const [nodesStatus, setNodesStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -407,6 +420,8 @@ export function MapRoute() {
   const nodeFetchDebounceRef = useRef<number | null>(null);
   const lastBboxRef = useRef<string | undefined>(undefined);
   const mapRef = useRef<google.maps.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const activeUserLocationRef = useRef<google.maps.LatLngLiteral | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const uploadQueue = useUploadQueue();
   const demoMode = useMemo(() => {
@@ -474,6 +489,7 @@ export function MapRoute() {
   const celebrateNodesOnNextRefreshRef = useRef(false);
   const prevNodesRef = useRef<NodePublic[] | null>(null);
   const [mapRipples, setMapRipples] = useState<Array<{ id: string; position: google.maps.LatLngLiteral }>>([]);
+  const [userMarkerPixel, setUserMarkerPixel] = useState<MapPixelPoint | null>(null);
   const directionsUpdateTimeoutRef = useRef<number | null>(null);
   const prevPuppetLocationRef = useRef<google.maps.LatLngLiteral | null>(null);
 
@@ -669,10 +685,10 @@ export function MapRoute() {
     if (!isLoaded || typeof google === "undefined" || !google.maps?.SymbolPath) return null;
     return {
       path: google.maps.SymbolPath.CIRCLE,
-      scale: 12,
-      fillColor: "#4285f4",
+      scale: 8,
+      fillColor: "#3b82f6",
       fillOpacity: 1,
-      strokeWeight: 3,
+      strokeWeight: 2,
       strokeColor: "#ffffff",
       strokeOpacity: 0.95
     };
@@ -685,10 +701,10 @@ export function MapRoute() {
     const pulse = (Math.sin(phase) + 1) / 2;
     return {
       path: google.maps.SymbolPath.CIRCLE,
-      scale: 12 + pulse * 3.5,
+      scale: 8 + pulse * 2.2,
       fillColor: "#3b82f6",
-      fillOpacity: 0.75 + pulse * 0.2,
-      strokeWeight: 3,
+      fillOpacity: 0.8 + pulse * 0.15,
+      strokeWeight: 2,
       strokeColor: "#ffffff",
       strokeOpacity: 0.95
     };
@@ -726,6 +742,41 @@ export function MapRoute() {
       setMapRipples((prev) => [...prev, { id: rippleId, position: { lat: item.lat, lng: item.lng } }]);
       const timeoutId = window.setTimeout(() => setMapRipples((prev) => prev.filter((r) => r.id !== rippleId)), 1800);
       timeoutsRef.current.push(timeoutId);
+    });
+  }, []);
+
+  const updateUserMarkerPixel = useCallback((location?: google.maps.LatLngLiteral | null) => {
+    const target = location ?? activeUserLocationRef.current;
+    if (!target) {
+      setUserMarkerPixel(null);
+      return;
+    }
+    const map = mapRef.current;
+    const container = mapContainerRef.current;
+    if (!map || !container || typeof map.getCenter !== "function" || typeof map.getZoom !== "function") {
+      setUserMarkerPixel(null);
+      return;
+    }
+    const centerLatLng = map.getCenter?.();
+    const zoom = map.getZoom?.();
+    if (!centerLatLng || typeof zoom !== "number") {
+      setUserMarkerPixel(null);
+      return;
+    }
+    const center = normalizeLatLng(centerLatLng.toJSON?.() ?? null, DEFAULT_CENTER);
+    const bounds = container.getBoundingClientRect();
+    const width = bounds.width || container.offsetWidth;
+    const height = bounds.height || container.offsetHeight;
+    if (!(width > 0 && height > 0)) {
+      setUserMarkerPixel(null);
+      return;
+    }
+    const scale = Math.pow(2, zoom);
+    const worldPoint = projectLatLngToWorldPoint(target);
+    const centerPoint = projectLatLngToWorldPoint(center);
+    setUserMarkerPixel({
+      x: (worldPoint.x - centerPoint.x) * scale + width / 2,
+      y: (worldPoint.y - centerPoint.y) * scale + height / 2
     });
   }, []);
 
@@ -971,8 +1022,9 @@ export function MapRoute() {
       mapRef.current = map;
       const bounds = map.getBounds();
       scheduleNodesRefresh(bounds ? bboxString(bounds) : undefined);
+      updateUserMarkerPixel();
     },
-    [scheduleNodesRefresh]
+    [scheduleNodesRefresh, updateUserMarkerPixel]
   );
 
   const handleMapUnmount = useCallback(() => {
@@ -984,7 +1036,8 @@ export function MapRoute() {
     const bounds = mapRef.current.getBounds();
     if (!bounds) return;
     scheduleNodesRefresh(bboxString(bounds));
-  }, [scheduleNodesRefresh]);
+    updateUserMarkerPixel();
+  }, [scheduleNodesRefresh, updateUserMarkerPixel]);
 
   async function handleCheckIn(locationOverride?: google.maps.LatLngLiteral) {
     if (!selectedNode) return;
@@ -1280,6 +1333,16 @@ export function MapRoute() {
     return userLocation;
   }, [demoMode, puppetEnabled, puppetLocation, userLocation]);
 
+  const userMarkerClassName = useMemo(
+    () => (demoMode && puppetEnabled ? "ga-user-marker ga-user-marker--puppet" : "ga-user-marker"),
+    [demoMode, puppetEnabled]
+  );
+
+  useEffect(() => {
+    activeUserLocationRef.current = activeUserLocation;
+    updateUserMarkerPixel(activeUserLocation);
+  }, [activeUserLocation, updateUserMarkerPixel]);
+
   const demoPuppetLabel = useMemo(() => {
     if (!puppetEnabled) return "disabled";
     if (!demoPuppetLocation) return "unset";
@@ -1545,68 +1608,78 @@ export function MapRoute() {
             Loading Google Maps…
           </div>
         ) : (
-          <GoogleMap
-            mapContainerStyle={MAP_CONTAINER_STYLE}
-            center={DEFAULT_CENTER}
-            zoom={13}
-            onLoad={handleMapLoad}
-            onUnmount={handleMapUnmount}
-            onIdle={handleMapIdle}
-            options={mapOptions}
-            onClick={(event) => {
-              if (!demoMode || !puppetEnabled || !demoClickToMove) return;
-              const latLng = event.latLng;
-              if (!latLng) return;
-              setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
-            }}
-          >
-            {mapRipples.map((ripple) => (
-              <OverlayView
-                key={ripple.id}
-                position={ripple.position}
-                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-              >
-                <div className="ga-map-ripple" />
-              </OverlayView>
-            ))}
-            {nodes.map((n) => (
-              <Marker
-                key={n.id}
-                position={{ lat: n.lat, lng: n.lng }}
-                onClick={() => {
-                  setSelectedNodeId(n.id);
-                  void handleRequestDirections(n);
-                }}
-              />
-            ))}
-            {activeUserLocation ? (
-              <Marker
-                position={activeUserLocation}
-                title={demoMode && puppetEnabled ? "Puppet location" : "Your location"}
-                draggable={demoMode && puppetEnabled}
-                zIndex={999}
-                onDrag={(event) => {
-                  if (!demoMode || !puppetEnabled) return;
-                  const latLng = event.latLng;
-                  if (!latLng) return;
-                  setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
-                }}
-                onDragEnd={(event) => {
-                  if (!demoMode || !puppetEnabled) return;
-                  const latLng = event.latLng;
-                  if (!latLng) return;
-                  setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
-                }}
-                icon={puppetMarkerIcon ?? undefined}
-              />
+          <div className="ga-map-canvas" ref={mapContainerRef}>
+            <GoogleMap
+              mapContainerStyle={MAP_CONTAINER_STYLE}
+              center={DEFAULT_CENTER}
+              zoom={13}
+              onLoad={handleMapLoad}
+              onUnmount={handleMapUnmount}
+              onIdle={handleMapIdle}
+              options={mapOptions}
+              onClick={(event) => {
+                if (!demoMode || !puppetEnabled || !demoClickToMove) return;
+                const latLng = event.latLng;
+                if (!latLng) return;
+                setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
+              }}
+            >
+              {mapRipples.map((ripple) => (
+                <OverlayView
+                  key={ripple.id}
+                  position={ripple.position}
+                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                >
+                  <div className="ga-map-ripple" />
+                </OverlayView>
+              ))}
+              {nodes.map((n) => (
+                <Marker
+                  key={n.id}
+                  position={{ lat: n.lat, lng: n.lng }}
+                  onClick={() => {
+                    setSelectedNodeId(n.id);
+                    void handleRequestDirections(n);
+                  }}
+                />
+              ))}
+              {activeUserLocation ? (
+                <Marker
+                  position={activeUserLocation}
+                  title={demoMode && puppetEnabled ? "Puppet location" : "Your location"}
+                  draggable={demoMode && puppetEnabled}
+                  zIndex={999}
+                  onDrag={(event) => {
+                    if (!demoMode || !puppetEnabled) return;
+                    const latLng = event.latLng;
+                    if (!latLng) return;
+                    setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
+                  }}
+                  onDragEnd={(event) => {
+                    if (!demoMode || !puppetEnabled) return;
+                    const latLng = event.latLng;
+                    if (!latLng) return;
+                    setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
+                  }}
+                  icon={puppetMarkerIcon ?? undefined}
+                />
+              ) : null}
+              {directionsRequest ? (
+                <DirectionsService options={directionsRequest} callback={handleDirectionsResponse} />
+              ) : null}
+              {directionsResult ? (
+                <DirectionsRenderer directions={directionsResult} options={{ suppressMarkers: true, preserveViewport: true }} />
+              ) : null}
+            </GoogleMap>
+            {userMarkerPixel ? (
+              <div className="ga-user-marker-layer">
+                <div
+                  className={userMarkerClassName}
+                  style={{ left: `${userMarkerPixel.x}px`, top: `${userMarkerPixel.y}px` }}
+                />
+              </div>
             ) : null}
-            {directionsRequest ? (
-              <DirectionsService options={directionsRequest} callback={handleDirectionsResponse} />
-            ) : null}
-            {directionsResult ? (
-              <DirectionsRenderer directions={directionsResult} options={{ suppressMarkers: true }} />
-            ) : null}
-          </GoogleMap>
+          </div>
         )}
       </div>
 
@@ -1672,24 +1745,24 @@ export function MapRoute() {
             </div>
           ) : null}
           {statusMessage ? <div className="alert">{statusMessage}</div> : null}
-          {selectedNode.image_url ? (
+          {selectedNodeImageUrl ? (
             <button
               type="button"
               className="node-image-preview"
               onClick={() => setImageExpanded(true)}
               aria-label="View node image"
             >
-              <img src={selectedNode.image_url} alt={selectedNode.name} loading="lazy" />
+              <img src={selectedNodeImageUrl} alt={selectedNode.name} loading="lazy" />
               <span>Tap to enlarge</span>
             </button>
           ) : null}
         </div>
       ) : null}
 
-      {imageExpanded && selectedNode?.image_url ? (
+      {imageExpanded && selectedNode && selectedNodeImageUrl ? (
         <div className="modal-backdrop" onClick={() => setImageExpanded(false)} role="presentation">
           <div className="image-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
-            <img src={selectedNode.image_url} alt={selectedNode.name} />
+            <img src={selectedNodeImageUrl} alt={selectedNode.name} />
             {selectedNode.image_attribution ? (
               <div className="muted">Image credit: {selectedNode.image_attribution}</div>
             ) : null}

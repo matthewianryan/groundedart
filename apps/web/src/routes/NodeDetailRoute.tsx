@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { isApiError } from "../api/http";
+import { resolveMediaUrl } from "../api/media";
 import {
   createCaptureReport,
   listNodeCaptures,
@@ -33,6 +34,7 @@ export function NodeDetailRoute() {
   const [reportError, setReportError] = useState<string | null>(null);
   const [lastReportedId, setLastReportedId] = useState<string | null>(null);
   const tipsEnabled = import.meta.env.VITE_TIPS_ENABLED === "true";
+  const nodeImageUrl = resolveMediaUrl(node?.image_url);
 
   const reportReasons: ReportReasonCode[] = [
     "spam",
@@ -152,9 +154,9 @@ export function NodeDetailRoute() {
                   </div>
                   <div className="muted">{node.category}</div>
                 </div>
-                {node.image_url ? (
+                {nodeImageUrl ? (
                   <div className="node-image">
-                    <img src={node.image_url} alt={node.name} loading="lazy" />
+                    <img src={nodeImageUrl} alt={node.name} loading="lazy" />
                     {node.image_attribution ? (
                       <div className="node-image-credit">
                         Image credit:{" "}
@@ -215,11 +217,12 @@ export function NodeDetailRoute() {
                 <div className="captures-grid">
                   {captures.map((capture) => {
                     const attribution = formatAttribution(capture);
+                    const captureImageUrl = resolveMediaUrl(capture.image_url);
                     return (
                       <div key={capture.id} className="capture-card">
                         <div className="capture-thumb">
-                          {capture.image_url ? (
-                            <img src={capture.image_url} alt="Verified capture" loading="lazy" />
+                          {captureImageUrl ? (
+                            <img src={captureImageUrl} alt="Verified capture" loading="lazy" />
                           ) : (
                             <div className="capture-thumb-fallback">Image pending</div>
                           )}

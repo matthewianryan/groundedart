@@ -402,7 +402,7 @@ textarea {
   mix-blend-mode: multiply;
   opacity: 0.6;
   pointer-events: none;
-  z-index: 2;
+  z-index: 0;
 }
 
 [data-theme="dark"] .map-area::after {
@@ -427,6 +427,20 @@ textarea {
   z-index: 5;
   display: grid;
   gap: 12px;
+}
+
+.ga-map-canvas {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+.ga-user-marker-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
 }
 
 .map-demo-toolbar {
@@ -1068,6 +1082,36 @@ textarea {
   pointer-events: none;
 }
 
+.ga-user-marker {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: #3b82f6;
+  border: 3px solid #ffffff;
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.35);
+  pointer-events: none;
+}
+
+.ga-user-marker::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 2px solid rgba(59, 130, 246, 0.35);
+  opacity: 0.7;
+}
+
+.ga-user-marker--puppet::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 999px;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  animation: ga-user-pulse 1400ms ease-out infinite;
+}
+
 .ga-map-ripple::before,
 .ga-map-ripple::after {
   content: "";
@@ -1137,6 +1181,17 @@ textarea {
   100% {
     opacity: 0;
     transform: scale(1.05);
+  }
+}
+
+@keyframes ga-user-pulse {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
   }
 }
 
