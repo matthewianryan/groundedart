@@ -5,7 +5,8 @@ import {
   GoogleMap,
   Marker,
   OverlayView,
-  useJsApiLoader
+  useJsApiLoader,
+  type Libraries
 } from "@react-google-maps/api";
 import { useLocation, useNavigate } from "react-router-dom";
 import { resetDeviceId } from "../auth/device";
@@ -38,6 +39,7 @@ const MAP_OPTIONS: google.maps.MapOptions = {
   zoomControl: true,
   gestureHandling: "greedy"
 };
+const GOOGLE_MAPS_LIBRARIES: Libraries = [];
 const MAP_STYLE_STORAGE_KEY = "groundedart.mapStylePreset";
 const LIGHT_MAP_STYLE_STORAGE_KEY = "groundedart.mapStylePreset.light";
 const THEME_STORAGE_KEY = "groundedart.theme";
@@ -391,7 +393,7 @@ export function MapRoute() {
   const { isLoaded, loadError } = useJsApiLoader({
     id: "groundedart-google-maps",
     googleMapsApiKey: googleMapsApiKey ?? "",
-    libraries: []
+    libraries: GOOGLE_MAPS_LIBRARIES
   });
   const [directionsRequest, setDirectionsRequest] = useState<google.maps.DirectionsRequest | null>(null);
   const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
@@ -664,7 +666,7 @@ export function MapRoute() {
   }, [demoMode, puppetEnabled]);
 
   const defaultUserMarkerIcon = useMemo(() => {
-    if (!isLoaded || typeof google === "undefined" || !google.maps) return null;
+    if (!isLoaded || typeof google === "undefined" || !google.maps?.SymbolPath) return null;
     return {
       path: google.maps.SymbolPath.CIRCLE,
       scale: 12,
@@ -678,7 +680,7 @@ export function MapRoute() {
 
   const puppetMarkerIcon = useMemo(() => {
     if (!demoMode || !puppetEnabled) return defaultUserMarkerIcon;
-    if (typeof google === "undefined" || !google.maps) return defaultUserMarkerIcon;
+    if (typeof google === "undefined" || !google.maps?.SymbolPath) return defaultUserMarkerIcon;
     const phase = (puppetPulseStep / 60) * Math.PI * 2;
     const pulse = (Math.sin(phase) + 1) / 2;
     return {
@@ -930,6 +932,7 @@ export function MapRoute() {
   useEffect(() => {
     if (!demoMode || !puppetEnabled || !selectedNode || !puppetLocation) return;
     if (!isLoaded || !googleMapsApiKey) return;
+    if (typeof google === "undefined" || !google.maps?.TravelMode) return;
     if (!directionsResult && !directionsRequest) return;
     const prev = prevPuppetLocationRef.current;
     if (prev && Math.abs(prev.lat - puppetLocation.lat) < 1e-6 && Math.abs(prev.lng - puppetLocation.lng) < 1e-6) {
@@ -1152,6 +1155,10 @@ export function MapRoute() {
     if (!node) return;
     if (!isLoaded || !googleMapsApiKey) {
       setStatus("Map not ready for directions (missing API key or still loading).");
+      return;
+    }
+    if (typeof google === "undefined" || !google.maps?.TravelMode) {
+      setStatus("Map not ready for directions.");
       return;
     }
 
@@ -1528,6 +1535,10 @@ export function MapRoute() {
         {!googleMapsApiKey ? (
           <div className="muted" style={{ padding: 12 }}>
             Set VITE_GOOGLE_MAPS_API_KEY in .env to load the map.
+          </div>
+        ) : loadError ? (
+          <div className="muted" style={{ padding: 12 }}>
+            Google Maps failed to load: {loadError.message ?? "unknown error"}.
           </div>
         ) : !isLoaded ? (
           <div className="muted" style={{ padding: 12 }}>
