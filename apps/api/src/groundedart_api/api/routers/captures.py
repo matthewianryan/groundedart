@@ -134,58 +134,59 @@ async def create_capture(
 
     rank = await get_rank_for_user(db=db, user_id=user.id)
 
-    window_start = now_time - dt.timedelta(seconds=settings.capture_rate_window_seconds)
-    recent_captures = await db.scalar(
-        select(func.count())
-        .select_from(Capture)
-        .where(
-            Capture.user_id == user.id,
-            Capture.node_id == body.node_id,
-            Capture.created_at >= window_start,
-        )
-    )
-    recent_count = int(recent_captures or 0)
-    try:
-        assert_can_create_capture(
-            rank=rank,
-            node_min_rank=node.min_rank,
-            recent_captures=recent_count,
-            window_seconds=settings.capture_rate_window_seconds,
-        )
-    except AppError as exc:
-        if exc.code == "capture_rate_limited":
-            details = dict(exc.details or {})
-            details["source"] = "capture_create"
-            details["recent_count"] = recent_count
-            max_per_window = int(details.get("max_per_window") or 0)
-            window_seconds = int(
-                details.get("window_seconds") or settings.capture_rate_window_seconds
+    if not settings.disable_capture_rate_limits:
+        window_start = now_time - dt.timedelta(seconds=settings.capture_rate_window_seconds)
+        recent_captures = await db.scalar(
+            select(func.count())
+            .select_from(Capture)
+            .where(
+                Capture.user_id == user.id,
+                Capture.node_id == body.node_id,
+                Capture.created_at >= window_start,
             )
-            retry_at = None
-            if max_per_window > 0 and recent_count > 0:
-                offset = max(0, recent_count - max_per_window)
-                nth_oldest = await db.scalar(
-                    select(Capture.created_at)
-                    .where(
-                        Capture.user_id == user.id,
-                        Capture.node_id == body.node_id,
-                        Capture.created_at >= window_start,
-                    )
-                    .order_by(Capture.created_at.asc(), Capture.id.asc())
-                    .offset(offset)
-                    .limit(1)
+        )
+        recent_count = int(recent_captures or 0)
+        try:
+            assert_can_create_capture(
+                rank=rank,
+                node_min_rank=node.min_rank,
+                recent_captures=recent_count,
+                window_seconds=settings.capture_rate_window_seconds,
+            )
+        except AppError as exc:
+            if exc.code == "capture_rate_limited":
+                details = dict(exc.details or {})
+                details["source"] = "capture_create"
+                details["recent_count"] = recent_count
+                max_per_window = int(details.get("max_per_window") or 0)
+                window_seconds = int(
+                    details.get("window_seconds") or settings.capture_rate_window_seconds
                 )
-                if nth_oldest is not None:
-                    retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
-            exc.details = _with_retry_after(details=details, now_time=now_time, retry_at=retry_at)
-            await record_abuse_event(
-                db=db,
-                event_type="capture_rate_limited",
-                user_id=user.id,
-                node_id=token.node_id,
-                details=details,
-            )
-        raise
+                retry_at = None
+                if max_per_window > 0 and recent_count > 0:
+                    offset = max(0, recent_count - max_per_window)
+                    nth_oldest = await db.scalar(
+                        select(Capture.created_at)
+                        .where(
+                            Capture.user_id == user.id,
+                            Capture.node_id == body.node_id,
+                            Capture.created_at >= window_start,
+                        )
+                        .order_by(Capture.created_at.asc(), Capture.id.asc())
+                        .offset(offset)
+                        .limit(1)
+                    )
+                    if nth_oldest is not None:
+                        retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
+                exc.details = _with_retry_after(details=details, now_time=now_time, retry_at=retry_at)
+                await record_abuse_event(
+                    db=db,
+                    event_type="capture_rate_limited",
+                    user_id=user.id,
+                    node_id=token.node_id,
+                    details=details,
+                )
+            raise
 
     token.used_at = now_time
     capture = Capture(

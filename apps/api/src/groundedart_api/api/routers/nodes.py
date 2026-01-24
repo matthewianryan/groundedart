@@ -237,64 +237,66 @@ async def create_checkin_challenge(
 
         rank = await get_rank_for_user(db=db, user_id=user.id)
 
-        window_start = now_time - dt.timedelta(
-            seconds=settings.checkin_challenge_rate_window_seconds
-        )
-        recent_challenges = await db.scalar(
-            select(func.count())
-            .select_from(CheckinChallenge)
-            .where(
-                CheckinChallenge.user_id == user.id,
-                CheckinChallenge.node_id == node.id,
-                CheckinChallenge.created_at >= window_start,
+        if not settings.disable_checkin_challenge_rate_limits:
+            window_start = now_time - dt.timedelta(
+                seconds=settings.checkin_challenge_rate_window_seconds
             )
-        )
-        recent_count = int(recent_challenges or 0)
-        try:
-            assert_can_checkin_challenge(
-                rank=rank,
-                node_min_rank=node.min_rank,
-                recent_challenges=recent_count,
-                window_seconds=settings.checkin_challenge_rate_window_seconds,
-            )
-        except AppError as exc:
-            if exc.code == "checkin_challenge_rate_limited":
-                details = dict(exc.details or {})
-                details["recent_count"] = recent_count
-                max_per_window = int(details.get("max_per_window") or 0)
-                window_seconds = int(
-                    details.get("window_seconds")
-                    or settings.checkin_challenge_rate_window_seconds
+            recent_challenges = await db.scalar(
+                select(func.count())
+                .select_from(CheckinChallenge)
+                .where(
+                    CheckinChallenge.user_id == user.id,
+                    CheckinChallenge.node_id == node.id,
+                    CheckinChallenge.created_at >= window_start,
                 )
-                retry_at = None
-                if max_per_window > 0 and recent_count > 0:
-                    offset = max(0, recent_count - max_per_window)
-                    nth_oldest = await db.scalar(
-                        select(CheckinChallenge.created_at)
-                        .where(
-                            CheckinChallenge.user_id == user.id,
-                            CheckinChallenge.node_id == node.id,
-                            CheckinChallenge.created_at >= window_start,
-                        )
-                        .order_by(
-                            CheckinChallenge.created_at.asc(), CheckinChallenge.id.asc()
-                        )
-                        .offset(offset)
-                        .limit(1)
+            )
+            recent_count = int(recent_challenges or 0)
+            try:
+                assert_can_checkin_challenge(
+                    rank=rank,
+                    node_min_rank=node.min_rank,
+                    recent_challenges=recent_count,
+                    window_seconds=settings.checkin_challenge_rate_window_seconds,
+                )
+            except AppError as exc:
+                if exc.code == "checkin_challenge_rate_limited":
+                    details = dict(exc.details or {})
+                    details["recent_count"] = recent_count
+                    max_per_window = int(details.get("max_per_window") or 0)
+                    window_seconds = int(
+                        details.get("window_seconds")
+                        or settings.checkin_challenge_rate_window_seconds
                     )
-                    if nth_oldest is not None:
-                        retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
-                exc.details = _with_retry_after(
-                    details=details, now_time=now_time, retry_at=retry_at
-                )
-                await record_abuse_event(
-                    db=db,
-                    event_type="checkin_challenge_rate_limited",
-                    user_id=user.id,
-                    node_id=node.id,
-                    details=details,
-                )
-            raise
+                    retry_at = None
+                    if max_per_window > 0 and recent_count > 0:
+                        offset = max(0, recent_count - max_per_window)
+                        nth_oldest = await db.scalar(
+                            select(CheckinChallenge.created_at)
+                            .where(
+                                CheckinChallenge.user_id == user.id,
+                                CheckinChallenge.node_id == node.id,
+                                CheckinChallenge.created_at >= window_start,
+                            )
+                            .order_by(
+                                CheckinChallenge.created_at.asc(),
+                                CheckinChallenge.id.asc(),
+                            )
+                            .offset(offset)
+                            .limit(1)
+                        )
+                        if nth_oldest is not None:
+                            retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
+                    exc.details = _with_retry_after(
+                        details=details, now_time=now_time, retry_at=retry_at
+                    )
+                    await record_abuse_event(
+                        db=db,
+                        event_type="checkin_challenge_rate_limited",
+                        user_id=user.id,
+                        node_id=node.id,
+                        details=details,
+                    )
+                raise
 
         expires_at = now_time + dt.timedelta(seconds=settings.checkin_challenge_ttl_seconds)
         challenge = CheckinChallenge(user_id=user.id, node_id=node.id, expires_at=expires_at)
@@ -413,60 +415,61 @@ async def check_in(
                 details=details,
             )
 
-        window_start = now_time - dt.timedelta(seconds=settings.capture_rate_window_seconds)
-        recent_captures = await db.scalar(
-            select(func.count())
-            .select_from(Capture)
-            .where(
-                Capture.user_id == user.id,
-                Capture.node_id == node.id,
-                Capture.created_at >= window_start,
-            )
-        )
-        recent_count = int(recent_captures or 0)
-        try:
-            assert_can_checkin(
-                rank=rank,
-                node_min_rank=node.min_rank,
-                recent_captures=recent_count,
-                window_seconds=settings.capture_rate_window_seconds,
-            )
-        except AppError as exc:
-            if exc.code == "capture_rate_limited":
-                details = dict(exc.details or {})
-                details["source"] = "checkin"
-                details["recent_count"] = recent_count
-                max_per_window = int(details.get("max_per_window") or 0)
-                window_seconds = int(
-                    details.get("window_seconds") or settings.capture_rate_window_seconds
+        if not settings.disable_capture_rate_limits:
+            window_start = now_time - dt.timedelta(seconds=settings.capture_rate_window_seconds)
+            recent_captures = await db.scalar(
+                select(func.count())
+                .select_from(Capture)
+                .where(
+                    Capture.user_id == user.id,
+                    Capture.node_id == node.id,
+                    Capture.created_at >= window_start,
                 )
-                retry_at = None
-                if max_per_window > 0 and recent_count > 0:
-                    offset = max(0, recent_count - max_per_window)
-                    nth_oldest = await db.scalar(
-                        select(Capture.created_at)
-                        .where(
-                            Capture.user_id == user.id,
-                            Capture.node_id == node.id,
-                            Capture.created_at >= window_start,
-                        )
-                        .order_by(Capture.created_at.asc(), Capture.id.asc())
-                        .offset(offset)
-                        .limit(1)
+            )
+            recent_count = int(recent_captures or 0)
+            try:
+                assert_can_checkin(
+                    rank=rank,
+                    node_min_rank=node.min_rank,
+                    recent_captures=recent_count,
+                    window_seconds=settings.capture_rate_window_seconds,
+                )
+            except AppError as exc:
+                if exc.code == "capture_rate_limited":
+                    details = dict(exc.details or {})
+                    details["source"] = "checkin"
+                    details["recent_count"] = recent_count
+                    max_per_window = int(details.get("max_per_window") or 0)
+                    window_seconds = int(
+                        details.get("window_seconds") or settings.capture_rate_window_seconds
                     )
-                    if nth_oldest is not None:
-                        retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
-                exc.details = _with_retry_after(
-                    details=details, now_time=now_time, retry_at=retry_at
-                )
-                await record_abuse_event(
-                    db=db,
-                    event_type="capture_rate_limited",
-                    user_id=user.id,
-                    node_id=node.id,
-                    details=details,
-                )
-            raise
+                    retry_at = None
+                    if max_per_window > 0 and recent_count > 0:
+                        offset = max(0, recent_count - max_per_window)
+                        nth_oldest = await db.scalar(
+                            select(Capture.created_at)
+                            .where(
+                                Capture.user_id == user.id,
+                                Capture.node_id == node.id,
+                                Capture.created_at >= window_start,
+                            )
+                            .order_by(Capture.created_at.asc(), Capture.id.asc())
+                            .offset(offset)
+                            .limit(1)
+                        )
+                        if nth_oldest is not None:
+                            retry_at = nth_oldest + dt.timedelta(seconds=window_seconds)
+                    exc.details = _with_retry_after(
+                        details=details, now_time=now_time, retry_at=retry_at
+                    )
+                    await record_abuse_event(
+                        db=db,
+                        event_type="capture_rate_limited",
+                        user_id=user.id,
+                        node_id=node.id,
+                        details=details,
+                    )
+                raise
 
         challenge.used_at = now_time
 

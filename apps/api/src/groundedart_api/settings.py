@@ -75,6 +75,10 @@ class Settings(BaseSettings):
         default=5,
         description="Maximum check-in challenges per user per node per rate window.",
     )
+    disable_checkin_challenge_rate_limits: bool = Field(
+        default=False,
+        description="Disable per-user per-node check-in challenge rate limits (demo-only).",
+    )
     capture_rate_window_seconds: int = Field(
         default=24 * 60 * 60,
         description="Rolling window for capture rate limits, in seconds.",
@@ -82,6 +86,10 @@ class Settings(BaseSettings):
     max_captures_per_user_node_per_day: int = Field(
         default=5,
         description="Maximum captures per user per node per rate window.",
+    )
+    disable_capture_rate_limits: bool = Field(
+        default=False,
+        description="Disable per-user per-node capture rate limits (demo-only).",
     )
     max_pending_verification_captures_per_node: int = Field(
         default=50,
