@@ -33,7 +33,7 @@ services:
       - "${GROUNDEDART_API_PORT:-8000}:8000"
     volumes:
       - .:/app
-      - api_media:/app/.local_media
+      - ./.local_media:/app/.local_media
     working_dir: /app/apps/api
     depends_on:
       migrate:
@@ -89,7 +89,7 @@ services:
       - .env
     volumes:
       - .:/app
-      - api_media:/app/.local_media
+      - ./.local_media:/app/.local_media
     working_dir: /app/apps/api
     depends_on:
       db:
@@ -98,5 +98,4 @@ services:
 
 volumes:
   groundedart_pgdata:
-  api_media:
   web_node_modules:
