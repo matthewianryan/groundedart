@@ -1254,16 +1254,6 @@ export function MapRoute() {
               <div className="node-meta-label">Radius</div>
               <div>{formatMeters(selectedNode.radius_m)}</div>
             </div>
-            <div>
-              <div className="node-meta-label">Min rank</div>
-              <div>{selectedNode.min_rank}</div>
-            </div>
-            <div>
-              <div className="node-meta-label">Coords</div>
-              <div>
-                {selectedNode.lat.toFixed(4)}, {selectedNode.lng.toFixed(4)}
-              </div>
-            </div>
           </div>
           {selectedNode.image_url ? (
             <button

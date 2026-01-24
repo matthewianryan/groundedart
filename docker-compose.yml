@@ -84,15 +84,17 @@ services:
       dockerfile: apps/api/Dockerfile
     environment:
       DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
+      MEDIA_DIR: /app/.local_media
     env_file:
       - .env
     volumes:
       - .:/app
+      - api_media:/app/.local_media
     working_dir: /app/apps/api
     depends_on:
       db:
         condition: service_healthy
-    command: alembic -c alembic.ini upgrade head
+    command: sh -c "alembic -c alembic.ini upgrade head && python scripts/seed_nodes.py && python scripts/seed_artists.py && python scripts/seed_node_images.py"
 
 volumes:
   groundedart_pgdata:
