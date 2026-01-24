@@ -423,8 +423,9 @@ const Home = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.8, delay: 0.4 }}
                 >
-                  Grounded Art is one of the largest and most significant corporate art collections in the Netherlands,
-                  featuring over <span className="font-bold text-grounded-copper">2,500 contemporary artworks</span>.
+                  Grounded Art is a <span className="font-bold text-grounded-copper">map-first art discovery platform</span>{" "}
+                  built on proof-of-presence. Users can only contribute content by physically visiting real-world art
+                  locations, ensuring that every photo, description, and attribution is verified and current.
                 </motion.p>
                 <motion.p
                   className="text-base md:text-lg lg:text-xl leading-relaxed text-grounded-charcoal/80 dark:text-grounded-parchment/80"
@@ -433,8 +434,10 @@ const Home = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.8, delay: 0.5 }}
                 >
-                  Since its inception, our mission has been to support artists, make art accessible, and foster dialogue
-                  about the role of art in society.
+                  A progressive curator rank system rewards quality contributions, unlocking more content and features
+                  over time. By combining geofenced check-ins, server-enforced verification, and attribution-first
+                  design, Grounded Art creates a trusted, living map of local art that benefits artists, communities,
+                  and explorers alike.
                 </motion.p>
               </div>
             </div>
@@ -504,9 +507,12 @@ const Home = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
-                We envision our work diving deeper into the exploration of art and culture. We're drawn to the idea of
-                capturing moments that feel almost invisible—those fleeting seconds between stillness and motion, light
-                and shadow.
+                Grounded Art will deepen trust and scale impact through automated quality checks, perceptual duplicate
+                detection, and community-assisted verification. Future milestones include artist claim tools, creator
+                dashboards, and optional on-chain tipping or receipts to support artists directly. With localization,
+                multi-language support, and infrastructure designed for low-connectivity environments, the platform is
+                positioned to expand across African cities and beyond while remaining grounded in real-world presence and
+                cultural context.
               </motion.p>
             </div>
           </motion.section>
