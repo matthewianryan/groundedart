@@ -332,7 +332,7 @@ export function MapRoute() {
     const params = new URLSearchParams(location.search);
     if (params.has("demo")) return true;
     if (readEnvBool(DEMO_MODE_ENV, false)) return true;
-    return readStoredBool(DEMO_ENABLED_STORAGE_KEY, false);
+    return readStoredBool(DEMO_ENABLED_STORAGE_KEY, true);
   }, [isCreatorSurface, location.search]);
   const [demoRank, setDemoRank] = useState<number | null>(null);
   const prevDemoRankRef = useRef<number | null>(null);
@@ -391,6 +391,8 @@ export function MapRoute() {
   const celebrateNodesOnNextRefreshRef = useRef(false);
   const prevNodesRef = useRef<NodePublic[] | null>(null);
   const [mapRipples, setMapRipples] = useState<Array<{ id: string; position: google.maps.LatLngLiteral }>>([]);
+  const directionsUpdateTimeoutRef = useRef<number | null>(null);
+  const prevPuppetLocationRef = useRef<google.maps.LatLngLiteral | null>(null);
 
   const bootSession = useCallback(async () => {
     setStatus("Starting…");
@@ -703,6 +705,7 @@ export function MapRoute() {
       timeoutsRef.current = [];
       nodeFetchAbortRef.current?.abort();
       if (nodeFetchDebounceRef.current !== null) window.clearTimeout(nodeFetchDebounceRef.current);
+      if (directionsUpdateTimeoutRef.current !== null) window.clearTimeout(directionsUpdateTimeoutRef.current);
     };
   }, []);
 
@@ -790,6 +793,34 @@ export function MapRoute() {
     },
     [setPuppetLocation]
   );
+
+  useEffect(() => {
+    if (!demoMode || !puppetEnabled || !selectedNode || !puppetLocation) return;
+    if (!isLoaded || !googleMapsApiKey) return;
+    if (!directionsResult && !directionsRequest) return;
+    const prev = prevPuppetLocationRef.current;
+    if (prev && Math.abs(prev.lat - puppetLocation.lat) < 1e-6 && Math.abs(prev.lng - puppetLocation.lng) < 1e-6) {
+      return;
+    }
+    prevPuppetLocationRef.current = puppetLocation;
+    if (directionsUpdateTimeoutRef.current !== null) window.clearTimeout(directionsUpdateTimeoutRef.current);
+    directionsUpdateTimeoutRef.current = window.setTimeout(() => {
+      setDirectionsRequest({
+        origin: puppetLocation,
+        destination: { lat: selectedNode.lat, lng: selectedNode.lng },
+        travelMode: google.maps.TravelMode.WALKING
+      });
+    }, 160);
+  }, [
+    demoMode,
+    directionsRequest,
+    directionsResult,
+    googleMapsApiKey,
+    isLoaded,
+    puppetEnabled,
+    puppetLocation,
+    selectedNode
+  ]);
 
   useEffect(() => {
     if (!demoMode || !puppetEnabled) return;
@@ -1079,6 +1110,17 @@ export function MapRoute() {
     return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=walking`;
   }, [directionsOrigin, selectedNode]);
 
+  const demoPuppetLocation = useMemo(() => {
+    if (!demoMode || !puppetEnabled) return null;
+    return puppetLocation ?? userLocation;
+  }, [demoMode, puppetEnabled, puppetLocation, userLocation]);
+
+  const demoPuppetLabel = useMemo(() => {
+    if (!puppetEnabled) return "disabled";
+    if (!demoPuppetLocation) return "unset";
+    return `${demoPuppetLocation.lat.toFixed(5)}, ${demoPuppetLocation.lng.toFixed(5)}`;
+  }, [demoPuppetLocation, puppetEnabled]);
+
   useEffect(() => {
     if (!demoMode) return;
     const handleUploaded = (event: Event) => {
@@ -1165,6 +1207,59 @@ export function MapRoute() {
             {isCreatorSurface && unreadCount ? <span className="badge">{unreadCount}</span> : null}
           </button>
         </div>
+        {demoMode ? (
+          <div className="map-demo-toolbar map-card">
+            <div className="map-demo-header">
+              <span className="map-demo-dot" aria-hidden="true" />
+              <div>
+                <div className="map-demo-title">Demo user</div>
+                <div className="muted">Drag the blue dot to move.</div>
+              </div>
+            </div>
+            <label className="map-demo-toggle">
+              <input
+                type="checkbox"
+                checked={puppetEnabled}
+                onChange={(event) => setPuppetEnabled(event.target.checked)}
+              />
+              <span>Enable demo location</span>
+            </label>
+            <div className="map-demo-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
+                  setPuppetLocationFromLatLng(center);
+                }}
+                disabled={!isLoaded || !puppetEnabled}
+              >
+                Center on map
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedNode) return;
+                  setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                }}
+                disabled={!selectedNode || !puppetEnabled}
+              >
+                Snap to node
+              </button>
+            </div>
+            <label className="map-demo-toggle">
+              <input
+                type="checkbox"
+                checked={demoClickToMove}
+                onChange={(event) => setDemoClickToMove(event.target.checked)}
+                disabled={!puppetEnabled}
+              />
+              <span>Click map to move</span>
+            </label>
+            <div className="map-demo-meta muted">
+              Location: {demoPuppetLabel} • Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
+            </div>
+          </div>
+        ) : null}
         {!googleMapsApiKey ? (
           <div className="muted" style={{ padding: 12 }}>
             Set VITE_GOOGLE_MAPS_API_KEY in .env to load the map.
@@ -1213,6 +1308,12 @@ export function MapRoute() {
                 position={userLocation}
                 title={demoMode && puppetEnabled ? "Puppet location" : "Your location"}
                 draggable={demoMode && puppetEnabled}
+                onDrag={(event) => {
+                  if (!demoMode || !puppetEnabled) return;
+                  const latLng = event.latLng;
+                  if (!latLng) return;
+                  setPuppetLocationFromLatLng({ lat: latLng.lat(), lng: latLng.lng() });
+                }}
                 onDragEnd={(event) => {
                   if (!demoMode || !puppetEnabled) return;
                   const latLng = event.latLng;
