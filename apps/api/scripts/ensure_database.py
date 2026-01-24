@@ -8,7 +8,8 @@ from sqlalchemy.engine import make_url
 
 
 def _quote_identifier(value: str) -> str:
-    return f"\"{value.replace('\"', '\"\"')}\""
+    escaped = value.replace('"', '""')
+    return f'"{escaped}"'
 
 
 def _build_admin_url(database_url: str) -> tuple[str, str]:
