@@ -27,10 +27,10 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://groundedart:groundedart@db:5432/groundedart
-      API_CORS_ORIGINS: "http://localhost:${GROUNDEDART_WEB_PORT:-5174},http://localhost:5173"
+      API_CORS_ORIGINS: "http://localhost:${GROUNDEDART_WEB_PORT:-5173},http://localhost:5173"
       MEDIA_DIR: /app/.local_media
     ports:
-      - "${GROUNDEDART_API_PORT:-8001}:8000"
+      - "${GROUNDEDART_API_PORT:-8000}:8000"
     volumes:
       - .:/app
       - api_media:/app/.local_media
@@ -47,9 +47,9 @@ services:
     env_file:
       - .env
     environment:
-      VITE_API_ORIGIN: "http://localhost:${GROUNDEDART_API_PORT:-8001}"
+      VITE_API_ORIGIN: "http://localhost:${GROUNDEDART_API_PORT:-8000}"
     ports:
-      - "${GROUNDEDART_WEB_PORT:-5174}:5173"
+      - "${GROUNDEDART_WEB_PORT:-5173}:5173"
     volumes:
       - ./apps/web:/app/apps/web
       - web_node_modules:/app/apps/web/node_modules

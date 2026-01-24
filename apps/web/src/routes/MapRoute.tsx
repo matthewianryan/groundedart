@@ -516,6 +516,34 @@ export function MapRoute() {
     [sessionReady]
   );
 
+  const scheduleNodesRefresh = useCallback((bbox?: string) => {
+    lastBboxRef.current = bbox;
+    if (nodeFetchDebounceRef.current !== null) window.clearTimeout(nodeFetchDebounceRef.current);
+
+    nodeFetchDebounceRef.current = window.setTimeout(() => {
+      nodeFetchAbortRef.current?.abort();
+      const controller = new AbortController();
+      nodeFetchAbortRef.current = controller;
+      setNodesStatus("loading");
+      setNodesError(null);
+
+      listNodes(lastBboxRef.current, { signal: controller.signal })
+        .then((res) => {
+          setNodes(res.nodes);
+          setSelectedNodeId((prev) => (prev && !res.nodes.some((n) => n.id === prev) ? null : prev));
+          setNodesStatus("ready");
+        })
+        .catch((e) => {
+          if (e instanceof DOMException && e.name === "AbortError") return;
+          celebrateNodesOnNextRefreshRef.current = false;
+          const message = e instanceof Error ? e.message : String(e);
+          setNodesStatus("error");
+          setNodesError(message);
+          setStatus(`Nodes error: ${String(e)}`);
+        });
+    }, NODE_FETCH_DEBOUNCE_MS);
+  }, []);
+
   useEffect(() => {
     if (!sessionReady) return;
     refreshMe(true);
@@ -675,34 +703,6 @@ export function MapRoute() {
   const handleMapStyleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const nextPreset = event.target.value;
     if (isMapStylePresetKey(nextPreset)) setMapStylePreset(nextPreset);
-  }, []);
-
-  const scheduleNodesRefresh = useCallback((bbox?: string) => {
-    lastBboxRef.current = bbox;
-    if (nodeFetchDebounceRef.current !== null) window.clearTimeout(nodeFetchDebounceRef.current);
-
-    nodeFetchDebounceRef.current = window.setTimeout(() => {
-      nodeFetchAbortRef.current?.abort();
-      const controller = new AbortController();
-      nodeFetchAbortRef.current = controller;
-      setNodesStatus("loading");
-      setNodesError(null);
-
-      listNodes(lastBboxRef.current, { signal: controller.signal })
-        .then((res) => {
-          setNodes(res.nodes);
-          setSelectedNodeId((prev) => (prev && !res.nodes.some((n) => n.id === prev) ? null : prev));
-          setNodesStatus("ready");
-        })
-        .catch((e) => {
-          if (e instanceof DOMException && e.name === "AbortError") return;
-          celebrateNodesOnNextRefreshRef.current = false;
-          const message = e instanceof Error ? e.message : String(e);
-          setNodesStatus("error");
-          setNodesError(message);
-          setStatus(`Nodes error: ${String(e)}`);
-        });
-    }, NODE_FETCH_DEBOUNCE_MS);
   }, []);
 
   const dismissRankUp = useCallback(() => {
