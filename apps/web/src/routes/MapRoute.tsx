@@ -1434,12 +1434,18 @@ export function MapRoute() {
                             <h3 className="text-sm font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-3">
                               Creator Tools
                             </h3>
-                            <Card variant="light" padding="md">
-                              <details className="group">
-                                <summary className="cursor-pointer list-none flex items-center justify-between text-sm font-semibold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-4">
-                                  <span>Demo Controls</span>
+                            <Card variant="light" padding="md" className="border-2 border-grounded-copper/20">
+                              <details className="group" open>
+                                <summary className="cursor-pointer list-none flex items-center justify-between text-sm font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment mb-4 pb-3 border-b border-grounded-charcoal/10 dark:border-grounded-parchment/10">
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>Demo Controls</span>
+                                  </div>
                                   <svg
-                                    className="w-4 h-4 transition-transform duration-300 group-open:rotate-180"
+                                    className="w-4 h-4 transition-transform duration-300 group-open:rotate-180 text-grounded-charcoal/60 dark:text-grounded-parchment/60"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -1447,28 +1453,41 @@ export function MapRoute() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                   </svg>
                                 </summary>
-                                <div className="space-y-4 mt-4">
-                                  {/* Rank simulation */}
-                                  <div>
-                                    <div className="text-xs uppercase tracking-wide text-grounded-charcoal/70 dark:text-grounded-parchment/70 mb-2">
-                                      Rank simulation
+                                <div className="space-y-5 mt-4">
+                                  {/* Rank Simulation */}
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                      <svg className="w-4 h-4 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                      </svg>
+                                      <h4 className="text-xs font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment">
+                                        Rank Simulation
+                                      </h4>
                                     </div>
-                                    <div className="flex gap-3 flex-wrap">
+                                    <div className="grid grid-cols-2 gap-2">
                                       <Button
                                         variant="light"
                                         size="sm"
                                         onClick={() => setDemoRank((prev) => (prev ?? viewMe?.rank ?? 0) + 1)}
                                         disabled={!viewMe}
+                                        className="text-xs"
                                       >
-                                        Rank up (+1)
+                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                        </svg>
+                                        Rank +1
                                       </Button>
                                       <Button
                                         variant="light"
                                         size="sm"
                                         onClick={() => setDemoRank(viewMe?.next_unlock?.min_rank ?? null)}
                                         disabled={!viewMe?.next_unlock}
+                                        className="text-xs"
                                       >
-                                        Jump to next unlock
+                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                        </svg>
+                                        Next Unlock
                                       </Button>
                                       <Button
                                         variant="light"
@@ -1479,139 +1498,420 @@ export function MapRoute() {
                                           pushToast("New nodes available", sample.map((n) => n.name));
                                         }}
                                         disabled={!nodes.length}
+                                        className="text-xs col-span-2"
                                       >
-                                        Simulate node splash
+                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                                        </svg>
+                                        Simulate Node Splash
                                       </Button>
-                                      <Button variant="light" size="sm" onClick={() => setDemoRank(null)} disabled={demoRank === null}>
-                                        Clear demo
-                                      </Button>
-                                    </div>
-                                    <div className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60 mt-2">
-                                      Tip: open `?demo=1` to show these controls.
-                                    </div>
-                                  </div>
-
-                                  {/* Puppet location */}
-                                  <div>
-                                    <div className="text-xs uppercase tracking-wide text-grounded-charcoal/70 dark:text-grounded-parchment/70 mb-2">
-                                      Puppet location
-                                    </div>
-                                    <div className="space-y-2">
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={puppetEnabled}
-                                          onChange={(event) => setPuppetEnabled(event.target.checked)}
-                                          className="w-4 h-4 rounded border-grounded-charcoal/20 text-grounded-copper focus:ring-grounded-copper"
-                                        />
-                                        <span className="text-sm text-grounded-charcoal dark:text-grounded-parchment">
-                                          Use puppet location (no GPS prompts)
-                                        </span>
-                                      </label>
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={demoClickToMove}
-                                          onChange={(event) => setDemoClickToMove(event.target.checked)}
-                                          className="w-4 h-4 rounded border-grounded-charcoal/20 text-grounded-copper focus:ring-grounded-copper"
-                                        />
-                                        <span className="text-sm text-grounded-charcoal dark:text-grounded-parchment">
-                                          Click map to move puppet
-                                        </span>
-                                      </label>
-                                      <div className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60">
-                                        Puppet:{" "}
-                                        {puppetLocation
-                                          ? `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}`
-                                          : "unset"}{" "}
-                                        • Accuracy: {normalizeAccuracyM(puppetAccuracyM)}m
-                                      </div>
-                                      <div className="flex gap-3 flex-wrap">
+                                      {demoRank !== null && (
                                         <Button
-                                          variant="light"
+                                          variant="copper"
                                           size="sm"
-                                          onClick={() => {
-                                            const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
-                                            setPuppetLocationFromLatLng(center);
-                                          }}
-                                          disabled={!isLoaded}
+                                          onClick={() => setDemoRank(null)}
+                                          className="text-xs col-span-2"
                                         >
-                                          Set to map center
+                                          <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                          </svg>
+                                          Clear Demo Override
                                         </Button>
+                                      )}
+                                    </div>
+                                    {demoRank !== null && (
+                                      <div className="px-3 py-2 rounded-lg bg-grounded-copper/10 dark:bg-grounded-copper/20 border border-grounded-copper/30">
+                                        <div className="text-xs font-medium text-grounded-charcoal dark:text-grounded-parchment">
+                                          Demo rank override: <span className="font-bold text-grounded-copper">{demoRank}</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="border-t border-grounded-charcoal/10 dark:border-grounded-parchment/10 pt-4">
+                                    {/* Puppet Location */}
+                                    <div className="space-y-3">
+                                      <div className="flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        <h4 className="text-xs font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment">
+                                          Location Puppet
+                                        </h4>
+                                      </div>
+                                      <div className="space-y-3">
+                                        <div className="space-y-2">
+                                          <label className="flex items-center gap-2.5 cursor-pointer group p-2 rounded-lg hover:bg-grounded-charcoal/5 dark:hover:bg-grounded-parchment/5 transition-colors">
+                                            <input
+                                              type="checkbox"
+                                              checked={puppetEnabled}
+                                              onChange={(event) => setPuppetEnabled(event.target.checked)}
+                                              className="w-4 h-4 rounded border-grounded-charcoal/30 dark:border-grounded-parchment/30 text-grounded-copper focus:ring-2 focus:ring-grounded-copper/50 transition-colors"
+                                            />
+                                            <span className="text-sm text-grounded-charcoal dark:text-grounded-parchment flex-1">
+                                              Use puppet location
+                                            </span>
+                                            {puppetEnabled && (
+                                              <span className="w-2 h-2 rounded-full bg-grounded-copper animate-pulse"></span>
+                                            )}
+                                          </label>
+                                          <label className="flex items-center gap-2.5 cursor-pointer group p-2 rounded-lg hover:bg-grounded-charcoal/5 dark:hover:bg-grounded-parchment/5 transition-colors">
+                                            <input
+                                              type="checkbox"
+                                              checked={demoClickToMove}
+                                              onChange={(event) => setDemoClickToMove(event.target.checked)}
+                                              className="w-4 h-4 rounded border-grounded-charcoal/30 dark:border-grounded-parchment/30 text-grounded-copper focus:ring-2 focus:ring-grounded-copper/50 transition-colors"
+                                            />
+                                            <span className="text-sm text-grounded-charcoal dark:text-grounded-parchment flex-1">
+                                              Click map to move
+                                            </span>
+                                          </label>
+                                        </div>
+                                        {/* Location Display Card */}
+                                        {puppetLocation ? (
+                                          <div className="relative rounded-xl bg-gradient-to-br from-grounded-copper/10 via-grounded-copper/5 to-transparent dark:from-grounded-copper/20 dark:via-grounded-copper/10 border-2 border-grounded-copper/20 dark:border-grounded-copper/30 p-4 shadow-sm w-full min-w-0 overflow-hidden">
+                                            <div className="flex items-start justify-between gap-3 mb-3">
+                                              <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-grounded-copper/20 dark:bg-grounded-copper/30 flex items-center justify-center">
+                                                  <svg className="w-4 h-4 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                  </svg>
+                                                </div>
+                                                <div>
+                                                  <div className="text-xs font-semibold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment">
+                                                    Current Location
+                                                  </div>
+                                                  <div className="text-[10px] text-grounded-charcoal/60 dark:text-grounded-parchment/60 mt-0.5">
+                                                    Puppet position
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              <button
+                                                type="button"
+                                                onClick={async () => {
+                                                  const coords = `${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}`;
+                                                  try {
+                                                    await navigator.clipboard.writeText(coords);
+                                                    pushToast("Copied!", ["Coordinates copied to clipboard"]);
+                                                  } catch (err) {
+                                                    // Fallback for older browsers
+                                                    const textarea = document.createElement("textarea");
+                                                    textarea.value = coords;
+                                                    document.body.appendChild(textarea);
+                                                    textarea.select();
+                                                    document.execCommand("copy");
+                                                    document.body.removeChild(textarea);
+                                                    pushToast("Copied!", ["Coordinates copied to clipboard"]);
+                                                  }
+                                                }}
+                                                className="p-1.5 rounded-lg hover:bg-grounded-charcoal/10 dark:hover:bg-grounded-parchment/10 transition-colors group"
+                                                title="Copy coordinates"
+                                              >
+                                                <svg className="w-3.5 h-3.5 text-grounded-charcoal/60 dark:text-grounded-parchment/60 group-hover:text-grounded-copper transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                              </button>
+                                            </div>
+                                            <div className="space-y-2.5">
+                                              <div className="p-2.5 rounded-lg bg-white/60 dark:bg-grounded-charcoal/40 backdrop-blur-sm border border-grounded-charcoal/10 dark:border-grounded-parchment/10">
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                  <svg className="w-3.5 h-3.5 text-grounded-copper flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                                  </svg>
+                                                  <span className="text-xs font-medium text-grounded-charcoal/70 dark:text-grounded-parchment/70">Coordinates</span>
+                                                </div>
+                                                <div className="font-mono text-xs font-semibold text-grounded-charcoal dark:text-grounded-parchment break-words leading-relaxed min-w-0">
+                                                  <div className="break-all" title={`${puppetLocation.lat.toFixed(5)}, ${puppetLocation.lng.toFixed(5)}`}>
+                                                    {puppetLocation.lat.toFixed(5)}, {puppetLocation.lng.toFixed(5)}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/60 dark:bg-grounded-charcoal/40 backdrop-blur-sm border border-grounded-charcoal/10 dark:border-grounded-parchment/10 gap-2">
+                                                <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                                                  <svg className="w-3.5 h-3.5 text-grounded-copper flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                                  </svg>
+                                                  <span className="text-xs font-medium text-grounded-charcoal/70 dark:text-grounded-parchment/70">Accuracy</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                                  <div className="h-2 w-2 rounded-full bg-grounded-copper animate-pulse"></div>
+                                                  <span className="font-semibold text-sm text-grounded-charcoal dark:text-grounded-parchment whitespace-nowrap">
+                                                    {normalizeAccuracyM(puppetAccuracyM)}m
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="px-4 py-6 rounded-xl border-2 border-dashed border-grounded-charcoal/20 dark:border-grounded-parchment/20 bg-grounded-charcoal/5 dark:bg-grounded-parchment/5 text-center">
+                                            <svg className="w-8 h-8 mx-auto mb-2 text-grounded-charcoal/40 dark:text-grounded-parchment/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            <div className="text-xs font-medium text-grounded-charcoal/60 dark:text-grounded-parchment/60">
+                                              No location set
+                                            </div>
+                                            <div className="text-[10px] text-grounded-charcoal/50 dark:text-grounded-parchment/50 mt-1">
+                                              Use buttons below to set location
+                                            </div>
+                                          </div>
+                                        )}
+                                        
+                                        {/* Quick Actions */}
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <Button
+                                            variant="light"
+                                            size="sm"
+                                            onClick={() => {
+                                              const center = mapRef.current?.getCenter()?.toJSON() ?? DEFAULT_CENTER;
+                                              setPuppetLocationFromLatLng(center);
+                                            }}
+                                            disabled={!isLoaded}
+                                            className="text-xs"
+                                          >
+                                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            Map Center
+                                          </Button>
+                                          <Button
+                                            variant="light"
+                                            size="sm"
+                                            onClick={() => {
+                                              if (!selectedNode) return;
+                                              setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
+                                            }}
+                                            disabled={!selectedNode}
+                                            className="text-xs"
+                                          >
+                                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            Selected Node
+                                          </Button>
+                                        </div>
+
+                                        {/* Accuracy Control */}
+                                        <div className="space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <label className="text-xs font-semibold text-grounded-charcoal/80 dark:text-grounded-parchment/80">
+                                              Accuracy Radius
+                                            </label>
+                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-grounded-charcoal/5 dark:bg-grounded-parchment/5">
+                                              <span className="text-xs font-mono font-semibold text-grounded-charcoal dark:text-grounded-parchment">
+                                                {normalizeAccuracyM(puppetAccuracyM)}m
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="relative">
+                                            <input
+                                              type="range"
+                                              min={1}
+                                              max={50}
+                                              step={1}
+                                              value={normalizeAccuracyM(puppetAccuracyM)}
+                                              onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
+                                              className="w-full h-2 bg-grounded-charcoal/10 dark:bg-grounded-parchment/10 rounded-lg appearance-none cursor-pointer accent-grounded-copper"
+                                              style={{
+                                                background: `linear-gradient(to right, #D97706 0%, #D97706 ${(normalizeAccuracyM(puppetAccuracyM) / 50) * 100}%, rgba(26, 23, 21, 0.1) ${(normalizeAccuracyM(puppetAccuracyM) / 50) * 100}%, rgba(26, 23, 21, 0.1) 100%)`
+                                              }}
+                                            />
+                                            <div className="flex items-center justify-between mt-1.5 text-[10px] text-grounded-charcoal/50 dark:text-grounded-parchment/50">
+                                              <span>1m</span>
+                                              <span>25m</span>
+                                              <span>50m</span>
+                                            </div>
+                                          </div>
+                                          <div className="flex gap-2">
+                                            {[3, 5, 8, 10].map((value) => (
+                                              <button
+                                                key={value}
+                                                type="button"
+                                                onClick={() => setPuppetAccuracyM(value)}
+                                                className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                                                  normalizeAccuracyM(puppetAccuracyM) === value
+                                                    ? "bg-grounded-copper text-white shadow-sm"
+                                                    : "bg-grounded-charcoal/5 dark:bg-grounded-parchment/5 text-grounded-charcoal/70 dark:text-grounded-parchment/70 hover:bg-grounded-charcoal/10 dark:hover:bg-grounded-parchment/10"
+                                                }`}
+                                              >
+                                                {value}m
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="border-t border-grounded-charcoal/10 dark:border-grounded-parchment/10 pt-4">
+                                    {/* Auto-Verify */}
+                                    <div className="space-y-4">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-7 h-7 rounded-lg bg-grounded-copper/10 dark:bg-grounded-copper/20 flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                          </div>
+                                          <h4 className="text-xs font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment">
+                                            Auto-Verify
+                                          </h4>
+                                        </div>
+                                        {demoAutoVerify && (
+                                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-grounded-copper/10 dark:bg-grounded-copper/20 border border-grounded-copper/30">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-grounded-copper animate-pulse"></div>
+                                            <span className="text-[10px] font-semibold text-grounded-copper uppercase tracking-wide">Active</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      <div className={`p-3 rounded-lg border-2 transition-all ${
+                                        demoAutoVerify 
+                                          ? "bg-grounded-copper/5 dark:bg-grounded-copper/10 border-grounded-copper/30 dark:border-grounded-copper/40" 
+                                          : "bg-grounded-charcoal/5 dark:bg-grounded-parchment/5 border-grounded-charcoal/10 dark:border-grounded-parchment/10"
+                                      }`}>
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                          <div className="relative">
+                                            <input
+                                              type="checkbox"
+                                              checked={demoAutoVerify}
+                                              onChange={(event) => setDemoAutoVerify(event.target.checked)}
+                                              className="w-5 h-5 rounded border-2 border-grounded-charcoal/30 dark:border-grounded-parchment/30 text-grounded-copper focus:ring-2 focus:ring-grounded-copper/50 transition-all cursor-pointer"
+                                            />
+                                            {demoAutoVerify && (
+                                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                <svg className="w-3 h-3 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="flex-1">
+                                            <div className="text-sm font-medium text-grounded-charcoal dark:text-grounded-parchment">
+                                              Automatically verify captures
+                                            </div>
+                                            <div className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60 mt-0.5">
+                                              After upload, verify capture as admin
+                                            </div>
+                                          </div>
+                                        </label>
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <label className="text-xs font-semibold text-grounded-charcoal/80 dark:text-grounded-parchment/80">
+                                            Admin API Token
+                                          </label>
+                                          {demoAdminToken ? (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-grounded-copper/10 dark:bg-grounded-copper/20">
+                                              <svg className="w-3 h-3 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                              </svg>
+                                              <span className="text-[10px] font-medium text-grounded-copper">Set</span>
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-grounded-charcoal/10 dark:bg-grounded-parchment/10">
+                                              <span className="text-[10px] font-medium text-grounded-charcoal/60 dark:text-grounded-parchment/60">Required</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="relative">
+                                          <input
+                                            type="password"
+                                            value={demoAdminToken}
+                                            onChange={(event) => setDemoAdminToken(event.target.value)}
+                                            placeholder="Paste ADMIN_API_TOKEN here"
+                                            className={`w-full px-3 py-2.5 pr-10 rounded-lg border-2 text-sm focus:outline-none focus:ring-2 transition-all font-mono ${
+                                              demoAdminToken
+                                                ? "border-grounded-copper/40 dark:border-grounded-copper/50 bg-grounded-copper/5 dark:bg-grounded-copper/10 focus:ring-grounded-copper/50 focus:border-grounded-copper"
+                                                : "border-grounded-charcoal/20 dark:border-grounded-parchment/20 bg-white dark:bg-grounded-charcoal/50 focus:ring-grounded-copper/50 focus:border-grounded-copper/50"
+                                            }`}
+                                          />
+                                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            {demoAdminToken ? (
+                                              <svg className="w-4 h-4 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            ) : (
+                                              <svg className="w-4 h-4 text-grounded-charcoal/40 dark:text-grounded-parchment/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                              </svg>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="px-3 py-2 rounded-lg bg-grounded-charcoal/5 dark:bg-grounded-parchment/5 border border-grounded-charcoal/10 dark:border-grounded-parchment/10">
+                                          <p className="text-xs text-grounded-charcoal/70 dark:text-grounded-parchment/70 leading-relaxed">
+                                            <span className="font-medium">Tip:</span> You can also set this via the{" "}
+                                            <code className="px-1.5 py-0.5 rounded bg-grounded-charcoal/10 dark:bg-grounded-parchment/10 font-mono text-[10px]">
+                                              VITE_ADMIN_API_TOKEN
+                                            </code>{" "}
+                                            environment variable.
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="border-t border-grounded-charcoal/10 dark:border-grounded-parchment/10 pt-4">
+                                    {/* Session */}
+                                    <div className="space-y-4">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-lg bg-grounded-copper/10 dark:bg-grounded-copper/20 flex items-center justify-center">
+                                          <svg className="w-4 h-4 text-grounded-copper" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                          </svg>
+                                        </div>
+                                        <h4 className="text-xs font-bold uppercase tracking-wide text-grounded-charcoal dark:text-grounded-parchment">
+                                          Session
+                                        </h4>
+                                      </div>
+                                      
+                                      <div className="space-y-3">
                                         <Button
-                                          variant="light"
+                                          variant={demoDeviceLocked ? "light" : "copper"}
                                           size="sm"
-                                          onClick={() => {
-                                            if (!selectedNode) return;
-                                            setPuppetLocationFromLatLng({ lat: selectedNode.lat, lng: selectedNode.lng });
-                                          }}
-                                          disabled={!selectedNode}
+                                          onClick={() => void handleNewDemoUser()}
+                                          disabled={demoDeviceLocked}
+                                          className="w-full text-xs font-semibold py-2.5"
                                         >
-                                          Set to selected node
+                                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                          </svg>
+                                          Create New Demo User
                                         </Button>
-                                      </div>
-                                      <div className="mt-2">
-                                        <label className="block text-xs uppercase tracking-wide text-grounded-charcoal/70 dark:text-grounded-parchment/70 mb-1">
-                                          Puppet accuracy (meters)
-                                        </label>
-                                        <input
-                                          type="number"
-                                          min={1}
-                                          max={50}
-                                          step={1}
-                                          value={normalizeAccuracyM(puppetAccuracyM)}
-                                          onChange={(event) => setPuppetAccuracyM(normalizeAccuracyM(Number(event.target.value)))}
-                                          className="w-full px-3 py-2 rounded-lg border border-grounded-charcoal/20 dark:border-grounded-parchment/20 bg-white dark:bg-grounded-charcoal/50"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Auto-verify */}
-                                  <div>
-                                    <div className="text-xs uppercase tracking-wide text-grounded-charcoal/70 dark:text-grounded-parchment/70 mb-2">
-                                      Auto-verify (rank up)
-                                    </div>
-                                    <div className="space-y-2">
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={demoAutoVerify}
-                                          onChange={(event) => setDemoAutoVerify(event.target.checked)}
-                                          className="w-4 h-4 rounded border-grounded-charcoal/20 text-grounded-copper focus:ring-grounded-copper"
-                                        />
-                                        <span className="text-sm text-grounded-charcoal dark:text-grounded-parchment">
-                                          After upload, verify capture as admin
-                                        </span>
-                                      </label>
-                                      <div>
-                                        <label className="block text-xs uppercase tracking-wide text-grounded-charcoal/70 dark:text-grounded-parchment/70 mb-1">
-                                          Admin token (X-Admin-Token)
-                                        </label>
-                                        <input
-                                          type="password"
-                                          value={demoAdminToken}
-                                          onChange={(event) => setDemoAdminToken(event.target.value)}
-                                          placeholder="Paste ADMIN_API_TOKEN (or set VITE_ADMIN_API_TOKEN)"
-                                          className="w-full px-3 py-2 rounded-lg border border-grounded-charcoal/20 dark:border-grounded-parchment/20 bg-white dark:bg-grounded-charcoal/50 text-sm"
-                                        />
+                                        
+                                        {demoDeviceLocked ? (
+                                          <div className="px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800/50">
+                                            <div className="flex items-start gap-2.5">
+                                              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                              </svg>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                                                  Device Locked
+                                                </div>
+                                                <div className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                                                  Demo device is locked via{" "}
+                                                  <code className="px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 font-mono text-[10px]">
+                                                    VITE_DEMO_DEVICE_ID
+                                                  </code>
+                                                  . Create new users is disabled.
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="px-3 py-2 rounded-lg bg-grounded-charcoal/5 dark:bg-grounded-parchment/5 border border-grounded-charcoal/10 dark:border-grounded-parchment/10">
+                                            <div className="text-xs text-grounded-charcoal/70 dark:text-grounded-parchment/70 leading-relaxed">
+                                              Creates a new anonymous session with a fresh device ID. Useful for testing different user states.
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
-                                  </div>
-
-                                  {/* Session */}
-                                  <div>
-                                    <div className="text-xs uppercase tracking-wide text-grounded-charcoal/70 dark:text-grounded-parchment/70 mb-2">
-                                      Session
-                                    </div>
-                                    <Button variant="light" size="sm" onClick={() => void handleNewDemoUser()} disabled={demoDeviceLocked}>
-                                      New demo user
-                                    </Button>
-                                    {demoDeviceLocked ? (
-                                      <div className="text-xs text-grounded-charcoal/60 dark:text-grounded-parchment/60 mt-2">
-                                        Demo device is locked via VITE_DEMO_DEVICE_ID.
-                                      </div>
-                                    ) : null}
                                   </div>
                                 </div>
                               </details>
